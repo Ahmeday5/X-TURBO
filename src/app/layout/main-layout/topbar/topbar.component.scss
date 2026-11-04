@@ -1,0 +1,111 @@
+/* ── TOPBAR ── */
+.topbar {
+  height: 50px;
+  background: var(--bg2);
+  border-bottom: 1px solid var(--brd);
+  display: flex;
+  align-items: center;
+  padding: 0 14px;
+  gap: 10px;
+  flex-shrink: 0;
+  z-index: 100;
+  position: relative;
+  @media (max-width: 992px) {
+    z-index: 1100;
+  }
+}
+
+/* ── Hamburger (mobile only) ── */
+.t-hamburger {
+  display: none;
+  width: 34px;
+  height: 34px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--brd);
+  border-radius: var(--r);
+  background: transparent;
+  color: var(--txt2);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.12s;
+
+  &:hover {
+    background: var(--bg3);
+  }
+
+  @media (max-width: 991px) {
+    display: flex;
+  }
+}
+
+/* ── Logo ── */
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--bl);
+  cursor: pointer;
+  text-decoration: none;
+  white-space: nowrap;
+  flex-shrink: 0;
+
+  @media (min-width: 992px) {
+    min-width: 140px;
+  }
+}
+
+.logo-text {
+  @media (max-width: 576px) {
+    display: none;
+  }
+}
+
+/* ── Right actions group ── */
+.tright {
+  margin-inline-start: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ── User avatar ── */
+.tav {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--bl-l);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--bl);
+  flex-shrink: 0;
+}
+
+.tname {
+  font-size: 11px;
+  color: var(--txt2);
+  white-space: nowrap;
+
+  @media (max-width: 768px) {
+    display: none;
+  }
+}
+
+.trole {
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 20px;
+  background: var(--gr-l);
+  color: var(--gr);
+  font-weight: 600;
+  white-space: nowrap;
+
+  @media (max-width: 768px) {
+    display: none;
+  }
+}

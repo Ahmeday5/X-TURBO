@@ -1,0 +1,129 @@
+@if (count() > 0) {
+<div class="pg" [class.pg--busy]="disabled()" [attr.aria-busy]="disabled() ? 'true' : null">
+
+  <!-- Record range + page-size picker -->
+  <div class="pg-meta">
+    <span class="pg-range">
+      Showing
+      <strong>{{ fromIndex() }}</strong>–<strong>{{ toIndex() }}</strong>
+      of
+      <strong>{{ count() }}</strong>
+      results
+    </span>
+
+    @if (showPageSize()) {
+      <label class="pg-size-label">
+        <span>Rows</span>
+        <select
+          class="pg-size-select"
+          [value]="pageSize()"
+          [disabled]="disabled()"
+          (change)="onPageSizeChange($any($event.target).value)"
+          aria-label="Rows per page"
+        >
+          @for (opt of pageSizeOptions(); track opt) {
+            <option [value]="opt" [selected]="opt === pageSize()">{{ opt }}</option>
+          }
+        </select>
+      </label>
+    }
+  </div>
+
+  <!-- Navigation -->
+  @if (totalPages() > 1) {
+    <nav class="pg-nav" aria-label="Pagination">
+
+      <button
+        type="button"
+        class="pg-btn pg-btn--edge"
+        [disabled]="!canFirst() || disabled()"
+        (click)="goToFirst()"
+        aria-label="First page"
+        title="First page"
+      >
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+          <path d="M10 3L6 7l4 4M5 3v8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+
+      <button
+        type="button"
+        class="pg-btn pg-btn--step"
+        [disabled]="!canPrev() || disabled()"
+        (click)="prev()"
+        aria-label="Previous page"
+        title="Previous"
+      >
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+          <path d="M8.5 3.5L5 7l3.5 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+
+      @for (item of windowItems(); track $index) {
+        @if (item.page === null) {
+          <span class="pg-ellipsis" aria-hidden="true">···</span>
+        } @else {
+          <button
+            type="button"
+            class="pg-btn"
+            [class.pg-btn--active]="item.active"
+            [disabled]="disabled()"
+            [attr.aria-current]="item.active ? 'page' : null"
+            [attr.aria-label]="'Page ' + item.page"
+            (click)="goTo(item.page)"
+          >{{ item.page }}</button>
+        }
+      }
+
+      <button
+        type="button"
+        class="pg-btn pg-btn--step"
+        [disabled]="!canNext() || disabled()"
+        (click)="next()"
+        aria-label="Next page"
+        title="Next"
+      >
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+          <path d="M5.5 3.5L9 7l-3.5 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+
+      <button
+        type="button"
+        class="pg-btn pg-btn--edge"
+        [disabled]="!canLast() || disabled()"
+        (click)="goToLast()"
+        aria-label="Last page"
+        title="Last page"
+      >
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+          <path d="M4 3l4 4-4 4M9 3v8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+
+    </nav>
+  }
+
+  <!-- Jump-to-page -->
+  @if (totalPages() > 2) {
+    <div class="pg-jump" role="group" aria-label="Jump to page">
+      <span class="pg-jump-label">Go to</span>
+      <input
+        class="pg-jump-input"
+        type="number"
+        min="1"
+        [max]="totalPages()"
+        [disabled]="disabled()"
+        [value]="jumpInput()"
+        placeholder="{{ pageIndex() }}"
+        aria-label="Page number"
+        (input)="jumpInput.set($any($event.target).value)"
+        (keydown)="onJumpKeydown($event)"
+        (blur)="commitJump()"
+      />
+      <span class="pg-jump-total">/ {{ totalPages() }}</span>
+    </div>
+  }
+
+</div>
+}

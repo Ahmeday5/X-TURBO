@@ -1,0 +1,55 @@
+  <!DOCTYPE html>
+<html lang="en" dir="ltr">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#1b5fa8" />
+  <meta name="color-scheme" content="light dark" />
+  <title>Angular Starter</title>
+  <base href="/" />
+  <meta name="description" content="Angular starter template" />
+
+  <style>
+    /* Critical inline CSS — paints the shell instantly */
+    :root { --bg:#f8f7f5; --txt:#1a1a18; --bl:#1b5fa8; --brd:rgba(0,0,0,.1); }
+    *,*::before,*::after { box-sizing: border-box; }
+    html,body { margin:0; padding:0; }
+    html { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; }
+    body {
+      background: var(--bg);
+      color: var(--txt);
+      font-size: 13px;
+      min-height: 100dvh;
+      overflow: hidden;
+    }
+    .app-boot {
+      position: fixed;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      gap: 14px;
+      background: var(--bg);
+    }
+    .app-boot__spin {
+      width: 28px; height: 28px;
+      border: 2px solid var(--brd);
+      border-top-color: var(--bl);
+      border-radius: 50%;
+      animation: app-boot-spin .8s linear infinite;
+    }
+    @keyframes app-boot-spin { to { transform: rotate(360deg); } }
+    app-root:not(:empty) ~ .app-boot,
+    app-root:has(*) + .app-boot { display: none; }
+  </style>
+</head>
+
+<body>
+  <app-root></app-root>
+
+  <div class="app-boot" aria-hidden="true">
+    <span class="app-boot__spin"></span>
+  </div>
+</body>
+
+</html>
