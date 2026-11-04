@@ -1,0 +1,73 @@
+:host {
+  display: block;
+  aspect-ratio: 1;
+}
+
+.tb {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+
+  // Every animated group rotates about the artwork's centre.
+  .tb-ring,
+  .tb-orbit,
+  .tb-impeller,
+  .tb-sheen,
+  .tb-glow {
+    transform-box: view-box;
+    transform-origin: 200px 200px;
+  }
+}
+
+.tb-glow {
+  animation: tb-pulse 3.2s ease-in-out infinite;
+}
+
+.tb-ring--dots {
+  animation: tb-spin 60s linear infinite;
+}
+
+.tb-ring--arcs {
+  animation: tb-spin 9s linear infinite reverse;
+}
+
+.tb-ring--ticks {
+  animation: tb-spin 40s linear infinite;
+}
+
+.tb-orbit {
+  animation: tb-spin 7s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
+}
+
+// Spool-up on load (accelerating two turns), then a steady fast spin.
+// 720deg ≡ 0deg, so the hand-off between the two animations is seamless.
+.tb-impeller {
+  animation:
+    tb-spool 2.2s cubic-bezier(0.55, 0, 1, 0.6) both,
+    tb-spin 0.9s linear 2.2s infinite;
+}
+
+.tb-sheen {
+  animation: tb-spin 1.6s linear infinite;
+}
+
+@keyframes tb-spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes tb-spool {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(720deg); }
+}
+
+@keyframes tb-pulse {
+  0%, 100% { opacity: 0.75; transform: scale(0.94); }
+  50%      { opacity: 1;    transform: scale(1.04); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tb * {
+    animation: none !important;
+  }
+}

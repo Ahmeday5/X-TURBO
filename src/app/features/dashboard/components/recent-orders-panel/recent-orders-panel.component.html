@@ -1,0 +1,49 @@
+<section class="panel">
+  <header class="panel__head">
+    <div>
+      <h2 class="panel__title">أحدث الطلبات</h2>
+      <p class="panel__sub">آخر الحركات على كل القنوات</p>
+    </div>
+    <a class="ro__all" routerLink="/orders">عرض الكل <app-icon name="arrow-right" [size]="14" /></a>
+  </header>
+
+  <div class="ro__scroll">
+    <table class="ro">
+      <thead>
+        <tr>
+          <th>رقم الطلب</th>
+          <th>العميل</th>
+          <th>القناة</th>
+          <th class="ro__num">الإجمالي</th>
+          <th>الحالة</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (o of orders(); track o.id; let i = $index) {
+        <tr class="ro__row" [style.--i]="i">
+          <td>
+            <div class="ro__id ltr">{{ o.id }}</div>
+            <div class="ro__time"><app-icon name="clock" [size]="11" />{{ formatRelative(o.createdAt) }}</div>
+          </td>
+          <td>
+            <div class="ro__customer">
+              <span class="ro__avatar" aria-hidden="true">{{ initials(o.customer) }}</span>
+              <span>{{ o.customer }}</span>
+            </div>
+          </td>
+          <td class="ro__muted">{{ o.channel }}</td>
+          <td class="ro__num">
+            <div class="ro__total">{{ formatMoney(o.total) }}</div>
+            <div class="ro__time">{{ itemsLabel(o.itemCount) }}</div>
+          </td>
+          <td>
+            <span class="status-pill" [class]="'status-pill status-pill--' + status[o.status].tone">
+              {{ status[o.status].label }}
+            </span>
+          </td>
+        </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</section>

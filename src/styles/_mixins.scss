@@ -1,0 +1,26 @@
+/* Shared SCSS helpers — no CSS output on their own. */
+
+/// Solid button colour variant. `$name` is the status token prefix
+/// (bl, gr, re…); dark mode swaps in the deeper `--{name}-solid` fill.
+@mixin button-variant($name) {
+  $fill: var(--#{$name}-solid, var(--#{$name}));
+
+  background: $fill;
+  color: #fff;
+  border-color: $fill;
+
+  &:hover,
+  &:focus {
+    background: $fill;
+    color: #fff;
+    border-color: $fill;
+    filter: brightness(1.08);
+  }
+}
+
+/// Disable motion for users who ask for it.
+@mixin reduced-motion {
+  @media (prefers-reduced-motion: reduce) {
+    @content;
+  }
+}

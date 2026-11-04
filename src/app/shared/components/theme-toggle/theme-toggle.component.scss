@@ -1,0 +1,86 @@
+:host {
+  display: inline-flex;
+}
+
+.tt {
+  --tt-size: 36px;
+
+  width: var(--tt-size);
+  height: var(--tt-size);
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 1px solid var(--brd2);
+  background: var(--bg2);
+  color: var(--txt2);
+  cursor: pointer;
+  padding: 0;
+  transition:
+    color var(--dur),
+    background var(--dur),
+    border-color var(--dur),
+    transform var(--dur) var(--ease-out);
+
+  &:hover {
+    color: var(--primary);
+    border-color: rgba(var(--primary-rgb), 0.4);
+    transform: rotate(-12deg) scale(1.05);
+  }
+
+  &:active {
+    transform: scale(0.92);
+  }
+
+  &:focus-visible {
+    outline: none;
+    box-shadow: var(--focus-ring);
+  }
+}
+
+.tt-svg {
+  overflow: visible;
+  transition: transform 0.5s var(--ease-out);
+}
+
+.tt-core {
+  transform-origin: center;
+  transition: r 0.45s var(--ease-out);
+}
+
+.tt-moon-bite {
+  transition: cx 0.45s var(--ease-out), cy 0.45s var(--ease-out);
+}
+
+.tt-rays {
+  transform-origin: center;
+  transition:
+    opacity 0.3s,
+    transform 0.5s var(--ease-out);
+}
+
+/* ── Dark: rays collapse, a bite turns the sun into a moon ── */
+.tt.is-dark {
+  .tt-svg {
+    transform: rotate(-40deg);
+  }
+  .tt-core {
+    r: 8;
+  }
+  .tt-moon-bite {
+    cx: 17;
+    cy: 8;
+  }
+  .tt-rays {
+    opacity: 0;
+    transform: rotate(-60deg) scale(0.4);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tt-svg,
+  .tt-core,
+  .tt-moon-bite,
+  .tt-rays {
+    transition: none;
+  }
+}

@@ -48,7 +48,7 @@ export const timeoutInterceptor: HttpInterceptorFn = (req, next) => {
               status: 0,
               statusText: 'Timeout',
               url: req.urlWithParams,
-              error: { message: 'The request timed out' },
+              error: { message: 'انتهت مهلة الطلب، حاول مرة أخرى' },
             }),
         );
       }

@@ -4,22 +4,22 @@
   <!-- Record range + page-size picker -->
   <div class="pg-meta">
     <span class="pg-range">
-      Showing
+      عرض
       <strong>{{ fromIndex() }}</strong>–<strong>{{ toIndex() }}</strong>
-      of
+      من
       <strong>{{ count() }}</strong>
-      results
+      نتيجة
     </span>
 
     @if (showPageSize()) {
       <label class="pg-size-label">
-        <span>Rows</span>
+        <span>عدد الصفوف</span>
         <select
           class="pg-size-select"
           [value]="pageSize()"
           [disabled]="disabled()"
           (change)="onPageSizeChange($any($event.target).value)"
-          aria-label="Rows per page"
+          aria-label="عدد الصفوف في الصفحة"
         >
           @for (opt of pageSizeOptions(); track opt) {
             <option [value]="opt" [selected]="opt === pageSize()">{{ opt }}</option>
@@ -29,19 +29,19 @@
     }
   </div>
 
-  <!-- Navigation -->
+  <!-- Navigation (arrows are drawn LTR and mirrored under RTL) -->
   @if (totalPages() > 1) {
-    <nav class="pg-nav" aria-label="Pagination">
+    <nav class="pg-nav" aria-label="التنقل بين الصفحات">
 
       <button
         type="button"
         class="pg-btn pg-btn--edge"
         [disabled]="!canFirst() || disabled()"
         (click)="goToFirst()"
-        aria-label="First page"
-        title="First page"
+        aria-label="الصفحة الأولى"
+        title="الصفحة الأولى"
       >
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+        <svg class="pg-arrow" width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
           <path d="M10 3L6 7l4 4M5 3v8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       </button>
@@ -51,10 +51,10 @@
         class="pg-btn pg-btn--step"
         [disabled]="!canPrev() || disabled()"
         (click)="prev()"
-        aria-label="Previous page"
-        title="Previous"
+        aria-label="الصفحة السابقة"
+        title="السابق"
       >
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+        <svg class="pg-arrow" width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
           <path d="M8.5 3.5L5 7l3.5 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       </button>
@@ -69,7 +69,7 @@
             [class.pg-btn--active]="item.active"
             [disabled]="disabled()"
             [attr.aria-current]="item.active ? 'page' : null"
-            [attr.aria-label]="'Page ' + item.page"
+            [attr.aria-label]="'صفحة ' + item.page"
             (click)="goTo(item.page)"
           >{{ item.page }}</button>
         }
@@ -80,10 +80,10 @@
         class="pg-btn pg-btn--step"
         [disabled]="!canNext() || disabled()"
         (click)="next()"
-        aria-label="Next page"
-        title="Next"
+        aria-label="الصفحة التالية"
+        title="التالي"
       >
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+        <svg class="pg-arrow" width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
           <path d="M5.5 3.5L9 7l-3.5 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       </button>
@@ -93,10 +93,10 @@
         class="pg-btn pg-btn--edge"
         [disabled]="!canLast() || disabled()"
         (click)="goToLast()"
-        aria-label="Last page"
-        title="Last page"
+        aria-label="الصفحة الأخيرة"
+        title="الصفحة الأخيرة"
       >
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+        <svg class="pg-arrow" width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
           <path d="M4 3l4 4-4 4M9 3v8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       </button>
@@ -106,8 +106,8 @@
 
   <!-- Jump-to-page -->
   @if (totalPages() > 2) {
-    <div class="pg-jump" role="group" aria-label="Jump to page">
-      <span class="pg-jump-label">Go to</span>
+    <div class="pg-jump" role="group" aria-label="الانتقال إلى صفحة">
+      <span class="pg-jump-label">انتقل إلى</span>
       <input
         class="pg-jump-input"
         type="number"
@@ -116,7 +116,7 @@
         [disabled]="disabled()"
         [value]="jumpInput()"
         placeholder="{{ pageIndex() }}"
-        aria-label="Page number"
+        aria-label="رقم الصفحة"
         (input)="jumpInput.set($any($event.target).value)"
         (keydown)="onJumpKeydown($event)"
         (blur)="commitJump()"

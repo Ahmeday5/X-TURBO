@@ -1,0 +1,132 @@
+:host {
+  display: block;
+  height: 100%;
+}
+
+.ls__all {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--primary);
+  text-decoration: none;
+  white-space: nowrap;
+
+  app-icon {
+    transition: transform var(--dur) var(--ease-out);
+  }
+  &:hover app-icon {
+    transform: translateX(calc(3px * var(--dir)));
+  }
+}
+
+.ls {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+
+  &__row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--brd);
+    animation: ls-in 0.45s var(--ease-out) both;
+    animation-delay: calc(var(--i, 0) * 60ms + 150ms);
+
+    &:last-child {
+      border-bottom: 0;
+      padding-bottom: 0;
+    }
+  }
+
+  &__icon {
+    width: 34px;
+    height: 34px;
+    flex-shrink: 0;
+    display: grid;
+    place-items: center;
+    border-radius: 10px;
+    background: var(--am-l);
+    color: var(--am);
+
+    &--critical {
+      background: var(--re-l);
+      color: var(--re);
+      animation: ls-pulse 2.4s ease-in-out infinite;
+    }
+  }
+
+  &__body {
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__name {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--txt);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__meta {
+    margin: 1px 0 6px;
+    font-size: 11px;
+    color: var(--txt3);
+  }
+
+  &__track {
+    height: 4px;
+    border-radius: 999px;
+    background: var(--am-l);
+    overflow: hidden;
+    --fill: var(--am);
+
+    &--critical {
+      background: var(--re-l);
+      --fill: var(--re);
+    }
+  }
+
+  &__fill {
+    display: block;
+    height: 100%;
+    border-radius: 999px;
+    background: var(--fill);
+  }
+
+  &__qty {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+    font-size: 11px;
+    color: var(--txt3);
+    font-variant-numeric: tabular-nums;
+
+    b {
+      font-size: 15px;
+      color: var(--txt);
+    }
+  }
+}
+
+@keyframes ls-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: none; }
+}
+
+@keyframes ls-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(var(--primary-rgb), 0); }
+  50%      { box-shadow: 0 0 0 5px rgba(var(--primary-rgb), 0.12); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ls__row,
+  .ls__icon--critical {
+    animation: none;
+  }
+}

@@ -32,6 +32,11 @@
   }
 }
 
+/* Arrows are drawn for LTR; mirror them so "previous" points back in RTL. */
+:host-context([dir='rtl']) .pg-arrow {
+  transform: scaleX(-1);
+}
+
 .pg-size-label {
   display: inline-flex;
   align-items: center;
@@ -42,7 +47,8 @@
 .pg-size-select {
   font-family: inherit;
   font-size: 12px;
-  padding: 4px 28px 4px 8px;
+  padding-block: 4px;
+  padding-inline: 8px 28px;
   border-radius: var(--r);
   border: 1px solid var(--brd2);
   background: var(--bg2);
@@ -51,7 +57,7 @@
   cursor: pointer;
 
   &:focus-visible {
-    outline: 2px solid var(--bl);
+    outline: 2px solid var(--primary);
     outline-offset: 1px;
   }
 
@@ -91,7 +97,7 @@
   }
 
   &:focus-visible {
-    outline: 2px solid var(--bl);
+    outline: 2px solid var(--primary);
     outline-offset: 1px;
   }
 
@@ -106,9 +112,9 @@
 
   // Active / current page
   &--active {
-    background: var(--bl);
+    background: var(--primary);
     color: #fff;
-    border-color: var(--bl);
+    border-color: var(--primary);
     font-weight: 600;
     cursor: default;
     box-shadow: 0 1px 4px rgba(0,0,0,.18);
@@ -139,7 +145,6 @@
   padding-bottom: 4px;
   color: var(--txt3);
   font-size: 11px;
-  letter-spacing: 1px;
   user-select: none;
 }
 
@@ -173,9 +178,9 @@
   &::placeholder { color: var(--txt3); }
 
   &:focus-visible {
-    outline: 2px solid var(--bl);
+    outline: 2px solid var(--primary);
     outline-offset: 1px;
-    border-color: var(--bl);
+    border-color: var(--primary);
   }
 
   &:disabled { opacity: 0.4; cursor: not-allowed; }

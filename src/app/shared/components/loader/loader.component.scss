@@ -1,7 +1,7 @@
 .loader-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.25);
+  background: var(--overlay);
   z-index: 9999;
   backdrop-filter: blur(2px);
 }
@@ -10,14 +10,14 @@
   background: var(--bg2);
   border-radius: var(--rl);
   padding: 24px 32px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+  box-shadow: var(--shadow-lg);
 }
 
 .spinner-ring {
   width: 36px;
   height: 36px;
-  border: 3px solid var(--bl-l);
-  border-top-color: var(--bl);
+  border: 3px solid var(--primary-soft);
+  border-top-color: var(--primary);
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
 }

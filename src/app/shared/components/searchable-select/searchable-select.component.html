@@ -21,7 +21,7 @@
       <span
         class="ss__clear"
         role="button"
-        aria-label="Clear selection"
+        aria-label="مسح الاختيار"
         (click)="clear($event)"
       >&times;</span>
     } @else {
@@ -60,7 +60,7 @@
             }
           </li>
         } @empty {
-          <li class="ss__empty">No matching results</li>
+          <li class="ss__empty">لا توجد نتائج مطابقة</li>
           @if (allowCreate()) {
             <li class="ss__create" (click)="requestCreate()">
               {{ createLabel() }}

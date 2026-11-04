@@ -1,0 +1,38 @@
+<div class="um" (appClickOutside)="close()">
+  <button type="button" class="um__trigger" [class.is-open]="open()" aria-haspopup="menu" [attr.aria-expanded]="open()"
+    aria-label="قائمة الحساب" (click)="toggle()">
+    <span class="um__avatar">{{ user()?.avatar }}</span>
+    <span class="um__who">
+      <span class="um__name">{{ user()?.name }}</span>
+      <span class="um__role">{{ roleName() }}</span>
+    </span>
+    <app-icon class="um__chev" name="chevron-down" [size]="15" />
+  </button>
+
+  @if (open()) {
+  <div class="um__panel" role="menu" aria-label="الحساب">
+    <div class="um__profile">
+      <span class="um__avatar um__avatar--lg">{{ user()?.avatar }}</span>
+      <div class="um__profile-text">
+        <div class="um__name">{{ user()?.name }}</div>
+        <div class="um__email ltr">{{ user()?.email }}</div>
+        <span class="um__badge">{{ roleName() }}</span>
+      </div>
+    </div>
+
+    <div class="um__sep"></div>
+
+    <button type="button" class="um__item" role="menuitem" (click)="toggleTheme()">
+      <app-icon name="bolt" [size]="16" />
+      <span>{{ theme.isDark() ? 'التبديل إلى الوضع الفاتح' : 'التبديل إلى الوضع الداكن' }}</span>
+    </button>
+
+    <div class="um__sep"></div>
+
+    <button type="button" class="um__item um__item--danger" role="menuitem" (click)="requestSignOut()">
+      <app-icon name="logout" [size]="16" />
+      <span>تسجيل الخروج</span>
+    </button>
+  </div>
+  }
+</div>

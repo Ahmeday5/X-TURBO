@@ -1,0 +1,109 @@
+// Geometry is computed in physical px (mirrored in TS for RTL), so the SVG
+// itself must not inherit RTL — it would flip what text-anchor means.
+:host {
+  position: relative;
+  display: block;
+  width: 100%;
+  direction: ltr;
+}
+
+.ac {
+  display: block;
+  overflow: visible;
+  cursor: crosshair;
+  touch-action: pan-y;
+
+  &:focus-visible {
+    outline: none;
+    border-radius: var(--r);
+    box-shadow: var(--focus-ring);
+  }
+
+  &__grid line {
+    stroke: var(--brd);
+    stroke-width: 1;
+    shape-rendering: crispEdges;
+  }
+
+  &__tick {
+    fill: var(--txt3);
+    font-size: 10.5px;
+    font-variant-numeric: tabular-nums;
+
+    &--y {
+      dominant-baseline: middle;
+    }
+    &--x {
+      text-anchor: middle;
+    }
+  }
+
+  &__area {
+    fill: var(--primary);
+    opacity: 0.1; // a wash, never a saturated block
+  }
+
+  &__line {
+    fill: none;
+    stroke: var(--primary);
+    stroke-width: 2;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+    stroke-dasharray: 1; // with pathLength="1": one dash = whole line, for the draw-in
+  }
+
+  &__crosshair {
+    stroke: var(--txt3);
+    stroke-width: 1;
+    shape-rendering: crispEdges;
+    pointer-events: none;
+  }
+
+  &__marker {
+    fill: var(--primary);
+    stroke: var(--bg2); // surface ring
+    stroke-width: 2;
+    pointer-events: none;
+  }
+}
+
+/* Tooltip — value leads, label follows */
+.ac-tip {
+  position: absolute;
+  z-index: 2;
+  transform: translate(12px, -50%);
+  padding: 8px 11px;
+  border-radius: 10px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--brd);
+  box-shadow: var(--shadow-lg);
+  pointer-events: none;
+  white-space: nowrap;
+
+  &--end {
+    transform: translate(calc(-100% - 12px), -50%);
+  }
+
+  &__value {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--txt);
+  }
+
+  &__label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 2px;
+    font-size: 11px;
+    color: var(--txt2);
+  }
+
+  &__key {
+    width: 12px;
+    height: 2px;
+    border-radius: 2px;
+    background: var(--primary);
+  }
+}
+

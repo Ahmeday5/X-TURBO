@@ -18,8 +18,8 @@ interface PersistedShape<T = unknown> {
 
 /** Bumped when the on-disk shape changes — any older entry is ignored. */
 const PERSIST_VERSION = 1;
-const STORAGE_PREFIX = `app_http_cache_v${PERSIST_VERSION}::`;
-const BROADCAST_CHANNEL = 'app-http-cache';
+const STORAGE_PREFIX = `xturbo_http_cache_v${PERSIST_VERSION}::`;
+const BROADCAST_CHANNEL = 'xturbo-http-cache';
 const SWEEP_INTERVAL_MS = 60_000; // garbage-collect expired entries once a minute
 
 type CrossTabMessage =

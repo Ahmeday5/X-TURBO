@@ -1,21 +1,44 @@
-  <!DOCTYPE html>
-<html lang="en" dir="ltr">
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
 
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="theme-color" content="#1b5fa8" />
+  <meta name="theme-color" content="#ffffff" />
   <meta name="color-scheme" content="light dark" />
-  <title>Angular Starter</title>
+  <title>X-TURBO</title>
   <base href="/" />
-  <meta name="description" content="Angular starter template" />
+  <link rel="icon" type="image/png" href="assets/img/logo-light.png" media="(prefers-color-scheme: light)" />
+  <link rel="icon" type="image/png" href="assets/img/logo-dark.png" media="(prefers-color-scheme: dark)" />
+  <meta name="description" content="لوحة تحكم X-TURBO لقطع غيار السيارات" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <script>
+    /* Anti-flash: apply the saved theme before first paint. Key must match
+       environment.themeKey; ThemeService takes over once Angular boots. */
+    (function () {
+      var theme = 'light';
+      try {
+        var pref = localStorage.getItem('xturbo_theme');
+        var systemDark = window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches;
+        theme = pref === 'dark' || (pref !== 'light' && systemDark) ? 'dark' : 'light';
+      } catch (e) { /* storage blocked — keep light */ }
+      var root = document.documentElement;
+      root.setAttribute('data-theme', theme);
+      root.setAttribute('data-bs-theme', theme);
+    })();
+  </script>
 
   <style>
     /* Critical inline CSS — paints the shell instantly */
-    :root { --bg:#f8f7f5; --txt:#1a1a18; --bl:#1b5fa8; --brd:rgba(0,0,0,.1); }
+    :root { --bg:#f5f5f6; --txt:#111113; --primary:#d9151d; --brd:rgba(17,17,19,.1); }
+    :root[data-theme='dark'] { --bg:#0a0a0b; --txt:#f4f4f5; --primary:#ef2b32; --brd:rgba(255,255,255,.1); }
     *,*::before,*::after { box-sizing: border-box; }
     html,body { margin:0; padding:0; }
-    html { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; }
+    html { font-family: "IBM Plex Sans Arabic", "Segoe UI", Tahoma, Arial, sans-serif; }
     body {
       background: var(--bg);
       color: var(--txt);
@@ -34,7 +57,7 @@
     .app-boot__spin {
       width: 28px; height: 28px;
       border: 2px solid var(--brd);
-      border-top-color: var(--bl);
+      border-top-color: var(--primary);
       border-radius: 50%;
       animation: app-boot-spin .8s linear infinite;
     }

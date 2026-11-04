@@ -3,7 +3,7 @@
     <thead>
       <tr>
         @for (col of columns(); track col.key) {
-        <th [style.width]="col.width" [style.text-align]="col.align ?? 'left'">
+        <th [style.width]="col.width" [style.text-align]="col.align ?? 'start'">
           {{ col.label }}
         </th>
         }
@@ -24,7 +24,7 @@
       @for (row of data(); track rowKey(row)) {
       <tr (click)="rowClick.emit(row)" [style.cursor]="rowClickable() ? 'pointer' : ''">
         @for (col of columns(); track col.key) {
-        <td [style.text-align]="col.align ?? 'left'">
+        <td [style.text-align]="col.align ?? 'start'">
           @if (col.cellTemplate) {
           <ng-container *ngTemplateOutlet="col.cellTemplate; context: { $implicit: row }" />
           } @else {

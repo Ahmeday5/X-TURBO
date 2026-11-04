@@ -48,6 +48,6 @@ export const permissionGuard = (
 
   if (granted) return true;
 
-  toast.error(options.message ?? "You don't have permission to access this page");
+  toast.error(options.message ?? 'ليس لديك صلاحية للوصول إلى هذه الصفحة');
   return router.createUrlTree([options.fallback ?? DEFAULT_AUTHENTICATED_ROUTE]);
 };

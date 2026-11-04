@@ -1,0 +1,33 @@
+<div class="ns" [class.is-open]="open()" (appClickOutside)="close()">
+  <app-icon class="ns__glyph" name="search" [size]="16" />
+  <input #input class="ns__input" type="search" placeholder="ابحث عن صفحة…" autocomplete="off" role="combobox"
+    aria-label="البحث في الصفحات" aria-controls="ns-results" aria-autocomplete="list" [attr.aria-expanded]="open()"
+    [attr.aria-activedescendant]="open() && results().length ? 'ns-opt-' + activeIndex() : null" [value]="term()"
+    (input)="onInput($any($event.target).value)" (focus)="open.set(true)" (keydown)="onKeydown($event)" />
+  <kbd class="ns__kbd ltr" aria-hidden="true">{{ isMac ? '⌘' : 'Ctrl' }} K</kbd>
+
+  @if (open()) {
+  <div class="ns__panel">
+    @if (results().length) {
+    <ul id="ns-results" class="ns__list" role="listbox" aria-label="الصفحات">
+      @for (item of results(); track item.id; let i = $index) {
+      <li [id]="'ns-opt-' + i" class="ns__option" role="option" [class.is-active]="i === activeIndex()"
+        [attr.aria-selected]="i === activeIndex()" (pointerenter)="activeIndex.set(i)"
+        (pointerdown)="$event.preventDefault(); go(item.route)">
+        <span class="ns__icon"><app-icon [name]="item.icon" [size]="16" /></span>
+        <span class="ns__label">{{ item.label }}</span>
+        <span class="ns__section">{{ item.section }}</span>
+      </li>
+      }
+    </ul>
+    } @else {
+    <div class="ns__empty">لا توجد صفحات تطابق «{{ term() }}»</div>
+    }
+    <div class="ns__hint">
+      <span><kbd>↑</kbd><kbd>↓</kbd> للتنقل</span>
+      <span><kbd>Enter</kbd> للفتح</span>
+      <span><kbd>Esc</kbd> للإغلاق</span>
+    </div>
+  </div>
+  }
+</div>

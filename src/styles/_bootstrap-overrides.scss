@@ -1,0 +1,282 @@
+@use 'mixins' as *;
+
+/* ═══════════════════════════════════════════ */
+/* BOOTSTRAP COMPONENT OVERRIDES               */
+/* (truly global — affects the whole app)      */
+/* ═══════════════════════════════════════════ */
+
+/* ── CARD ── */
+.card {
+  background: var(--bg2);
+  border: 1px solid var(--brd);
+  border-radius: var(--rl);
+  padding: 13px;
+  margin-bottom: 11px;
+  box-shadow: var(--shadow);
+  color: var(--txt);
+}
+
+/* ── BUTTONS ── */
+.btn {
+  font-family: var(--font-base);
+  font-size: 11px;
+  border-radius: var(--r);
+  font-weight: 500;
+  padding: 6px 13px;
+  background: var(--bg2);
+  border-color: var(--brd2);
+  color: var(--txt);
+  transition:
+    background var(--dur-fast),
+    border-color var(--dur-fast),
+    color var(--dur-fast),
+    box-shadow var(--dur-fast),
+    filter var(--dur-fast),
+    transform var(--dur-fast);
+  &:hover {
+    background: var(--bg3);
+    color: var(--txt);
+    border-color: var(--brd2);
+  }
+  &:focus {
+    box-shadow: none;
+  }
+  &:focus-visible {
+    box-shadow: var(--focus-ring);
+  }
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  &-sm {
+    padding: 4px 10px;
+    font-size: 10px;
+  }
+
+  /* Brand primary — the default call-to-action */
+  &-primary {
+    background: var(--brand-gradient);
+    color: var(--on-primary);
+    border-color: transparent;
+    box-shadow: 0 6px 18px -8px rgba(var(--primary-rgb), 0.7);
+    &:hover,
+    &:focus {
+      background: var(--brand-gradient);
+      color: var(--on-primary);
+      border-color: transparent;
+      filter: brightness(1.07);
+    }
+    &:active {
+      transform: translateY(1px);
+    }
+  }
+
+  &-bl { @include button-variant(bl); }
+  &-gr { @include button-variant(gr); }
+  &-re { @include button-variant(re); }
+  &-am { @include button-variant(am); }
+  &-te { @include button-variant(te); }
+  &-pu { @include button-variant(pu); }
+}
+
+/* ── BADGE ── */
+.badge {
+  font-size: 9px;
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-weight: 600;
+  &.bok   { background: var(--gr-l); color: var(--gr); }
+  &.bwarn { background: var(--am-l); color: var(--am); }
+  &.bbad  { background: var(--re-l); color: var(--re); }
+  &.binfo { background: var(--bl-l); color: var(--bl-d); }
+  &.bpu   { background: var(--pu-l); color: var(--pu); }
+  &.bte   { background: var(--te-l); color: var(--te); }
+  &.bpi   { background: var(--pi-l); color: var(--pi); }
+  &.bpr   { background: var(--primary-soft); color: var(--primary-strong); }
+}
+
+/* Sidebar live-badge color variants (used by badge.constants.ts) */
+.sbb {
+  background: var(--re-l);
+  color: var(--re);
+  font-size: 9px;
+  padding: 1px 6px;
+  border-radius: 20px;
+  margin-inline-start: auto;
+  font-weight: 700;
+  flex-shrink: 0;
+  &-am { background: var(--am-l); color: var(--am); }
+  &-gr { background: var(--gr-l); color: var(--gr); }
+  &-bl { background: var(--bl-l); color: var(--bl); }
+}
+
+/* ── ALERT ── */
+.alert {
+  border-radius: var(--r);
+  padding: 9px 12px;
+  font-size: 11px;
+  font-weight: 500;
+  border: none;
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  margin-bottom: 9px;
+  &-danger  { background: var(--re-l); color: var(--re); }
+  &-warning { background: var(--am-l); color: var(--am); }
+  &-success { background: var(--gr-l); color: var(--gr); }
+  &-primary { background: var(--primary-soft); color: var(--primary-strong); }
+  &-info    { background: var(--bl-l); color: var(--bl-d); }
+}
+
+/* ── PROGRESS ── */
+.progress {
+  background: var(--bg3);
+  border-radius: 20px;
+  height: 5px;
+  overflow: hidden;
+  margin-top: 4px;
+  &-bar {
+    border-radius: 20px;
+    background: var(--primary);
+    transition: width 0.4s ease;
+  }
+}
+
+/* ── FORMS ── */
+.form-label {
+  font-size: 10px;
+  color: var(--txt2);
+  font-weight: 500;
+  margin-bottom: 3px;
+}
+.form-control,
+.form-select {
+  font-family: var(--font-base);
+  font-size: 11px;
+  color: var(--txt);
+  background-color: var(--bg2);
+  border-color: var(--brd2);
+  border-radius: var(--r);
+  padding: 7px 10px;
+  transition:
+    border-color var(--dur-fast),
+    box-shadow var(--dur-fast),
+    background-color var(--dur-fast);
+  &::placeholder {
+    color: var(--txt3);
+  }
+  &:focus {
+    border-color: var(--primary);
+    box-shadow: var(--focus-ring);
+    background-color: var(--bg2);
+    color: var(--txt);
+  }
+  &.is-invalid {
+    border-color: var(--re);
+  }
+  &.fl-ro {
+    background-color: var(--bg3) !important;
+  }
+}
+
+.form-check-input {
+  background-color: var(--bg2);
+  border-color: var(--brd2);
+  cursor: pointer;
+  &:checked {
+    background-color: var(--primary);
+    border-color: var(--primary);
+  }
+  &:focus {
+    border-color: var(--primary);
+    box-shadow: var(--focus-ring);
+  }
+}
+.form-check-label {
+  cursor: pointer;
+}
+
+/* Browser autofill — keep theme colours instead of the UA's yellow/blue fill. */
+.form-control:-webkit-autofill {
+  -webkit-text-fill-color: var(--txt);
+  caret-color: var(--txt);
+  box-shadow: 0 0 0 1000px var(--bg2) inset;
+  transition: background-color 9999s ease-out;
+
+  &:focus {
+    box-shadow:
+      0 0 0 1000px var(--bg2) inset,
+      var(--focus-ring);
+  }
+}
+
+/* Large form scale — put `.form-lg` on a <form> (auth pages, wizards). */
+.form-lg {
+  .form-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--txt);
+    margin-bottom: 6px;
+  }
+  .form-control {
+    font-size: 13.5px;
+    padding-block: 11px;
+    border-radius: 11px;
+  }
+}
+
+/* Icon-prefixed input: <div class="input-icon"><app-icon class="input-icon__glyph"/><input class="form-control"/></div>.
+   Also reaches inputs rendered inside wrapper components (e.g. app-password-input). */
+.input-icon {
+  position: relative;
+
+  .form-control {
+    padding-inline-start: 38px;
+  }
+
+  &__glyph {
+    position: absolute;
+    inset-inline-start: 13px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--txt3);
+    pointer-events: none;
+    z-index: 1;
+    transition: color var(--dur-fast);
+  }
+
+  &:focus-within &__glyph {
+    color: var(--primary);
+  }
+}
+
+/* ── NAV TABS ── */
+.nav-tabs {
+  border-bottom-color: var(--brd);
+  margin-bottom: 13px;
+  .nav-link {
+    font-size: 11px;
+    color: var(--txt2);
+    font-weight: 500;
+    padding: 8px 14px;
+    border: none;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    background: none;
+    border-radius: 0;
+    &.active,
+    &.on {
+      color: var(--primary);
+      border-bottom-color: var(--primary);
+      font-weight: 600;
+      background: none;
+      border-top: none;
+      border-inline: none;
+    }
+    &:hover:not(.active) {
+      color: var(--txt);
+      background: none;
+      border-color: transparent;
+    }
+  }
+}

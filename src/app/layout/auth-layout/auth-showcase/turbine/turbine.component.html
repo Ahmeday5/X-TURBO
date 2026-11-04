@@ -1,0 +1,65 @@
+<svg class="tb" viewBox="0 0 400 400" aria-hidden="true">
+  <defs>
+    <linearGradient id="tb-brand" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#b5121b" />
+      <stop offset="0.55" stop-color="#e31e24" />
+      <stop offset="1" stop-color="#ff5a5f" />
+    </linearGradient>
+    <radialGradient id="tb-glow">
+      <stop offset="0" stop-color="#ff2a31" stop-opacity="0.55" />
+      <stop offset="0.45" stop-color="#e31e24" stop-opacity="0.18" />
+      <stop offset="1" stop-color="#e31e24" stop-opacity="0" />
+    </radialGradient>
+    <radialGradient id="tb-core" cx="0.4" cy="0.35">
+      <stop offset="0" stop-color="#2a2a2e" />
+      <stop offset="1" stop-color="#0b0b0c" />
+    </radialGradient>
+  </defs>
+
+  <!-- Ambient glow -->
+  <circle class="tb-glow" cx="200" cy="200" r="200" fill="url(#tb-glow)" />
+
+  <!-- Outer dotted ring -->
+  <circle class="tb-ring tb-ring--dots" cx="200" cy="200" r="178" fill="none" stroke="rgba(255,255,255,0.16)"
+    stroke-width="1.5" stroke-dasharray="1.5 9" stroke-linecap="round" />
+
+  <!-- Scanner arcs -->
+  <g class="tb-ring tb-ring--arcs">
+    <circle cx="200" cy="200" r="160" fill="none" stroke="url(#tb-brand)" stroke-width="2.5"
+      stroke-dasharray="120 131" stroke-linecap="round" />
+  </g>
+
+  <!-- Gauge ticks -->
+  <g class="tb-ring tb-ring--ticks">
+    @for (tick of ticks; track tick.angle) {
+    <line x1="200" [attr.y1]="tick.major ? 52 : 56" x2="200" y2="62" [attr.transform]="'rotate(' + tick.angle + ' 200 200)'"
+      [attr.stroke]="tick.major ? 'rgba(255,90,95,0.9)' : 'rgba(255,255,255,0.18)'"
+      [attr.stroke-width]="tick.major ? 2 : 1" stroke-linecap="round" />
+    }
+  </g>
+
+  <!-- Orbiting light -->
+  <g class="tb-orbit">
+    <circle cx="200" cy="22" r="4" fill="#fff" />
+    <circle cx="200" cy="22" r="10" fill="#ff3b41" opacity="0.35" />
+  </g>
+
+  <!-- Volute housing -->
+  <circle cx="200" cy="200" r="122" fill="url(#tb-core)" />
+  <circle cx="200" cy="200" r="122" fill="none" stroke="url(#tb-brand)" stroke-width="12" />
+  <circle cx="200" cy="200" r="104" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="2" />
+
+  <!-- Impeller -->
+  <g class="tb-impeller">
+    @for (angle of blades; track angle) {
+    <path [attr.transform]="'translate(200 200) rotate(' + angle + ')'"
+      d="M0 -20 C 16 -40, 34 -62, 58 -72 L 78 -46 C 54 -40, 32 -26, 17 -10 Z" fill="url(#tb-brand)" />
+    }
+    <circle cx="200" cy="200" r="20" fill="#0b0b0c" stroke="url(#tb-brand)" stroke-width="4" />
+    <circle cx="200" cy="200" r="6" fill="#ff5a5f" />
+  </g>
+
+  <!-- Motion blur sheen over the spinning blades -->
+  <circle class="tb-sheen" cx="200" cy="200" r="96" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="18"
+    stroke-dasharray="60 543" />
+</svg>

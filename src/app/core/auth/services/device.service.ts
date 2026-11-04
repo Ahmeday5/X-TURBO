@@ -3,7 +3,7 @@ import { StorageService } from '../../services/storage.service';
 import { generateUUID } from '../../../shared/utils/uuid.util';
 import { DeviceInfo } from '../models/device.model';
 
-const DEVICE_ID_KEY = 'app_device_id';
+const DEVICE_ID_KEY = 'xturbo_device_id';
 
 /**
  * Resolves a stable per-browser identifier and a human-readable summary that

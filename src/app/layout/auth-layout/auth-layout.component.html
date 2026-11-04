@@ -1,1 +1,34 @@
-<router-outlet />
+<div class="auth-shell">
+  <app-auth-showcase class="auth-shell__showcase" />
+
+  <main class="auth-main" appPointerParallax>
+    <div class="auth-main__bg" aria-hidden="true">
+      <span class="auth-main__orb auth-main__orb--1"></span>
+      <span class="auth-main__orb auth-main__orb--2"></span>
+      <span class="auth-main__grid"></span>
+      <span class="auth-main__spot"></span>
+    </div>
+
+    <header class="auth-main__top">
+      <app-brand-logo class="auth-main__logo" [height]="46" />
+      <app-theme-toggle class="auth-main__toggle" />
+    </header>
+
+    <div class="auth-main__body">
+      <div class="auth-card">
+        <router-outlet />
+      </div>
+    </div>
+
+    <footer class="auth-main__foot">
+      <span>© {{ year }} <span class="ltr">{{ appName }}</span> لقطع غيار السيارات</span>
+      <span class="auth-main__sep" aria-hidden="true"></span>
+      <span class="auth-main__secure">
+        <app-icon name="shield" [size]="13" />
+        مخصص للعاملين المصرّح لهم فقط
+      </span>
+      <span class="auth-main__sep" aria-hidden="true"></span>
+      <span class="ltr">v{{ appVersion }}</span>
+    </footer>
+  </main>
+</div>

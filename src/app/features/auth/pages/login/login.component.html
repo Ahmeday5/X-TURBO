@@ -1,62 +1,78 @@
-<div class="auth-page">
-  <div class="auth-card">
-    <h2 class="fw-bold mb-1 auth-title">Sign in</h2>
-    <p class="mb-4 auth-subtitle">Enter your credentials to access the dashboard</p>
+<section class="av">
+  <span class="av-eyebrow" style="--i: 0"><span class="av-eyebrow__dot"></span>لوحة الإدارة</span>
 
-    <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
-      <div class="mb-3">
-        <label class="form-label">Email</label>
-        <input
-          type="email"
-          class="form-control"
-          formControlName="email"
-          autocomplete="email"
-          placeholder="you@example.com"
-          [class.is-invalid]="isInvalid('email')"
-        />
-        <app-form-error [control]="form.controls.email" label="Email" />
+  <h1 class="av-title" style="--i: 1">مرحبًا بعودتك إلى <span class="av-grad ltr">{{ appName }}</span></h1>
+  <p class="av-sub" style="--i: 2">سجّل دخولك لإدارة الفروع والمخزون والمبيعات والحسابات.</p>
+
+  <form class="av-form form-lg" style="--i: 3" [formGroup]="form" [class.is-shaking]="shake.active()"
+    (animationend)="shake.onAnimationEnd($event)" (ngSubmit)="onSubmit()" novalidate>
+    <div class="av-field">
+      <label class="form-label" for="login-email">البريد الإلكتروني</label>
+      <div class="input-icon">
+        <app-icon class="input-icon__glyph" name="mail" [size]="17" />
+        <input id="login-email" type="email" class="form-control" formControlName="email" autocomplete="email"
+          inputmode="email" placeholder="name@company.com" [class.is-invalid]="isInvalid('email')" />
       </div>
+      <app-form-error [control]="form.controls.email" label="البريد الإلكتروني" />
+    </div>
 
-      <div class="mb-3">
-        <label class="form-label">Password</label>
-        <app-password-input
-          formControlName="password"
-          placeholder="••••••••"
-          autocomplete="current-password"
-        />
-        <app-form-error [control]="form.controls.password" label="Password" />
+    <div class="av-field" (keydown)="onPasswordKey($event)" (keyup)="onPasswordKey($event)">
+      <label class="form-label" for="login-password">كلمة المرور</label>
+      <div class="input-icon">
+        <app-icon class="input-icon__glyph" name="lock" [size]="17" />
+        <app-password-input inputId="login-password" formControlName="password" placeholder="أدخل كلمة المرور"
+          autocomplete="current-password" />
       </div>
-
-      <div class="d-flex justify-content-between align-items-center mb-3">
-        <div class="form-check">
-          <input class="form-check-input" type="checkbox" id="rememberMe" formControlName="rememberMe" />
-          <label class="form-check-label" for="rememberMe">Remember me</label>
-        </div>
-        <a routerLink="/auth/forgot-password" class="auth-link">Forgot password?</a>
+      <app-form-error [control]="form.controls.password" label="كلمة المرور" />
+      @if (capsLock()) {
+      <div class="av-hint" role="status">
+        <app-icon name="alert" [size]="14" />
+        زر Caps Lock مفعّل
       </div>
-
-      @if (serverError(); as msg) {
-        <div class="alert alert-danger auth-alert" role="alert">
-          <span>{{ msg }}</span>
-        </div>
       }
+    </div>
 
-      <button
-        type="submit"
-        class="btn btn-bl w-100 d-flex align-items-center justify-content-center gap-2"
-        [disabled]="isSubmitting()"
-      >
-        @if (isSubmitting()) {
-          <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-          <span>Signing in...</span>
-        } @else {
-          <span>Sign in</span>
-        }
+    <div class="av-row">
+      <div class="form-check form-switch">
+        <input class="form-check-input" type="checkbox" role="switch" id="rememberMe" formControlName="rememberMe" />
+        <label class="form-check-label" for="rememberMe">تذكرني على هذا الجهاز</label>
+      </div>
+    </div>
+
+    @if (serverError(); as msg) {
+    <div class="alert alert-danger av-alert" role="alert">
+      <app-icon name="alert" [size]="16" />
+      <span>{{ msg }}</span>
+    </div>
+    }
+
+    <button type="submit" class="btn btn-primary av-submit" [disabled]="isSubmitting()">
+      @if (isSubmitting()) {
+      <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+      <span>جارٍ تسجيل الدخول…</span>
+      } @else {
+      <span>تسجيل الدخول</span>
+      <span class="av-submit__arrow"><app-icon name="arrow-right" [size]="18" /></span>
+      }
+    </button>
+  </form>
+
+  @if (demoAccounts.length) {
+  <div class="av-demo" style="--i: 4">
+    <div class="av-divider">حسابات تجريبية</div>
+    <div class="av-demo__list">
+      @for (account of demoAccounts; track account.email) {
+      <button type="button" class="av-demo__item" (click)="useDemoAccount(account)"
+        [attr.aria-label]="'استخدام حساب ' + account.role + ' التجريبي'">
+        <span class="av-demo__avatar">{{ account.name.charAt(0) }}</span>
+        <span class="av-demo__text">
+          <span class="av-demo__role">{{ account.role }}</span>
+          <span class="av-demo__email ltr">{{ account.email }}</span>
+        </span>
+        <app-icon class="av-demo__go" name="arrow-right" [size]="15" />
       </button>
-    </form>
-
-    <p class="auth-footer">
-      Don't have an account? <a routerLink="/auth/register" class="auth-link">Register</a>
-    </p>
+      }
+    </div>
   </div>
-</div>
+  }
+</section>

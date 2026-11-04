@@ -31,12 +31,6 @@ export interface LoginRequest {
   deviceId: string;
 }
 
-export interface RegisterRequest {
-  name: string;
-  email: string;
-  password: string;
-}
-
 export interface RefreshTokenRequest {
   refreshToken: string;
   deviceInfo: string;
@@ -45,16 +39,6 @@ export interface RefreshTokenRequest {
 
 export interface LogoutRequest {
   refreshToken: string;
-}
-
-export interface ForgotPasswordRequest {
-  email: string;
-}
-
-export interface ResetPasswordRequest {
-  email: string;
-  token: string;
-  newPassword: string;
 }
 
 /**

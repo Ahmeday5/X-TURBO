@@ -1,0 +1,133 @@
+<aside class="sc" appPointerParallax aria-hidden="true">
+  <!-- ── Background layers ── -->
+  <div class="sc-bg">
+    <div class="sc-aurora">
+      <span class="sc-aurora__blob sc-aurora__blob--1"></span>
+      <span class="sc-aurora__blob sc-aurora__blob--2"></span>
+      <span class="sc-aurora__blob sc-aurora__blob--3"></span>
+    </div>
+    <div class="sc-floor"></div>
+    <div class="sc-streaks"></div>
+    <app-particle-field rgb="255, 70, 76" />
+    <div class="sc-vignette"></div>
+  </div>
+
+  <!-- ── Header ── -->
+  <header class="sc-head">
+    <app-brand-logo tone="on-dark" [height]="58" />
+    <span class="sc-pill"><span class="sc-pill__dot"></span>لوحة الإدارة</span>
+  </header>
+
+  <!-- ── Hero stage: turbine + floating cards ── -->
+  <div class="sc-stage">
+    <div class="sc-layer sc-layer--turbine" style="--depth: 14">
+      <app-turbine class="sc-turbine" />
+    </div>
+
+    <!-- Stock levels -->
+    <div class="sc-layer sc-pos--tl" style="--depth: -26">
+      <div class="sc-card sc-float" style="--float-delay: 0s">
+        <div class="sc-card__head">
+          <span class="sc-card__icon"><app-icon name="box" [size]="15" /></span>
+          <div>
+            <div class="sc-card__title">أرصدة المخزون</div>
+            <div class="sc-card__sub">لحظيًا في كل المخازن</div>
+          </div>
+        </div>
+        <div class="sc-bars">
+          @for (h of bars; track $index) {
+          <span class="sc-bars__bar" [style.--h]="h + '%'" [style.--d]="$index * 0.18 + 's'"></span>
+          }
+        </div>
+      </div>
+    </div>
+
+    <!-- Orders flow -->
+    <div class="sc-layer sc-pos--br" style="--depth: 30">
+      <div class="sc-card sc-float" style="--float-delay: -2.2s">
+        <div class="sc-card__head">
+          <span class="sc-card__icon"><app-icon name="cart" [size]="15" /></span>
+          <div>
+            <div class="sc-card__title">حركة الطلبات</div>
+            <div class="sc-card__sub"><span class="sc-live"></span>مباشر</div>
+          </div>
+        </div>
+        <svg class="sc-spark" viewBox="0 0 160 48" preserveAspectRatio="none">
+          <defs>
+            <linearGradient id="sc-spark-fill" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#ff3b41" stop-opacity="0.45" />
+              <stop offset="1" stop-color="#ff3b41" stop-opacity="0" />
+            </linearGradient>
+          </defs>
+          <path class="sc-spark__area" d="M0 40 L20 34 L40 37 L60 24 L80 28 L100 15 L120 19 L140 8 L160 11 L160 48 L0 48 Z"
+            fill="url(#sc-spark-fill)" />
+          <path class="sc-spark__line" d="M0 40 L20 34 L40 37 L60 24 L80 28 L100 15 L120 19 L140 8 L160 11"
+            fill="none" stroke="#ff4a50" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"
+            pathLength="100" />
+        </svg>
+      </div>
+    </div>
+
+    <!-- Warehouse sync -->
+    <div class="sc-layer sc-pos--bl" style="--depth: -18">
+      <div class="sc-card sc-card--compact sc-float" style="--float-delay: -4s">
+        <div class="sc-card__head">
+          <span class="sc-card__icon"><app-icon name="warehouse" [size]="15" /></span>
+          <div class="sc-card__title">المخازن متزامنة</div>
+        </div>
+        <div class="sc-sync">
+          <span class="sc-sync__node"></span>
+          <span class="sc-sync__node"></span>
+          <span class="sc-sync__node"></span>
+          <span class="sc-sync__node"></span>
+          <span class="sc-sync__pulse"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- POS -->
+    <div class="sc-layer sc-pos--tr" style="--depth: 22">
+      <div class="sc-chip sc-float" style="--float-delay: -1.2s">
+        <span class="sc-chip__icon"><app-icon name="store" [size]="14" /></span>
+        <span>تمت عملية بيع من الكاشير</span>
+        <span class="sc-chip__check"><app-icon name="check" [size]="12" /></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Copy ── -->
+  <div class="sc-copy">
+    <h2 class="sc-title">
+      <span class="sc-title__line"><span>أدِر كل تفاصيل نشاطك</span></span>
+      <span class="sc-title__line"><span>بأقصى <em class="sc-grad">سرعة وكفاءة.</em></span></span>
+    </h2>
+    <p class="sc-rotator">
+      منصة واحدة لإدارة
+      <span class="sc-rotator__window">
+        <span class="sc-rotator__track">
+          @for (word of words; track $index) {
+          <b>{{ word }}</b>
+          }
+        </span>
+      </span>
+    </p>
+  </div>
+
+  <!-- ── Module marquee (two rows, opposite directions) ── -->
+  <div class="sc-marquee">
+    <div class="sc-marquee__row">
+      <div class="sc-marquee__track">
+        @for (m of rowA; track $index) {
+        <span class="sc-module"><app-icon [name]="m.icon" [size]="13" />{{ m.label }}</span>
+        }
+      </div>
+    </div>
+    <div class="sc-marquee__row sc-marquee__row--reverse">
+      <div class="sc-marquee__track">
+        @for (m of rowB; track $index) {
+        <span class="sc-module"><app-icon [name]="m.icon" [size]="13" />{{ m.label }}</span>
+        }
+      </div>
+    </div>
+  </div>
+</aside>

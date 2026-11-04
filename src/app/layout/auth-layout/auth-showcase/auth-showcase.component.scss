@@ -1,0 +1,615 @@
+/* ════════════════════════════════════════════════════════════════
+   AUTH SHOWCASE — brand panel (always dark, like the logo)
+   Motion budget: transforms/opacity only; the single JS loop is the
+   particle canvas. Everything is disabled under reduced-motion.
+   ════════════════════════════════════════════════════════════════ */
+
+:host {
+  display: block;
+  height: 100%;
+}
+
+.sc {
+  --sc-pad-x: clamp(28px, 3.4vw, 52px);
+  --sc-text: #ffffff;
+  --sc-muted: rgba(255, 255, 255, 0.62);
+  --sc-faint: rgba(255, 255, 255, 0.12);
+  --sc-glass: linear-gradient(145deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.03));
+  --sc-red: #ff4a50;
+
+  position: relative;
+  isolation: isolate;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 32px var(--sc-pad-x) 26px;
+  overflow: hidden;
+  color: var(--sc-text);
+  background:
+    radial-gradient(120% 80% at 50% 0%, #1a0607 0%, transparent 60%),
+    #070708;
+  user-select: none;
+}
+
+/* ─────────────── background layers ─────────────── */
+.sc-bg {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+}
+
+.sc-aurora__blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  mix-blend-mode: screen;
+  will-change: transform;
+
+  &--1 {
+    width: 560px;
+    height: 560px;
+    top: -18%;
+    left: -14%;
+    background: #e31e24;
+    opacity: 0.42;
+    animation: sc-drift-1 18s ease-in-out infinite alternate;
+  }
+  &--2 {
+    width: 620px;
+    height: 620px;
+    bottom: -30%;
+    right: -20%;
+    background: #9e0f15;
+    opacity: 0.55;
+    animation: sc-drift-2 22s ease-in-out infinite alternate;
+  }
+  &--3 {
+    width: 320px;
+    height: 320px;
+    top: 30%;
+    left: 40%;
+    background: #ff5a5f;
+    opacity: 0.18;
+    animation: sc-drift-3 14s ease-in-out infinite alternate;
+  }
+}
+
+/* Perspective grid racing toward the viewer */
+.sc-floor {
+  position: absolute;
+  left: -50%;
+  right: -50%;
+  bottom: -8%;
+  height: 52%;
+  background-image:
+    linear-gradient(rgba(255, 64, 70, 0.22) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 64, 70, 0.22) 1px, transparent 1px);
+  background-size: 52px 52px;
+  transform: perspective(420px) rotateX(64deg);
+  transform-origin: bottom center;
+  mask-image: linear-gradient(to top, #000 0%, rgba(0, 0, 0, 0.6) 35%, transparent 80%);
+  animation: sc-floor 1.8s linear infinite;
+}
+
+/* Diagonal speed lines */
+.sc-streaks {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    -62deg,
+    transparent 0 58px,
+    rgba(255, 255, 255, 0.035) 58px 59px,
+    transparent 59px 120px
+  );
+  background-size: 240px 240px;
+  mask-image: linear-gradient(to bottom, #000 0%, transparent 70%);
+  animation: sc-streaks 3s linear infinite;
+}
+
+.sc-vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 45%, transparent 35%, rgba(0, 0, 0, 0.7) 100%);
+  pointer-events: none;
+}
+
+/* ─────────────── header ─────────────── */
+.sc-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  animation: sc-fade-down 0.9s var(--ease-out) 0.1s both;
+}
+
+.sc-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--sc-faint);
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--sc-muted);
+
+  &__dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--sc-red);
+    box-shadow: 0 0 0 0 rgba(255, 74, 80, 0.7);
+    animation: sc-ping 2s ease-out infinite;
+  }
+}
+
+/* ─────────────── hero stage ─────────────── */
+.sc-stage {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  place-items: center;
+  margin: 10px 0 14px;
+}
+
+.sc-layer {
+  transform: translate3d(calc(var(--px, 0) * var(--depth, 0) * 1px), calc(var(--py, 0) * var(--depth, 0) * 1px), 0);
+  transition: transform 1.1s var(--ease-out);
+  will-change: transform;
+
+  &--turbine {
+    width: min(78%, 50vh, 430px);
+  }
+}
+
+.sc-turbine {
+  display: block;
+  width: 100%;
+  filter: drop-shadow(0 30px 60px rgba(227, 30, 36, 0.35));
+  animation: sc-turbine-in 1.4s var(--ease-out) 0.2s both;
+}
+
+.sc-pos--tl,
+.sc-pos--tr,
+.sc-pos--bl,
+.sc-pos--br {
+  position: absolute;
+  z-index: 1;
+}
+.sc-pos--tl { top: 3%;     inset-inline-start: 0; }
+.sc-pos--tr { top: 15%;    inset-inline-end: 0; }
+.sc-pos--bl { bottom: 4%;  inset-inline-start: 5%; }
+.sc-pos--br { bottom: 13%; inset-inline-end: 1%; }
+
+/* Entrance uses `scale`/`opacity`, floating uses `translate` — separate
+   properties, so both animations run without overriding each other. */
+.sc-float {
+  animation:
+    sc-pop 0.9s var(--ease-out) both,
+    sc-float 6.5s ease-in-out var(--float-delay, 0s) infinite alternate;
+}
+.sc-pos--tl .sc-float { animation-delay: 0.55s, var(--float-delay, 0s); }
+.sc-pos--tr .sc-float { animation-delay: 0.7s,  var(--float-delay, 0s); }
+.sc-pos--bl .sc-float { animation-delay: 0.85s, var(--float-delay, 0s); }
+.sc-pos--br .sc-float { animation-delay: 1s,    var(--float-delay, 0s); }
+
+/* ── glass card ── */
+.sc-card {
+  width: 214px;
+  padding: 13px 14px 14px;
+  border-radius: 16px;
+  background: var(--sc-glass);
+  border: 1px solid var(--sc-faint);
+  backdrop-filter: blur(16px) saturate(140%);
+  box-shadow:
+    0 24px 48px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+
+  &--compact {
+    width: 200px;
+  }
+
+  &__head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  &__icon {
+    width: 30px;
+    height: 30px;
+    flex-shrink: 0;
+    display: grid;
+    place-items: center;
+    border-radius: 9px;
+    color: #fff;
+    background: linear-gradient(135deg, #b5121b, #ff4146);
+    box-shadow: 0 6px 16px -4px rgba(227, 30, 36, 0.7);
+  }
+
+  &__title {
+    font-size: 12.5px;
+    font-weight: 700;
+    line-height: 1.2;
+  }
+
+  &__sub {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 10.5px;
+    color: var(--sc-muted);
+    margin-top: 2px;
+  }
+}
+
+/* Stock bars — breathing up and down */
+.sc-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 5px;
+  height: 48px;
+  margin-top: 12px;
+
+  &__bar {
+    flex: 1;
+    height: var(--h);
+    border-radius: 4px 4px 2px 2px;
+    background: linear-gradient(to top, rgba(227, 30, 36, 0.3), var(--sc-red));
+    transform-origin: bottom;
+    animation: sc-bar 2.2s ease-in-out var(--d, 0s) infinite alternate;
+  }
+}
+
+/* Orders sparkline — draws, holds, then sweeps away. Time runs with the
+   reading direction, so it is mirrored under RTL. */
+:host-context([dir='rtl']) .sc-spark {
+  transform: scaleX(-1);
+}
+
+.sc-spark {
+  display: block;
+  width: 100%;
+  height: 48px;
+  margin-top: 10px;
+  overflow: visible;
+
+  &__line {
+    stroke-dasharray: 100;
+    animation: sc-draw 4.2s var(--ease-in-out) infinite;
+    filter: drop-shadow(0 0 6px rgba(255, 74, 80, 0.8));
+  }
+
+  &__area {
+    animation: sc-area 4.2s var(--ease-in-out) infinite;
+  }
+}
+
+.sc-live {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #34d399;
+  box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.7);
+  animation: sc-ping-green 1.8s ease-out infinite;
+}
+
+/* Warehouse sync — a pulse shuttling back and forth between nodes */
+.sc-sync {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 16px;
+  margin-top: 12px;
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset-inline: 4px;
+    top: 50%;
+    height: 2px;
+    transform: translateY(-50%);
+    border-radius: 2px;
+    background: rgba(255, 255, 255, 0.12);
+  }
+
+  &__node {
+    position: relative;
+    z-index: 1;
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    border: 2px solid var(--sc-red);
+    background: #0b0b0c;
+    animation: sc-node 2.8s ease-in-out infinite;
+
+    &:nth-child(2) { animation-delay: 0.35s; }
+    &:nth-child(3) { animation-delay: 0.7s; }
+    &:nth-child(4) { animation-delay: 1.05s; }
+  }
+
+  &__pulse {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    width: 34px;
+    height: 4px;
+    margin-top: -2px;
+    border-radius: 4px;
+    background: linear-gradient(90deg, transparent, #fff, transparent);
+    filter: drop-shadow(0 0 6px #ff4a50);
+    animation: sc-shuttle 1.4s ease-in-out infinite alternate;
+  }
+}
+
+/* POS chip */
+.sc-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding-block: 8px;
+  padding-inline: 8px 12px;
+  border-radius: 999px;
+  background: var(--sc-glass);
+  border: 1px solid var(--sc-faint);
+  backdrop-filter: blur(14px);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  box-shadow: 0 18px 36px rgba(0, 0, 0, 0.45);
+
+  &__icon {
+    width: 26px;
+    height: 26px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--sc-red);
+  }
+
+  &__check {
+    width: 20px;
+    height: 20px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: #22c55e;
+    color: #fff;
+    animation: sc-check 3.6s var(--ease-out) infinite;
+  }
+}
+
+/* ─────────────── copy ─────────────── */
+.sc-copy {
+  max-width: 560px;
+}
+
+.sc-title {
+  margin: 0 0 12px;
+  font-size: clamp(24px, 2.35vw, 38px);
+  line-height: 1.45;
+  font-weight: 700;
+
+  &__line {
+    display: block;
+    overflow: hidden;
+    padding-bottom: 0.12em; // room for Arabic descenders under the clip
+
+    > span {
+      display: inline-block;
+      animation: sc-rise 1s var(--ease-out) both;
+    }
+
+    &:nth-child(1) > span { animation-delay: 0.35s; }
+    &:nth-child(2) > span { animation-delay: 0.5s; }
+  }
+}
+
+.sc-grad {
+  font-style: normal;
+  background: linear-gradient(90deg, #ff4a50 0%, #ffb3b5 25%, #e31e24 50%, #ff4a50 75%, #ffb3b5 100%);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: sc-shimmer 5s linear infinite;
+}
+
+.sc-rotator {
+  --row: 1.75em;
+
+  margin: 0;
+  font-size: 15px;
+  color: var(--sc-muted);
+  animation: sc-fade-up 0.9s var(--ease-out) 0.75s both;
+
+  &__window {
+    display: inline-block;
+    height: var(--row);
+    overflow: hidden;
+    vertical-align: bottom;
+  }
+
+  &__track {
+    display: flex;
+    flex-direction: column;
+    animation: sc-words 12.5s var(--ease-in-out) infinite;
+
+    b {
+      display: block;
+      height: var(--row);
+      line-height: var(--row);
+      color: #fff;
+      font-weight: 700;
+      border-bottom: 2px solid var(--sc-red);
+    }
+  }
+}
+
+/* ─────────────── marquee ─────────────── */
+.sc-marquee {
+  display: grid;
+  gap: 10px;
+  margin: 22px calc(var(--sc-pad-x) * -1) 0;
+  mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
+  animation: sc-fade-up 0.9s var(--ease-out) 0.9s both;
+
+  // The -50% loop assumes LTR flow; each chip switches back to RTL for its text.
+  &__row {
+    overflow: hidden;
+    direction: ltr;
+
+    &--reverse .sc-marquee__track {
+      animation-direction: reverse;
+      animation-duration: 46s;
+    }
+  }
+
+  &__track {
+    display: flex;
+    width: max-content;
+    animation: sc-marquee 38s linear infinite;
+  }
+}
+
+.sc-module {
+  direction: rtl;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  // Spacing via margin (not flex gap) keeps the -50% loop seam exact.
+  margin-inline-end: 10px;
+  padding: 7px 13px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+
+  app-icon {
+    color: var(--sc-red);
+  }
+}
+
+/* ─────────────── short viewports ─────────────── */
+@media (max-height: 760px) {
+  .sc-marquee__row--reverse { display: none; }
+  .sc-card__sub { display: none; }
+}
+
+@media (max-height: 640px) {
+  .sc-pos--tr,
+  .sc-pos--bl { display: none; }
+  .sc-marquee { display: none; }
+}
+
+/* ─────────────── keyframes ─────────────── */
+@keyframes sc-drift-1 {
+  to { transform: translate(18%, 22%) scale(1.15); }
+}
+@keyframes sc-drift-2 {
+  to { transform: translate(-16%, -18%) scale(0.9); }
+}
+@keyframes sc-drift-3 {
+  0%   { transform: translate(0, 0) scale(1); }
+  50%  { transform: translate(-40%, 30%) scale(1.3); }
+  100% { transform: translate(30%, -20%) scale(0.85); }
+}
+@keyframes sc-floor {
+  to { background-position: 0 52px, 0 0; }
+}
+@keyframes sc-streaks {
+  to { background-position: 240px 0; }
+}
+@keyframes sc-ping {
+  0%   { box-shadow: 0 0 0 0 rgba(255, 74, 80, 0.7); }
+  100% { box-shadow: 0 0 0 10px rgba(255, 74, 80, 0); }
+}
+@keyframes sc-ping-green {
+  0%   { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.7); }
+  100% { box-shadow: 0 0 0 8px rgba(52, 211, 153, 0); }
+}
+@keyframes sc-turbine-in {
+  from { opacity: 0; scale: 0.6; rotate: -90deg; }
+  to   { opacity: 1; scale: 1;   rotate: 0deg; }
+}
+@keyframes sc-pop {
+  from { opacity: 0; scale: 0.7; }
+  to   { opacity: 1; scale: 1; }
+}
+@keyframes sc-float {
+  from { translate: 0 -9px; }
+  to   { translate: 0 9px; }
+}
+@keyframes sc-bar {
+  from { transform: scaleY(0.3); }
+  to   { transform: scaleY(1); }
+}
+@keyframes sc-draw {
+  0%   { stroke-dashoffset: 100; }
+  50%  { stroke-dashoffset: 0; }
+  78%  { stroke-dashoffset: 0; }
+  100% { stroke-dashoffset: -100; }
+}
+@keyframes sc-area {
+  0%, 15%  { opacity: 0; }
+  50%, 78% { opacity: 1; }
+  100%     { opacity: 0; }
+}
+@keyframes sc-node {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 74, 80, 0); background: #0b0b0c; }
+  40%      { box-shadow: 0 0 12px 2px rgba(255, 74, 80, 0.75); background: #ff4a50; }
+}
+@keyframes sc-shuttle {
+  from { left: 0; }
+  to   { left: calc(100% - 34px); }
+}
+@keyframes sc-check {
+  0%, 12%   { transform: scale(0); }
+  22%       { transform: scale(1.25); }
+  30%, 85%  { transform: scale(1); }
+  100%      { transform: scale(0); }
+}
+@keyframes sc-fade-down {
+  from { opacity: 0; transform: translateY(-14px); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes sc-fade-up {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes sc-rise {
+  from { transform: translateY(110%); }
+  to   { transform: none; }
+}
+@keyframes sc-shimmer {
+  to { background-position: -200% 0; }
+}
+@keyframes sc-marquee {
+  to { transform: translateX(-50%); }
+}
+@keyframes sc-words {
+  0%, 16%  { transform: translateY(0); }
+  20%, 36% { transform: translateY(calc(var(--row) * -1)); }
+  40%, 56% { transform: translateY(calc(var(--row) * -2)); }
+  60%, 76% { transform: translateY(calc(var(--row) * -3)); }
+  80%, 96% { transform: translateY(calc(var(--row) * -4)); }
+  100%     { transform: translateY(calc(var(--row) * -5)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sc *,
+  .sc *::before,
+  .sc *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}

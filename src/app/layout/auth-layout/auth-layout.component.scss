@@ -1,5 +1,221 @@
+/* ════════════════════════════════════════════════════════════════
+   AUTH LAYOUT — showcase | themed form panel
+   ════════════════════════════════════════════════════════════════ */
+
+// Registered custom property so the card's border light can animate its angle.
+@property --auth-angle {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0deg;
+}
+
 :host {
+  display: block;
+  height: var(--app-height, 100dvh);
+}
+
+.auth-shell {
+  display: grid;
+  grid-template-columns: minmax(0, 1.12fr) minmax(440px, 1fr);
+  height: 100%;
+
+  @media (max-width: 991.98px) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  &__showcase {
+    min-height: 0;
+
+    @media (max-width: 991.98px) {
+      display: none;
+    }
+  }
+}
+
+/* ─────────────── form panel ─────────────── */
+.auth-main {
+  position: relative;
+  isolation: isolate;
   display: flex;
-  flex: 1;
+  flex-direction: column;
   min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  background: var(--bg);
+  padding: 22px clamp(20px, 4vw, 48px) 18px;
+
+  &__bg {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    overflow: hidden;
+    pointer-events: none;
+  }
+
+  &__orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(90px);
+    opacity: 0.16;
+    background: var(--primary);
+    will-change: transform;
+
+    &--1 {
+      width: 420px;
+      height: 420px;
+      top: -140px;
+      inset-inline-end: -120px;
+      animation: auth-orb-1 16s ease-in-out infinite alternate;
+    }
+    &--2 {
+      width: 360px;
+      height: 360px;
+      bottom: -160px;
+      inset-inline-start: -100px;
+      opacity: 0.1;
+      animation: auth-orb-2 20s ease-in-out infinite alternate;
+    }
+  }
+
+  &__grid {
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(var(--brd2) 1px, transparent 1px);
+    background-size: 22px 22px;
+    mask-image: radial-gradient(ellipse at 50% 45%, #000 0%, transparent 70%);
+    opacity: 0.6;
+  }
+
+  // Cursor-following light (vars published by appPointerParallax).
+  &__spot {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(
+      520px circle at var(--mx, 50%) var(--my, 40%),
+      rgba(var(--primary-rgb), 0.09),
+      transparent 45%
+    );
+    transition: background 0.2s;
+  }
+
+  &__top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: 46px;
+    animation: auth-fade 0.8s var(--ease-out) both;
+  }
+
+  // On desktop the showcase already carries the logo.
+  &__logo {
+    @media (min-width: 992px) {
+      visibility: hidden;
+    }
+  }
+
+  &__body {
+    flex: 1;
+    display: grid;
+    // minmax(0, …) stops the track growing to the card's content width.
+    grid-template-columns: minmax(0, 1fr);
+    place-items: center;
+    padding: 28px 0;
+  }
+
+  &__foot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 6px 12px;
+    font-size: 11px;
+    color: var(--txt3);
+    animation: auth-fade 0.8s var(--ease-out) 0.6s both;
+  }
+
+  &__sep {
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    background: var(--txt3);
+    opacity: 0.6;
+  }
+
+  &__secure {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    color: var(--txt2);
+  }
+}
+
+/* ─────────────── card with travelling border light ─────────────── */
+.auth-card {
+  position: relative;
+  width: 100%;
+  max-width: 430px;
+  padding: 38px 36px 32px;
+  border-radius: 24px;
+  background: color-mix(in srgb, var(--bg2) 86%, transparent);
+  backdrop-filter: blur(18px) saturate(150%);
+  box-shadow: var(--shadow-lg);
+  animation: auth-card-in 0.9s var(--ease-out) 0.05s both;
+
+  // 1px gradient border: a static hairline plus a bright arc orbiting it.
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    padding: 1px;
+    border-radius: inherit;
+    background:
+      conic-gradient(
+        from var(--auth-angle),
+        transparent 0deg,
+        transparent 250deg,
+        rgba(var(--primary-rgb), 0.95) 310deg,
+        transparent 360deg
+      ),
+      linear-gradient(var(--brd2), var(--brd2));
+    -webkit-mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    animation: auth-border-spin 5s linear infinite;
+    pointer-events: none;
+  }
+
+  @media (max-width: 575.98px) {
+    padding: 30px 22px 26px;
+    border-radius: 20px;
+  }
+}
+
+/* ─────────────── keyframes ─────────────── */
+@keyframes auth-orb-1 {
+  to { transform: translate(-60px, 80px) scale(1.15); }
+}
+@keyframes auth-orb-2 {
+  to { transform: translate(80px, -60px) scale(1.2); }
+}
+@keyframes auth-fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes auth-card-in {
+  from { opacity: 0; transform: translateY(24px) scale(0.97); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes auth-border-spin {
+  to { --auth-angle: 360deg; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-main *,
+  .auth-main *::before,
+  .auth-card {
+    animation: none !important;
+  }
 }

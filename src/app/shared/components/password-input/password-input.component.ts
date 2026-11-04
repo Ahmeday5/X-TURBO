@@ -14,6 +14,7 @@ import {
   NG_VALUE_ACCESSOR,
   NgControl,
 } from '@angular/forms';
+import { IconComponent } from '../icon/icon.component';
 
 /**
  * Reactive-Forms-friendly password input with a built-in show/hide toggle.
@@ -35,12 +36,15 @@ import {
   selector: 'app-password-input',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [IconComponent],
   templateUrl: './password-input.component.html',
   styleUrl: './password-input.component.scss',
 })
 export class PasswordInputComponent implements ControlValueAccessor {
   readonly placeholder = input<string>('');
   readonly autocomplete = input<string>('current-password');
+  /** Forwarded to the inner <input> so an external <label for> can target it. */
+  readonly inputId = input<string | null>(null);
 
   protected readonly visible = signal(false);
   protected readonly disabled = signal(false);

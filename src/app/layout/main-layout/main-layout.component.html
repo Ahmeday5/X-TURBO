@@ -1,17 +1,18 @@
 <div class="app-layout">
-  @if (layout.mobileOpen()) {
-  <div class="sidebar-overlay" (click)="layout.closeMobile()"></div>
-  }
-  <div class="sidebar-wrapper">
-    <app-sidebar></app-sidebar>
-  </div>
+  <app-topbar />
 
-  <main class="main-content">
-    <app-topbar></app-topbar>
-    <div class="content-body container-fluid py-3 mb-2">
-      <router-outlet></router-outlet>
+  <div class="app-body">
+    @if (layout.mobileOpen()) {
+    <div class="sidebar-overlay" (click)="layout.closeMobile()"></div>
+    }
+    <div class="sidebar-wrapper">
+      <app-sidebar />
     </div>
-  </main>
+
+    <main class="content-body" id="main-content">
+      <router-outlet />
+    </main>
+  </div>
 </div>
 
 <app-confirm-dialog />

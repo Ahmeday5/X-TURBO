@@ -6,11 +6,8 @@
  */
 export const AUTH_ENDPOINTS = {
   login: 'auth/login',
-  register: 'auth/register',
   logout: 'auth/logout',
   refresh: 'auth/refresh-token',
-  forgotPassword: 'auth/forgot-password',
-  resetPassword: 'auth/reset-password',
   /** Authoritative current-user + permissions endpoint, fetched after login. */
   me: 'auth/me',
 } as const;

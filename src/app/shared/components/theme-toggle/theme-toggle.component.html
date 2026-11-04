@@ -1,0 +1,21 @@
+<button type="button" class="tt" [class.is-dark]="theme.isDark()" (click)="onToggle($event)"
+  [attr.aria-label]="theme.isDark() ? 'التبديل إلى الوضع الفاتح' : 'التبديل إلى الوضع الداكن'"
+  [title]="theme.isDark() ? 'الوضع الفاتح' : 'الوضع الداكن'">
+  <svg class="tt-svg" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+    <mask [attr.id]="maskId">
+      <rect x="0" y="0" width="24" height="24" fill="#fff" />
+      <circle class="tt-moon-bite" cx="24" cy="10" r="6" fill="#000" />
+    </mask>
+    <circle class="tt-core" cx="12" cy="12" r="5" [attr.mask]="'url(#' + maskId + ')'" fill="currentColor" />
+    <g class="tt-rays" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <line x1="12" y1="1.5" x2="12" y2="3.5" />
+      <line x1="12" y1="20.5" x2="12" y2="22.5" />
+      <line x1="4.6" y1="4.6" x2="6" y2="6" />
+      <line x1="18" y1="18" x2="19.4" y2="19.4" />
+      <line x1="1.5" y1="12" x2="3.5" y2="12" />
+      <line x1="20.5" y1="12" x2="22.5" y2="12" />
+      <line x1="4.6" y1="19.4" x2="6" y2="18" />
+      <line x1="18" y1="6" x2="19.4" y2="4.6" />
+    </g>
+  </svg>
+</button>

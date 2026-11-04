@@ -1,0 +1,45 @@
+:host {
+  display: block;
+  height: 100%;
+}
+
+.rev__hero {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  margin: -4px 0 14px;
+}
+
+// The view's single hero figure (≥ 48px, same sans as everything else).
+.rev__total {
+  font-size: clamp(34px, 4vw, 48px);
+  font-weight: 700;
+  line-height: 1;
+  color: var(--txt);
+}
+
+.rev__chart {
+  animation: rev-in 0.4s var(--ease-out);
+}
+
+.rev__table {
+  max-height: 270px;
+  overflow-y: auto;
+  margin: 0;
+  animation: rev-in 0.3s var(--ease-out);
+
+  .num {
+    font-variant-numeric: tabular-nums;
+  }
+
+  thead th {
+    position: sticky;
+    top: 0;
+  }
+}
+
+@keyframes rev-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}

@@ -19,13 +19,10 @@ import { HttpCacheService } from '../../services/http-cache.service';
 import {
   AuthResponseData,
   AuthTokens,
-  ForgotPasswordRequest,
   LoginRequest,
   LogoutRequest,
   MePermissionsData,
   RefreshTokenRequest,
-  RegisterRequest,
-  ResetPasswordRequest,
   User,
   UserRole,
 } from '../models/auth.model';
@@ -36,8 +33,9 @@ import {
   withSkipAuth,
 } from '../../http/http-context.tokens';
 import { getJwtExpiry } from '../utils/jwt.util';
+import { initialsOf } from '../../../shared/utils/initials.util';
 
-const USER_KEY = 'app_user';
+const USER_KEY = 'xturbo_user';
 /** Refresh this many ms BEFORE the access token actually expires. */
 const REFRESH_BUFFER_MS = 60 * 1000;
 /** Lower bound for the proactive refresh timer to avoid timer storms on edge cases. */
@@ -51,9 +49,9 @@ const REFRESH_RETRY_BACKOFF_MS: readonly number[] = [5_000, 15_000, 45_000, 120_
  * not a security event.
  */
 const REUSE_RACE_RECHECK_DELAY_MS = 250;
-const BROADCAST_CHANNEL_NAME = 'app-auth';
+const BROADCAST_CHANNEL_NAME = 'xturbo-auth';
 /** Cross-tab/cross-process mutex name for the refresh-token round-trip. */
-const REFRESH_LOCK_NAME = 'app-auth-refresh';
+const REFRESH_LOCK_NAME = 'xturbo-auth-refresh';
 /**
  * `setTimeout` stores its delay as a signed 32-bit integer — values above
  * 2^31-1 (~24.8 days) overflow and fire IMMEDIATELY. A long-lived access
@@ -86,12 +84,6 @@ export interface LoginInput {
   email: string;
   password: string;
   rememberMe: boolean;
-}
-
-export interface RegisterInput {
-  name: string;
-  email: string;
-  password: string;
 }
 
 interface LogoutOptions {
@@ -172,30 +164,6 @@ export class AuthService {
         tap((data) => this.persistSession(data, true)),
         switchMap((data) => this.hydratePermissions(this.toUser(data)))
       );
-  }
-
-  register(input: RegisterInput): Observable<unknown> {
-    const payload: RegisterRequest = {
-      name: input.name.trim(),
-      email: input.email.trim(),
-      password: input.password,
-    };
-    return this.api.post<unknown>(AUTH_ENDPOINTS.register, payload, {
-      context: withInlineHandling(withSkipAuth()),
-    });
-  }
-
-  forgotPassword(email: string): Observable<unknown> {
-    const payload: ForgotPasswordRequest = { email: email.trim() };
-    return this.api.post<unknown>(AUTH_ENDPOINTS.forgotPassword, payload, {
-      context: withInlineHandling(withSkipAuth()),
-    });
-  }
-
-  resetPassword(input: ResetPasswordRequest): Observable<unknown> {
-    return this.api.post<unknown>(AUTH_ENDPOINTS.resetPassword, input, {
-      context: withInlineHandling(withSkipAuth()),
-    });
   }
 
   /**
@@ -289,7 +257,7 @@ export class AuthService {
     // crucially don't trigger another logout/redirect (the first one
     // already happened, the second one races Angular's navigation).
     if (this.sessionDead) {
-      return throwError(() => this.makeAuthError('Session expired'));
+      return throwError(() => this.makeAuthError('انتهت الجلسة'));
     }
 
     // Race shortcut (no lock needed): another tab may have already refreshed
@@ -388,7 +356,7 @@ export class AuthService {
           // is also being torn down, so propagating a quiet auth error is
           // the right call — nothing useful can act on it.
           if ((err as DOMException | undefined)?.name === 'InvalidStateError') {
-            return throwError(() => this.makeAuthError('Refresh aborted'));
+            return throwError(() => this.makeAuthError('تم إلغاء تجديد الجلسة'));
           }
           return throwError(() => err);
         })
@@ -401,7 +369,7 @@ export class AuthService {
     const refreshToken = this.getRefreshToken();
     if (!refreshToken) {
       this.scheduleSessionExpiredLogout();
-      return throwError(() => this.makeAuthError('Missing refresh token'));
+      return throwError(() => this.makeAuthError('الجلسة غير موجودة'));
     }
 
     const dev = this.device.getInfo();
@@ -610,10 +578,7 @@ export class AuthService {
   }
 
   private deriveAvatar(name: string): string {
-    const parts = name.trim().split(/\s+/).filter(Boolean);
-    if (parts.length === 0) return '?';
-    if (parts.length === 1) return parts[0][0].toUpperCase();
-    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    return initialsOf(name);
   }
 
   /**
@@ -822,7 +787,7 @@ export class AuthService {
       this.logout({
         redirect: true,
         callApi: false,
-        reason: 'Your session has expired, please sign in again',
+        reason: 'انتهت صلاحية الجلسة، برجاء تسجيل الدخول مرة أخرى',
       });
     });
   }

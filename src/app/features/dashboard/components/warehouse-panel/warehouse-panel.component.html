@@ -1,0 +1,33 @@
+<section class="panel">
+  <header class="panel__head">
+    <div>
+      <h2 class="panel__title">سعة المخازن</h2>
+      <p class="panel__sub">المساحة المستغلة في {{ locationsLabel() }}</p>
+    </div>
+  </header>
+
+  <ul class="wh">
+    @for (w of rows(); track w.id; let i = $index) {
+    <li class="wh__row">
+      <div class="wh__head">
+        <span class="wh__icon"><app-icon name="warehouse" [size]="15" /></span>
+        <div class="wh__names">
+          <span class="wh__name">{{ w.name }}</span>
+          <span class="wh__city">{{ w.city }}</span>
+        </div>
+        <span class="status-pill" [class]="'status-pill status-pill--' + w.severity">{{ w.severityLabel }}</span>
+      </div>
+
+      <div class="wh__meter" [class]="'wh__meter wh__meter--' + w.severity" role="meter" aria-valuemin="0"
+        aria-valuemax="100" [attr.aria-valuenow]="w.capacityPct" [attr.aria-label]="'نسبة إشغال ' + w.name">
+        <span class="wh__fill" [style.width.%]="w.capacityPct" [style.--i]="i"></span>
+      </div>
+
+      <div class="wh__meta">
+        <span>مستغل <b class="ltr">{{ w.capacityPct }}%</b></span>
+        <span>{{ formatInteger(w.skuCount) }} صنف · {{ w.lowStockCount }} تحت حد الطلب</span>
+      </div>
+    </li>
+    }
+  </ul>
+</section>

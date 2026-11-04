@@ -1,0 +1,39 @@
+@if (geo(); as g) {
+<svg class="ac" [attr.width]="g.w" [attr.height]="g.h" [attr.viewBox]="'0 0 ' + g.w + ' ' + g.h" role="img"
+  tabindex="0" [attr.aria-label]="ariaLabel()" (pointermove)="onPointerMove($event)" (pointerleave)="clear()"
+  (focus)="onFocus()" (blur)="clear()" (keydown)="onKeydown($event)">
+  @if (g.w > 0) {
+  <!-- Grid + y axis -->
+  <g class="ac__grid">
+    @for (t of g.yTicks; track t.label) {
+    <line [attr.x1]="g.left" [attr.x2]="g.right" [attr.y1]="t.y" [attr.y2]="t.y" />
+    <text class="ac__tick ac__tick--y" [attr.x]="g.axisLabel.x" [attr.y]="t.y"
+      [attr.text-anchor]="g.axisLabel.anchor">{{ t.label }}</text>
+    }
+  </g>
+
+  <!-- X labels -->
+  @for (t of g.xTicks; track t.i) {
+  <text class="ac__tick ac__tick--x" [attr.x]="t.x" [attr.y]="g.baseline + 20">{{ t.label }}</text>
+  }
+
+  <!-- Series (draw-in replayed from TS when the data changes) -->
+  <path #area class="ac__area" [attr.d]="g.area" />
+  <path #line class="ac__line" [attr.d]="g.line" pathLength="1" />
+
+  <!-- Crosshair -->
+  @if (tooltip(); as tip) {
+  <line class="ac__crosshair" [attr.x1]="tip.x" [attr.x2]="tip.x" [attr.y1]="14" [attr.y2]="g.baseline" />
+  <circle class="ac__marker" [attr.cx]="tip.x" [attr.cy]="tip.y" r="5" />
+  }
+  }
+</svg>
+
+@if (tooltip(); as tip) {
+<div class="ac-tip" [class.ac-tip--end]="tip.alignEnd" [style.left.px]="tip.x" [style.top.px]="tip.y"
+  [attr.dir]="rtl ? 'rtl' : 'ltr'" aria-hidden="true">
+  <div class="ac-tip__value">{{ tip.value }}</div>
+  <div class="ac-tip__label"><span class="ac-tip__key"></span>{{ seriesName() }} · {{ tip.label }}</div>
+</div>
+}
+}

@@ -1,0 +1,47 @@
+<section class="panel rev">
+  <header class="panel__head">
+    <div>
+      <h2 class="panel__title">الإيرادات</h2>
+      <p class="panel__sub">كل القنوات · {{ period() }}</p>
+    </div>
+    <div class="seg" role="group" aria-label="طريقة العرض">
+      <button type="button" class="seg__btn" [attr.aria-pressed]="view() === 'chart'" (click)="setView('chart')">
+        <app-icon name="chart" [size]="13" />رسم بياني
+      </button>
+      <button type="button" class="seg__btn" [attr.aria-pressed]="view() === 'table'" (click)="setView('table')">
+        <app-icon name="table" [size]="13" />جدول
+      </button>
+    </div>
+  </header>
+
+  <div class="rev__hero">
+    <div class="rev__total" [appCountUp]="revenue().total" [countUpFormat]="formatMoney"></div>
+    <app-delta [pct]="revenue().deltaPct" period="مقارنة بالفترة السابقة" />
+  </div>
+
+  @if (view() === 'chart') {
+  <app-area-chart class="rev__chart" seriesName="الإيرادات" [points]="points()" [formatValue]="formatMoney"
+    [formatTick]="formatMoneyCompact" [height]="270" />
+  } @else {
+  <div class="tw rev__table">
+    <table>
+      <thead>
+        <tr>
+          <th>الفترة</th>
+          <th>الطلبات</th>
+          <th>الإيرادات</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (row of revenue().series; track row.date) {
+        <tr>
+          <td>{{ formatDayMonth(row.date) }}</td>
+          <td class="num">{{ formatInteger(row.orders) }}</td>
+          <td class="num">{{ formatMoney(row.revenue) }}</td>
+        </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+  }
+</section>

@@ -1,14 +1,17 @@
+import { IconName } from '../../shared/components/icon/icon.component';
+
 export interface MenuItem {
   id: string;
   label: string;
   route: string;
-  /** Icon name understood by the app's icon component — see `shared/components/icon`. */
-  icon?: string;
+  icon: IconName;
   children?: MenuItem[];
   /** Item is hidden unless the current user holds at least one of these permissions. */
   permissions?: string[];
   /** Item is hidden unless the current user's role is one of these. */
   roles?: string[];
+  /** Extra words the topbar search should match (synonyms, Arabic terms…). */
+  keywords?: string[];
 }
 
 export interface MenuSection {

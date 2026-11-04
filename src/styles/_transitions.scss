@@ -1,0 +1,33 @@
+@use 'mixins' as *;
+
+/* ── VIEW TRANSITIONS ── */
+@view-transition {
+  navigation: auto;
+}
+
+/* Theme switch: circular reveal expanding from the toggle button.
+   ThemeService adds `.theme-transition` and sets --vt-x / --vt-y /
+   --vt-r only for the duration of a theme change, so router view
+   transitions keep their default cross-fade. */
+html.theme-transition {
+  &::view-transition-old(root),
+  &::view-transition-new(root) {
+    animation: none;
+    mix-blend-mode: normal;
+  }
+
+  &::view-transition-new(root) {
+    animation: theme-reveal 0.65s var(--ease-in-out) both;
+  }
+}
+
+@keyframes theme-reveal {
+  from { clip-path: circle(0 at var(--vt-x, 50%) var(--vt-y, 50%)); }
+  to   { clip-path: circle(var(--vt-r, 150%) at var(--vt-x, 50%) var(--vt-y, 50%)); }
+}
+
+@include reduced-motion {
+  html.theme-transition::view-transition-new(root) {
+    animation: none;
+  }
+}

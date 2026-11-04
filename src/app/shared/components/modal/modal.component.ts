@@ -46,7 +46,7 @@ let openCount = 0;
                 <button
                   type="button"
                   class="app-modal-close"
-                  aria-label="Close"
+                  aria-label="إغلاق"
                   (click)="close()"
                 >&times;</button>
               }

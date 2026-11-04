@@ -1,34 +1,175 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
+import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
+import { combineLatest, EMPTY, Subject } from 'rxjs';
+import { catchError, startWith, switchMap, tap } from 'rxjs/operators';
 import { AuthService } from '../../core/auth/services/auth.service';
-import { StatCardComponent } from '../../shared/components/stat-card/stat-card.component';
+import { ApiError } from '../../core/models/api-response.model';
+import {
+  BarListComponent,
+  BarListRow,
+} from '../../shared/components/charts/bar-list/bar-list.component';
+import {
+  IconComponent,
+  IconName,
+} from '../../shared/components/icon/icon.component';
+import {
+  formatInteger,
+  formatLongDate,
+  formatMoney,
+  formatMoneyCompact,
+} from '../../shared/utils/format.util';
+import { ChannelPanelComponent } from './components/channel-panel/channel-panel.component';
+import { KpiCardComponent } from './components/kpi-card/kpi-card.component';
+import { LowStockPanelComponent } from './components/low-stock-panel/low-stock-panel.component';
+import { RecentOrdersPanelComponent } from './components/recent-orders-panel/recent-orders-panel.component';
+import { RevenuePanelComponent } from './components/revenue-panel/revenue-panel.component';
+import { WarehousePanelComponent } from './components/warehouse-panel/warehouse-panel.component';
+import {
+  DashboardKpis,
+  DashboardOverview,
+  DashboardRange,
+} from './models/dashboard.model';
+import { DashboardService } from './services/dashboard.service';
 
-/** Placeholder landing page — replace with your real dashboard. */
+interface KpiCardConfig {
+  key: keyof DashboardKpis;
+  label: string;
+  icon: IconName;
+  format: (value: number) => string;
+  upIsGood: boolean;
+}
+
+const KPI_CARDS: readonly KpiCardConfig[] = [
+  {
+    key: 'orders',
+    label: 'الطلبات',
+    icon: 'cart',
+    format: formatInteger,
+    upIsGood: true,
+  },
+  {
+    key: 'avgOrderValue',
+    label: 'متوسط قيمة الطلب',
+    icon: 'receipt',
+    format: formatMoney,
+    upIsGood: true,
+  },
+  {
+    key: 'inventoryValue',
+    label: 'قيمة المخزون',
+    icon: 'layers',
+    format: formatMoneyCompact,
+    upIsGood: true,
+  },
+  {
+    key: 'lowStockSkus',
+    label: 'أصناف تحت حد الطلب',
+    icon: 'alert',
+    format: formatInteger,
+    upIsGood: false,
+  },
+];
+
+const RANGES: ReadonlyArray<{
+  value: DashboardRange;
+  label: string;
+  period: string;
+  /** Phrase for deltas vs the previous period of equal length. */
+  previous: string;
+}> = [
+  { value: '7d', label: '7 أيام', period: 'آخر 7 أيام', previous: 'مقارنة بالـ 7 أيام السابقة' },
+  { value: '30d', label: '30 يومًا', period: 'آخر 30 يومًا', previous: 'مقارنة بالـ 30 يومًا السابقة' },
+  { value: '90d', label: '90 يومًا', period: 'آخر 90 يومًا', previous: 'مقارنة بالـ 90 يومًا السابقة' },
+];
+
 @Component({
   selector: 'app-dashboard',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [StatCardComponent],
-  template: `
-    <div class="pgh">
-      <div>
-        <div class="pgt">Dashboard</div>
-        <div class="pgs">Welcome back, {{ auth.currentUser()?.name }}</div>
-      </div>
-    </div>
-
-    <div class="row g-3">
-      <div class="col-md-4">
-        <app-stat-card label="Example metric" value="1,024" sub="+12% this month" />
-      </div>
-      <div class="col-md-4">
-        <app-stat-card label="Another metric" value="87" />
-      </div>
-      <div class="col-md-4">
-        <app-stat-card label="Your role" [value]="auth.currentUser()?.role ?? '—'" />
-      </div>
-    </div>
-  `,
+  imports: [
+    BarListComponent,
+    ChannelPanelComponent,
+    IconComponent,
+    KpiCardComponent,
+    LowStockPanelComponent,
+    RecentOrdersPanelComponent,
+    RevenuePanelComponent,
+    WarehousePanelComponent,
+  ],
+  templateUrl: './dashboard.component.html',
+  styleUrl: './dashboard.component.scss',
 })
 export class DashboardComponent {
-  protected readonly auth = inject(AuthService);
+  private readonly service = inject(DashboardService);
+  private readonly auth = inject(AuthService);
+
+  protected readonly ranges = RANGES;
+  protected readonly kpiCards = KPI_CARDS;
+
+  protected readonly range = signal<DashboardRange>('30d');
+  protected readonly data = signal<DashboardOverview | null>(null);
+  protected readonly loading = signal(true);
+  protected readonly error = signal<string | null>(null);
+
+  private readonly reload$ = new Subject<void>();
+
+  protected readonly today = formatLongDate(new Date());
+  protected readonly greeting = computed(() => {
+    const part = new Date().getHours() < 12 ? 'صباح الخير' : 'مساء الخير';
+    const first = this.auth.currentUser()?.name.split(/\s+/)[0];
+    return first ? `${part}، ${first}` : part;
+  });
+
+  private readonly activeRange = computed(() => RANGES.find((r) => r.value === this.range()) ?? RANGES[1]);
+  protected readonly period = computed(() => this.activeRange().period);
+  protected readonly comparison = computed(() => this.activeRange().previous);
+
+  protected readonly productRows = computed<BarListRow[]>(() =>
+    (this.data()?.topProducts ?? []).map((p) => ({
+      key: p.sku,
+      label: p.name,
+      sub: `${p.category} · ${formatInteger(p.unitsSold)} قطعة مباعة`,
+      value: p.revenue,
+      display: formatMoneyCompact(p.revenue),
+    })),
+  );
+
+  constructor() {
+    combineLatest([
+      toObservable(this.range),
+      this.reload$.pipe(startWith(undefined)),
+    ])
+      .pipe(
+        tap(() => this.loading.set(true)),
+        switchMap(([range]) =>
+          this.service.getOverview(range).pipe(
+            catchError((err: ApiError) => {
+              this.error.set(err.message);
+              this.loading.set(false);
+              return EMPTY;
+            }),
+          ),
+        ),
+        takeUntilDestroyed(),
+      )
+      .subscribe((overview) => {
+        this.data.set(overview);
+        this.error.set(null);
+        this.loading.set(false);
+      });
+  }
+
+  protected setRange(range: DashboardRange): void {
+    this.range.set(range);
+  }
+
+  protected reload(): void {
+    this.reload$.next();
+  }
 }

@@ -49,9 +49,9 @@ const MAX_VISIBLE = 5;
 /**
  * Toast notifications.
  *
- *   toast.success('Saved');
- *   toast.error('Connection failed', { title: 'Error', action: { label: 'Retry', handler: retry } });
- *   toast.info('Sending…', { duration: 0 }); // sticky
+ *   toast.success('تم الحفظ');
+ *   toast.error('فشل الاتصال', { title: 'خطأ', action: { label: 'إعادة المحاولة', handler: retry } });
+ *   toast.info('جارٍ الإرسال…', { duration: 0 }); // sticky
  *
  * Component-side concerns (hover-pause, progress) call `pause()` / `resume()`
  * back into the service so the in-flight timer is paused on the source of
@@ -62,7 +62,8 @@ export class ToastService {
   private readonly toastsSignal = signal<Toast[]>([]);
   readonly toasts = this.toastsSignal.asReadonly();
 
-  readonly position = signal<ToastPosition>('top-right');
+  /** Top-left is the trailing ("end") corner in the app's RTL layout. */
+  readonly position = signal<ToastPosition>('top-left');
 
   // ─────────── public API ───────────
 

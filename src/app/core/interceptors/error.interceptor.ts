@@ -70,25 +70,25 @@ function statusMessage(status: number, err: HttpErrorResponse): string {
     // CORS or DNS/network failure. The browser hides the real cause for
     // security reasons; the only readable hint is `err.message`.
     return err.message?.includes('Failed to fetch')
-      ? 'Could not reach the server (CORS or network issue). Check the console for details.'
-      : 'Could not reach the server. Check your internet connection.';
+      ? 'تعذر الاتصال بالخادم (مشكلة في الشبكة أو CORS)'
+      : 'تعذر الاتصال بالخادم، تحقق من اتصالك بالإنترنت';
   }
 
   const messages: Record<number, string> = {
-    400: 'Invalid request',
-    401: 'Invalid credentials',
-    403: "You don't have permission to perform this action",
-    404: 'The requested resource was not found',
-    409: 'A conflict occurred',
-    422: 'Validation failed',
-    429: 'Too many requests — please wait a moment',
-    500: 'Server error — please try again later',
-    502: 'The service is temporarily unavailable',
-    503: 'The service is temporarily unavailable',
-    504: 'The request to the server timed out',
+    400: 'الطلب غير صالح',
+    401: 'بيانات الدخول غير صحيحة',
+    403: 'ليس لديك صلاحية لتنفيذ هذا الإجراء',
+    404: 'العنصر المطلوب غير موجود',
+    409: 'حدث تعارض في البيانات',
+    422: 'البيانات المدخلة غير صحيحة',
+    429: 'طلبات كثيرة، برجاء الانتظار قليلًا',
+    500: 'خطأ في الخادم، حاول مرة أخرى لاحقًا',
+    502: 'الخدمة غير متاحة مؤقتًا',
+    503: 'الخدمة غير متاحة مؤقتًا',
+    504: 'انتهت مهلة الاتصال بالخادم',
   };
 
-  return messages[status] ?? `Unexpected error (${status})`;
+  return messages[status] ?? `حدث خطأ غير متوقع (${status})`;
 }
 
 function logError(

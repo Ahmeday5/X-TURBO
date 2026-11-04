@@ -1,111 +1,156 @@
 /* ── TOPBAR ── */
-.topbar {
-  height: 50px;
-  background: var(--bg2);
-  border-bottom: 1px solid var(--brd);
+:host {
+  display: block;
+}
+
+.tb {
+  position: relative;
+  z-index: 100;
+  height: var(--topbar-h);
   display: flex;
   align-items: center;
-  padding: 0 14px;
-  gap: 10px;
-  flex-shrink: 0;
-  z-index: 100;
-  position: relative;
-  @media (max-width: 992px) {
-    z-index: 1100;
+  gap: 14px;
+  padding: 0 18px;
+  background: color-mix(in srgb, var(--bg2) 85%, transparent);
+  backdrop-filter: blur(14px) saturate(160%);
+  border-bottom: 1px solid var(--brd);
+
+  @media (max-width: 991.98px) {
+    z-index: 1100; // above the drawer's overlay
+    padding: 0 12px;
+    gap: 10px;
+  }
+
+  // Thin brand line whose light drifts slowly along the bottom edge.
+  &__accent {
+    position: absolute;
+    inset-inline: 0;
+    bottom: -1px;
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(var(--primary-rgb), 0.9) 50%,
+      transparent 100%
+    );
+    background-size: 40% 100%;
+    background-repeat: no-repeat;
+    animation: tb-accent 9s ease-in-out infinite alternate;
+    pointer-events: none;
   }
 }
 
-/* ── Hamburger (mobile only) ── */
-.t-hamburger {
-  display: none;
-  width: 34px;
-  height: 34px;
+.tb__brand {
+  display: flex;
   align-items: center;
-  justify-content: center;
-  border: 1px solid var(--brd);
-  border-radius: var(--r);
-  background: transparent;
-  color: var(--txt2);
-  cursor: pointer;
   flex-shrink: 0;
-  transition: background 0.12s;
+  text-decoration: none;
+  transition: transform var(--dur) var(--ease-out);
+
+  &:hover {
+    transform: scale(1.04);
+  }
+
+  @media (min-width: 992px) {
+    // Align the logo column with the sidebar width below (expanded / rail).
+    width: calc(248px - 18px);
+    transition: width 0.3s var(--ease-out), transform var(--dur) var(--ease-out);
+
+    :host(.is-rail) & {
+      width: calc(76px - 18px);
+    }
+  }
+}
+
+.tb__search {
+  flex: 1;
+  max-width: 460px;
+
+  @media (max-width: 767.98px) {
+    display: none;
+  }
+}
+
+.tb__actions {
+  margin-inline-start: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.tb__divider {
+  width: 1px;
+  height: 26px;
+  background: var(--brd2);
+
+  @media (max-width: 575.98px) {
+    display: none;
+  }
+}
+
+/* ── Hamburger (mobile only) — morphs into an X ── */
+.tb__icon-btn {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--brd);
+  border-radius: 12px;
+  background: var(--bg2);
+  color: var(--txt);
+  cursor: pointer;
+  transition: background var(--dur-fast);
 
   &:hover {
     background: var(--bg3);
   }
-
-  @media (max-width: 991px) {
-    display: flex;
+  &:focus-visible {
+    outline: none;
+    box-shadow: var(--focus-ring);
   }
 }
 
-/* ── Logo ── */
-.logo {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--bl);
-  cursor: pointer;
-  text-decoration: none;
-  white-space: nowrap;
-  flex-shrink: 0;
-
+.tb__burger {
   @media (min-width: 992px) {
-    min-width: 140px;
-  }
-}
-
-.logo-text {
-  @media (max-width: 576px) {
     display: none;
   }
 }
 
-/* ── Right actions group ── */
-.tright {
-  margin-inline-start: auto;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
+.tb__burger-lines {
+  position: relative;
+  width: 18px;
+  height: 14px;
 
-/* ── User avatar ── */
-.tav {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background: var(--bl-l);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--bl);
-  flex-shrink: 0;
-}
+  i {
+    position: absolute;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    border-radius: 2px;
+    background: currentColor;
+    transition: transform var(--dur) var(--ease-out), opacity var(--dur-fast), top var(--dur) var(--ease-out);
 
-.tname {
-  font-size: 11px;
-  color: var(--txt2);
-  white-space: nowrap;
+    &:nth-child(1) { top: 0; }
+    &:nth-child(2) { top: 6px; }
+    &:nth-child(3) { top: 12px; }
+  }
 
-  @media (max-width: 768px) {
-    display: none;
+  &.is-open i {
+    &:nth-child(1) { top: 6px; transform: rotate(45deg); }
+    &:nth-child(2) { opacity: 0; }
+    &:nth-child(3) { top: 6px; transform: rotate(-45deg); }
   }
 }
 
-.trole {
-  font-size: 10px;
-  padding: 2px 8px;
-  border-radius: 20px;
-  background: var(--gr-l);
-  color: var(--gr);
-  font-weight: 600;
-  white-space: nowrap;
+@keyframes tb-accent {
+  from { background-position: -40% 0; }
+  to   { background-position: 140% 0; }
+}
 
-  @media (max-width: 768px) {
-    display: none;
+@media (prefers-reduced-motion: reduce) {
+  .tb__accent {
+    animation: none;
+    background-position: 50% 0;
   }
 }

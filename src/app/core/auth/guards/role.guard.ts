@@ -5,7 +5,7 @@ import { ToastService } from '../../services/toast.service';
 import { UserRole } from '../models/auth.model';
 import { DEFAULT_AUTHENTICATED_ROUTE, LOGIN_ROUTE } from '../auth.config';
 
-const DEFAULT_DENIED_MESSAGE = "You don't have permission to access this page";
+const DEFAULT_DENIED_MESSAGE = 'ليس لديك صلاحية للوصول إلى هذه الصفحة';
 
 /**
  * Restricts a route to specific roles.

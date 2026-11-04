@@ -35,8 +35,8 @@ export class DialogService {
       this.dialogState.set({
         isOpen: true,
         config: {
-          confirmText: 'Confirm',
-          cancelText: 'Cancel',
+          confirmText: 'تأكيد',
+          cancelText: 'إلغاء',
           type: 'danger',
           ...config,
         },

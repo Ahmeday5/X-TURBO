@@ -1,0 +1,161 @@
+/* ════════════════════════════════════════════════════════════════
+   DESIGN TOKENS
+   ────────────────────────────────────────────────────────────────
+   Single source of truth for colour, radius, shadow and motion.
+   Components must read these variables — never raw colours — so
+   both themes stay correct automatically.
+
+   Theme is driven by `data-theme` on <html> (set by ThemeService
+   and by the anti-flash script in index.html). Bootstrap 5.3 is
+   kept in sync through `data-bs-theme` and the `--bs-*` mapping.
+
+   Brand: X-TURBO red (#E31E24 → #B5121B) on ink black / white.
+   ════════════════════════════════════════════════════════════════ */
+
+:root {
+  color-scheme: light;
+
+  /* ── Brand ── */
+  --primary: #d9151d;
+  --primary-hover: #b9111a;
+  --primary-strong: #a50e15;      // text on --primary-soft
+  --primary-soft: #fdecec;
+  --primary-rgb: 217, 21, 29;
+  --on-primary: #ffffff;
+  --brand-red: #e31e24;
+  --brand-red-deep: #b5121b;
+  --brand-ink: #0b0b0c;
+  --brand-gradient: linear-gradient(135deg, #b5121b 0%, #e31e24 55%, #ff4146 100%);
+  --focus-ring: 0 0 0 3px rgba(var(--primary-rgb), 0.18);
+
+  /* ── Status (text on soft bg / solid button bg) ── */
+  --bl: #1b5fa8;
+  --bl-l: #e6f1fb;
+  --bl-d: #0c447c;
+  --gr: #2f7d32;
+  --gr-l: #e8f4e5;
+  --am: #9a5b0b;
+  --am-l: #fbefdb;
+  --re: #b42318;
+  --re-l: #fdecea;
+  --te: #0f6e56;
+  --te-l: #e1f5ee;
+  --pu: #534ab7;
+  --pu-l: #eeedfe;
+  --pi: #993556;
+  --pi-l: #fbeaf0;
+
+  /* ── Surfaces & text ── */
+  --bg: #f5f5f6;                  // app canvas
+  --bg2: #ffffff;                 // cards, bars, inputs
+  --bg3: #efeff1;                 // hover, table heads, subtle fills
+  --bg-elevated: #ffffff;         // popovers, modals, toasts
+  --txt: #111113;
+  --txt2: #55565c;
+  --txt3: #8b8c93;
+  --brd: rgba(17, 17, 19, 0.08);
+  --brd2: rgba(17, 17, 19, 0.15);
+  --overlay: rgba(11, 11, 12, 0.45);
+
+  /* ── Shape & depth ── */
+  --r: 8px;
+  --rl: 12px;
+  --rx: 18px;
+  --shadow: 0 1px 2px rgba(17, 17, 19, 0.05), 0 1px 4px rgba(17, 17, 19, 0.04);
+  --shadow-lg: 0 18px 50px rgba(17, 17, 19, 0.12), 0 2px 8px rgba(17, 17, 19, 0.05);
+
+  /* ── Motion ── */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-fast: 0.15s;
+  --dur: 0.25s;
+
+  /* ── Type & layout ── */
+  --font-base: "IBM Plex Sans Arabic", "Segoe UI", Tahoma, Arial, sans-serif;
+  --app-height: 100dvh;
+  --topbar-h: 64px;
+
+  /* Writing direction as a sign: multiply horizontal motion by it so
+     nudges/slides point "forward" in either direction. */
+  --dir: 1;
+  /* Physical side of inline-start / inline-end, for properties that have no
+     logical form (transform-origin, background-position…). */
+  --start: left;
+  --end: right;
+}
+
+[dir='rtl'] {
+  --dir: -1;
+  --start: right;
+  --end: left;
+}
+
+/* ── Dark theme — ink black like the logo, brighter red for contrast ── */
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  --primary: #ef2b32;
+  --primary-hover: #ff4a50;
+  --primary-strong: #ff7a7f;
+  --primary-soft: rgba(239, 43, 50, 0.14);
+  --primary-rgb: 239, 43, 50;
+  --focus-ring: 0 0 0 3px rgba(var(--primary-rgb), 0.28);
+
+  --bl: #6aa8f0;
+  --bl-l: rgba(106, 168, 240, 0.14);
+  --bl-d: #9cc6ff;
+  --gr: #5cc787;
+  --gr-l: rgba(92, 199, 135, 0.14);
+  --am: #f0aa4f;
+  --am-l: rgba(240, 170, 79, 0.14);
+  --re: #ff6b6b;
+  --re-l: rgba(255, 107, 107, 0.14);
+  --te: #3fc9a6;
+  --te-l: rgba(63, 201, 166, 0.14);
+  --pu: #a59cff;
+  --pu-l: rgba(165, 156, 255, 0.16);
+  --pi: #f07aa5;
+  --pi-l: rgba(240, 122, 165, 0.14);
+
+  /* Solid fills for buttons — the bright text tones above are too light
+     to carry white labels, so dark mode supplies deeper solids. */
+  --bl-solid: #2f74c4;
+  --gr-solid: #2e8b4f;
+  --am-solid: #b8730f;
+  --re-solid: #c62f2f;
+  --te-solid: #138a6b;
+  --pu-solid: #6359d1;
+
+  --bg: #0a0a0b;
+  --bg2: #141416;
+  --bg3: #1d1d20;
+  --bg-elevated: #1a1a1d;
+  --txt: #f4f4f5;
+  --txt2: #a9aab1;
+  --txt3: #70717a;
+  --brd: rgba(255, 255, 255, 0.07);
+  --brd2: rgba(255, 255, 255, 0.13);
+  --overlay: rgba(0, 0, 0, 0.6);
+
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 1px 4px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 24px 60px rgba(0, 0, 0, 0.55), 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+
+/* ── Bootstrap bridge: make Bootstrap's own components follow our tokens ── */
+:root,
+:root[data-theme='dark'] {
+  --bs-body-bg: var(--bg);
+  --bs-body-color: var(--txt);
+  --bs-body-font-family: var(--font-base);
+  --bs-emphasis-color: var(--txt);
+  --bs-secondary-color: var(--txt3);
+  --bs-tertiary-bg: var(--bg3);
+  --bs-border-color: var(--brd2);
+  --bs-primary: var(--primary);
+  --bs-primary-rgb: var(--primary-rgb);
+  --bs-danger: var(--re);
+  --bs-link-color: var(--primary);
+  --bs-link-color-rgb: var(--primary-rgb);
+  --bs-link-hover-color: var(--primary-hover);
+  --bs-focus-ring-color: rgba(var(--primary-rgb), 0.25);
+}

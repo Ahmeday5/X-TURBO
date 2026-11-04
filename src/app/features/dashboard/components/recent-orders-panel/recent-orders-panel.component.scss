@@ -1,0 +1,127 @@
+:host {
+  display: block;
+  height: 100%;
+}
+
+.ro__all {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--primary);
+  text-decoration: none;
+  white-space: nowrap;
+
+  app-icon {
+    transition: transform var(--dur) var(--ease-out);
+  }
+  &:hover app-icon {
+    transform: translateX(calc(3px * var(--dir)));
+  }
+}
+
+.ro__scroll {
+  overflow-x: auto;
+  margin: 0 -20px -20px;
+  padding: 0 20px 12px;
+}
+
+.ro {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  color: var(--txt);
+  white-space: nowrap;
+
+  th {
+    padding: 0 12px 10px;
+    font-size: 10.5px;
+    font-weight: 600;
+    color: var(--txt3);
+    text-align: start;
+    border-bottom: 1px solid var(--brd);
+  }
+
+  td {
+    padding: 11px 12px;
+    border-bottom: 1px solid var(--brd);
+    vertical-align: middle;
+  }
+
+  tbody tr:last-child td {
+    border-bottom: 0;
+  }
+
+  th:first-child,
+  td:first-child {
+    padding-inline-start: 0;
+  }
+}
+
+.ro__row {
+  transition: background var(--dur-fast);
+  animation: ro-in 0.45s var(--ease-out) both;
+  animation-delay: calc(var(--i, 0) * 50ms + 150ms);
+
+  &:hover td {
+    background: var(--bg3);
+  }
+}
+
+.ro__num {
+  text-align: end !important;
+  font-variant-numeric: tabular-nums;
+}
+
+.ro__id {
+  font-weight: 700;
+}
+
+.ro__time {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 2px;
+  font-size: 10.5px;
+  color: var(--txt3);
+}
+
+.ro__customer {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-weight: 500;
+}
+
+.ro__avatar {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--bg3);
+  color: var(--txt2);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.ro__muted {
+  color: var(--txt2);
+}
+
+.ro__total {
+  font-weight: 700;
+}
+
+@keyframes ro-in {
+  from { opacity: 0; transform: translateX(calc(-6px * var(--dir))); }
+  to   { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ro__row {
+    animation: none;
+  }
+}

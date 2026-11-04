@@ -11,7 +11,8 @@ export interface TableColumn {
   key: string;
   label: string;
   width?: string;
-  align?: 'right' | 'left' | 'center';
+  /** Logical alignment — 'start'/'end' follow the reading direction. */
+  align?: 'start' | 'end' | 'center';
   cellTemplate?: TemplateRef<any>;
 }
 
@@ -30,8 +31,8 @@ export class DataTableComponent<T extends Record<string, any>> {
   trackByKey = input<string>('id');
   hasActions = input<boolean>(false);
   rowClickable = input<boolean>(false);
-  emptyMessage = input<string>('No data available');
-  actionsLabel = input<string>('Actions');
+  emptyMessage = input<string>('لا توجد بيانات');
+  actionsLabel = input<string>('إجراءات');
 
   rowClick = output<T>();
 

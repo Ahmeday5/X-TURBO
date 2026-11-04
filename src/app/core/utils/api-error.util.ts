@@ -8,7 +8,7 @@ import { ApiError } from '../models/api-response.model';
  * Usage:
  *
  *   error: (err: ApiError) =>
- *     this.toast.error(apiErrorToMessage(err, 'Failed to create the record')),
+ *     this.toast.error(apiErrorToMessage(err, 'تعذر حفظ البيانات')),
  *
  * - Field errors take precedence — they're the most actionable.
  * - Falls back to `err.message` (set by the interceptor from
@@ -16,9 +16,8 @@ import { ApiError } from '../models/api-response.model';
  * - Falls back to the caller's fallback only when both are missing
  *   (e.g. a `0` status with no usable hint).
  *
- * If your backend messages need translation/localization, add that layer
- * here (see the README's "Error message localization" section) instead of
- * scattering translation calls through feature code.
+ * The UI is Arabic-only: if the backend ever returns English messages, map
+ * them here rather than scattering translations through feature code.
  */
 export function apiErrorToMessage(
   err: ApiError | undefined | null,
@@ -47,5 +46,5 @@ function formatFieldErrors(
     else if (typeof value === 'string' && value.trim()) parts.push(value);
   }
   if (parts.length === 0) return null;
-  return parts.join(' — ');
+  return parts.join('، ');
 }

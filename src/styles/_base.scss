@@ -1,0 +1,57 @@
+/* ── BASE ── */
+html {
+  scroll-behavior: smooth;
+  overflow-x: hidden;
+  font-family: var(--font-base);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: var(--font-base);
+  background: var(--bg);
+  color: var(--txt);
+  height: 100dvh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  font-size: 13.5px;
+  line-height: 1.6; // Arabic glyphs need more vertical room than Latin
+}
+
+/* Arabic is cursive: tracking breaks letter joins, and case doesn't exist. */
+html[lang='ar'] {
+  letter-spacing: normal !important;
+  text-transform: none !important;
+}
+
+::selection {
+  background: rgba(var(--primary-rgb), 0.22);
+}
+
+a {
+  color: var(--primary);
+}
+
+/* Isolate LTR fragments (emails, SKUs, codes, numbers) inside RTL text. */
+.ltr {
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+
+.container-fluid {
+  padding-inline: 20px !important;
+}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--brd2);
+  border-radius: 10px;
+}

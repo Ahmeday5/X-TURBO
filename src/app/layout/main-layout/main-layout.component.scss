@@ -1,62 +1,77 @@
-/* ── MAIN LAYOUT ── */
+/* ── MAIN LAYOUT — topbar on top, sidebar + scrolling content below ── */
+:host {
+  display: block;
+}
+
 .app-layout {
   display: flex;
+  flex-direction: column;
   height: 100vh;
-  height: 100dvh;
   height: var(--app-height, 100dvh);
-
   overflow: hidden;
   background: var(--bg);
+
+  app-topbar {
+    flex-shrink: 0;
+  }
+}
+
+.app-body {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
 }
 
 // ─── Mobile Sidebar Overlay ──────────────────────────────────
 .sidebar-overlay {
   display: none;
 
-  @media (max-width: 992px) {
+  @media (max-width: 991.98px) {
     display: block;
     position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.45);
-    z-index: 900; // just below the sidebar (which sits at 1000+)
+    inset: var(--topbar-h) 0 0 0;
+    background: var(--overlay);
+    backdrop-filter: blur(2px);
+    z-index: 900; // just below the sidebar (1000)
     cursor: pointer;
+    animation: overlay-in 0.2s ease-out;
   }
 }
 
 // ─── Sidebar Wrapper ─────────────────────────────────────────
 .sidebar-wrapper {
   flex-shrink: 0;
+  height: 100%;
 
-  // On mobile the sidebar uses position:fixed and slides in as an overlay,
-  // so the wrapper must take zero space in the flex row.
-  @media (max-width: 992px) {
+  // On mobile the sidebar is position:fixed (a drawer), so take no space.
+  @media (max-width: 991.98px) {
     width: 0;
     min-width: 0;
-    overflow: visible; // let the fixed sidebar paint outside this box
+    overflow: visible;
   }
 }
 
-// ─── Main Content ────────────────────────────────────────────
-.main-content {
-  flex: 1;
-  min-width: 0;   // prevent flex item from overflowing its container (width axis)
-  min-height: 0;  // prevent flex item from overflowing its container (height axis)
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-
-  // topbar is a flex child — pin it so it never shrinks or scrolls away
-  app-topbar { flex-shrink: 0; }
-}
-
 // ─── Scrollable Page Area ────────────────────────────────────
-// Only this div scrolls, not the whole main-content.
-// The topbar stays fixed at the top while pages scroll independently.
+// Only this element scrolls; topbar and sidebar stay put.
 .content-body {
+  position: relative;
   flex: 1;
-  min-height: 0;  // critical: lets the flex child scroll instead of overflow
+  min-width: 0;
+  min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-y: contain;
+  padding: 24px clamp(14px, 2.2vw, 32px) 32px;
+
+  // Faint brand glow anchored to the top of the canvas.
+  background:
+    radial-gradient(900px 300px at 85% -120px, rgba(var(--primary-rgb), 0.07), transparent 70%),
+    var(--bg);
+}
+
+@keyframes overlay-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
