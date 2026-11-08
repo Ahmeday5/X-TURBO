@@ -5,13 +5,17 @@ export interface MockContext {
   req: HttpRequest<unknown>;
   /** Id of the user proven by the Bearer token (protected routes only). */
   userId: string | null;
+  /** Values of `:param` segments in the matched route path. */
+  params: Readonly<Record<string, string>>;
+  /** Parsed query string. */
+  query: URLSearchParams;
 }
 
 export type MockHandler = (ctx: MockContext) => HttpResponse<unknown>;
 
 export interface MockRoute {
   method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
-  /** Path relative to `environment.apiUrl`, no leading slash. */
+  /** Path relative to `environment.apiUrl`, no leading slash; `:name` segments are params. */
   path: string;
   /** Require a valid Bearer access token (mirrors the real API). */
   protected: boolean;

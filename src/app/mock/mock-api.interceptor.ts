@@ -4,10 +4,24 @@ import { switchMap } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 import { AUTH_MOCK_ROUTES } from './handlers/auth.handlers';
 import { DASHBOARD_MOCK_ROUTES } from './handlers/dashboard.handlers';
+import { ITEMS_MOCK_ROUTES } from './handlers/items.handlers';
 import { fail, latencyMs, MockRoute } from './mock-http';
 import { verifyAccessToken } from './mock-tokens';
 
-const ROUTES: readonly MockRoute[] = [...AUTH_MOCK_ROUTES, ...DASHBOARD_MOCK_ROUTES];
+const ROUTES: readonly MockRoute[] = [...AUTH_MOCK_ROUTES, ...DASHBOARD_MOCK_ROUTES, ...ITEMS_MOCK_ROUTES];
+
+/** Matches `items/:id` against `items/42` → `{ id: '42' }`; `null` when it doesn't match. */
+function matchPath(pattern: string, path: string): Record<string, string> | null {
+  const a = pattern.split('/');
+  const b = path.split('/');
+  if (a.length !== b.length) return null;
+  const params: Record<string, string> = {};
+  for (let i = 0; i < a.length; i++) {
+    if (a[i].startsWith(':')) params[a[i].slice(1)] = decodeURIComponent(b[i]);
+    else if (a[i] !== b[i]) return null;
+  }
+  return params;
+}
 const API_BASE = environment.apiUrl.replace(/\/+$/, '');
 
 /**
@@ -21,8 +35,14 @@ const API_BASE = environment.apiUrl.replace(/\/+$/, '');
 export const mockApiInterceptor: HttpInterceptorFn = (req, next) => {
   if (!req.url.startsWith(API_BASE)) return next(req);
 
-  const path = req.url.slice(API_BASE.length).replace(/^\/+/, '');
-  const route = ROUTES.find((r) => r.method === req.method && r.path === path);
+  const path = req.url.slice(API_BASE.length).replace(/^\/+/, '').split('?')[0];
+  let params: Record<string, string> = {};
+  const route = ROUTES.find((r) => {
+    if (r.method !== req.method) return false;
+    const match = matchPath(r.path, path);
+    if (match) params = match;
+    return !!match;
+  });
 
   return timer(latencyMs()).pipe(
     switchMap(() => {
@@ -33,7 +53,7 @@ export const mockApiInterceptor: HttpInterceptorFn = (req, next) => {
       if (route.protected && !userId) return throwError(() => fail(401, 'غير مصرح', req.url));
 
       try {
-        return of(route.handle({ req, userId }));
+        return of(route.handle({ req, userId, params, query: new URL(req.urlWithParams, 'http://mock').searchParams }));
       } catch (err) {
         return throwError(() =>
           err instanceof HttpErrorResponse ? err : fail(500, 'Mock API handler crashed', req.url),

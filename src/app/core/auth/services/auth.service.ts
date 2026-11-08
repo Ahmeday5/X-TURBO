@@ -175,6 +175,18 @@ export class AuthService {
    * If your backend already returns full role/permissions on login, delete
    * this call and just return `of(baseUser)`.
    */
+  /**
+   * Re-reads role + permissions for a restored session. Called once at app
+   * start so permission changes (granted/revoked by an admin, or new modules
+   * shipped) apply on the next page load instead of only after re-login.
+   * Fire-and-forget: the cached user keeps working if the call fails.
+   */
+  syncPermissions(): void {
+    const user = this.currentUserSignal();
+    if (!user || !this.isLoggedIn()) return;
+    this.hydratePermissions(user).subscribe();
+  }
+
   private hydratePermissions(baseUser: User): Observable<User> {
     return this.api
       .get<MePermissionsData>(AUTH_ENDPOINTS.me, {

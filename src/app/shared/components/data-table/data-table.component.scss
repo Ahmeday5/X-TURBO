@@ -1,1 +1,355 @@
-// Table wrapper (.tw) is defined globally in styles.scss
+:host {
+  display: block;
+}
+
+.dt {
+  position: relative;
+  border: 1px solid var(--brd);
+  border-radius: var(--rx);
+  background: var(--bg2);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+
+  // Refetch: keep the frame, dim it, run the progress bar.
+  &.is-busy {
+    .dt__scroll,
+    .dt__cards {
+      opacity: 0.55;
+      pointer-events: none;
+      filter: saturate(0.7);
+    }
+    .dt__progress {
+      opacity: 1;
+    }
+  }
+}
+
+/* Indeterminate progress along the top edge */
+.dt__progress {
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+  z-index: 3;
+  height: 2px;
+  overflow: hidden;
+  opacity: 0;
+  transition: opacity var(--dur);
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset-block: 0;
+    width: 40%;
+    background: var(--brand-gradient);
+    border-radius: 2px;
+    animation: dt-progress 1.1s var(--ease-in-out) infinite;
+  }
+}
+
+.dt__scroll,
+.dt__cards {
+  transition: opacity var(--dur), filter var(--dur);
+}
+
+/* ════════ TABLE ════════ */
+.dt__scroll {
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+}
+
+.dt__table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 13px;
+  color: var(--txt);
+
+  th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    padding: 12px 16px;
+    background: var(--bg3);
+    color: var(--txt2);
+    font-size: 12px;
+    font-weight: 600;
+    text-align: start;
+    white-space: nowrap;
+    border-bottom: 1px solid var(--brd);
+  }
+
+  td {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--brd);
+    vertical-align: middle;
+    white-space: nowrap;
+    transition: background var(--dur-fast);
+  }
+
+  tbody tr:last-child td {
+    border-bottom: 0;
+  }
+}
+
+.dt__row {
+  animation: dt-row-in 0.45s var(--ease-out) backwards;
+  animation-delay: calc(var(--i, 0) * 28ms);
+
+  &:hover td {
+    background: rgba(var(--primary-rgb), 0.035);
+  }
+
+  // Brand edge on the hovered row.
+  td:first-child {
+    position: relative;
+
+    &::before {
+      content: '';
+      position: absolute;
+      inset-inline-start: 0;
+      top: 20%;
+      bottom: 20%;
+      width: 3px;
+      border-radius: 3px;
+      background: var(--brand-gradient);
+      transform: scaleY(0);
+      transition: transform var(--dur) var(--ease-out);
+    }
+  }
+  &:hover td:first-child::before {
+    transform: scaleY(1);
+  }
+
+  &.is-clickable {
+    cursor: pointer;
+  }
+}
+
+.dt__actions-h {
+  width: 1%;
+  text-align: center !important;
+}
+
+.dt__actions {
+  text-align: center;
+}
+
+/* Sortable header */
+.dt__sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  transition: color var(--dur-fast);
+
+  &:hover,
+  &.is-sorted {
+    color: var(--txt);
+  }
+  &:focus-visible {
+    outline: none;
+    border-radius: 4px;
+    box-shadow: var(--focus-ring);
+  }
+}
+
+.dt__sort-icon {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 2px;
+
+  i {
+    width: 0;
+    height: 0;
+    border-inline: 4px solid transparent;
+    opacity: 0.35;
+    transition: opacity var(--dur-fast), transform var(--dur) var(--ease-out), border-color var(--dur-fast);
+  }
+  i:first-child {
+    border-bottom: 4px solid currentColor;
+  }
+  i:last-child {
+    border-top: 4px solid currentColor;
+  }
+
+  &[data-dir='asc'] i:first-child,
+  &[data-dir='desc'] i:last-child {
+    opacity: 1;
+    border-bottom-color: var(--primary);
+    border-top-color: var(--primary);
+    transform: scale(1.25);
+  }
+  &[data-dir='asc'] i:last-child,
+  &[data-dir='desc'] i:first-child {
+    opacity: 0.15;
+  }
+}
+
+/* ════════ CARDS ════════ */
+.dt__cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 270px), 1fr));
+  gap: 14px;
+  padding: 14px;
+  background: var(--bg);
+}
+
+.dt__card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid var(--brd);
+  border-radius: var(--rl);
+  background: var(--bg2);
+  box-shadow: var(--shadow);
+  animation: dt-card-in 0.5s var(--ease-out) backwards;
+  animation-delay: calc(var(--i, 0) * 40ms);
+  transition:
+    transform var(--dur) var(--ease-out),
+    box-shadow var(--dur) var(--ease-out),
+    border-color var(--dur);
+
+  &:hover {
+    transform: translateY(-3px);
+    border-color: var(--brd2);
+    box-shadow: var(--shadow-lg);
+  }
+
+  &.is-clickable {
+    cursor: pointer;
+  }
+
+  &--sk {
+    animation: none;
+    gap: 12px;
+  }
+}
+
+.dt__card-list {
+  margin: 0;
+  display: grid;
+  gap: 8px;
+
+  > div {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 12.5px;
+  }
+  dt {
+    font-weight: 500;
+    color: var(--txt3);
+  }
+  dd {
+    margin: 0;
+    min-width: 0;
+    text-align: end;
+    color: var(--txt);
+  }
+}
+
+.dt__card-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  margin-top: auto;
+  padding-top: 10px;
+  border-top: 1px dashed var(--brd);
+}
+
+/* ════════ SKELETON / STATES ════════ */
+.dt__sk {
+  height: 12px;
+
+  &--btn {
+    width: 64px;
+    height: 26px;
+    margin-inline: auto;
+  }
+  &--avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+  }
+}
+
+.dt__state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 56px 20px;
+  text-align: center;
+  animation: dt-card-in 0.4s var(--ease-out);
+
+  &-icon {
+    width: 64px;
+    height: 64px;
+    display: grid;
+    place-items: center;
+    margin-bottom: 10px;
+    border-radius: 20px;
+    background: var(--bg3);
+    color: var(--txt3);
+    animation: dt-float 3.5s ease-in-out infinite alternate;
+  }
+  &-title {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--txt);
+  }
+  &-text {
+    max-width: 360px;
+    margin: 0 0 12px;
+    font-size: 13px;
+    color: var(--txt3);
+  }
+
+  &--error .dt__state-icon {
+    background: var(--re-l);
+    color: var(--re);
+  }
+}
+
+@keyframes dt-row-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: none; }
+}
+
+@keyframes dt-card-in {
+  from { opacity: 0; transform: translateY(12px) scale(0.98); }
+  to   { opacity: 1; transform: none; }
+}
+
+@keyframes dt-progress {
+  from { inset-inline-start: -40%; }
+  to   { inset-inline-start: 100%; }
+}
+
+@keyframes dt-float {
+  from { transform: translateY(-3px); }
+  to   { transform: translateY(3px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dt__row,
+  .dt__card,
+  .dt__state,
+  .dt__state-icon {
+    animation: none;
+  }
+  .dt__card:hover {
+    transform: none;
+  }
+}

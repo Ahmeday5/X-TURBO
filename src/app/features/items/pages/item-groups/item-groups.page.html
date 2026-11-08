@@ -1,0 +1,90 @@
+<ng-template #codeCell let-g><span class="ui-code">{{ g.code }}</span></ng-template>
+
+<ng-template #nameCell let-g>
+  <div class="ig-name">
+    <span class="ig-name__dot" [style.--chip]="g.color"><app-icon name="folder" [size]="15" /></span>
+    <div>
+      <strong>{{ g.name }}</strong>
+      @if (g.description) {<small>{{ g.description }}</small>}
+    </div>
+  </div>
+</ng-template>
+
+<ng-template #countCell let-g>
+  <button type="button" class="ig-count" (click)="openItems(g)" [attr.aria-label]="'عرض أصناف ' + g.name">
+    {{ g.itemsCount }} <app-icon name="arrow-right" [size]="12" />
+  </button>
+</ng-template>
+
+<ng-template #statusCell let-g>
+  <span class="status-pill" [class.status-pill--good]="g.isActive" [class.status-pill--neutral]="!g.isActive">
+    {{ g.isActive ? 'نشطة' : 'موقوفة' }}
+  </span>
+</ng-template>
+
+<ng-template #actions let-g>
+  <button type="button" class="ui-icon-btn" title="تعديل" [attr.aria-label]="'تعديل ' + g.name" (click)="editing.set(g)">
+    <app-icon name="edit" [size]="16" />
+  </button>
+  <button type="button" class="ui-icon-btn ui-icon-btn--danger" title="حذف" [attr.aria-label]="'حذف ' + g.name"
+    (click)="remove(g)">
+    <app-icon name="trash" [size]="16" />
+  </button>
+</ng-template>
+
+<ng-template #card let-g>
+  <div class="ig-card" [style.--chip]="g.color">
+    <span class="ig-card__glow" aria-hidden="true"></span>
+    <header class="ig-card__head">
+      <span class="ig-card__icon"><app-icon name="folder" [size]="22" /></span>
+      <span class="status-pill" [class.status-pill--good]="g.isActive" [class.status-pill--neutral]="!g.isActive">
+        {{ g.isActive ? 'نشطة' : 'موقوفة' }}
+      </span>
+    </header>
+    <div>
+      <span class="ui-code">{{ g.code }}</span>
+      <h3 class="ig-card__title">{{ g.name }}</h3>
+      @if (g.parentName) {<span class="ig-card__parent">ضمن {{ g.parentName }}</span>}
+      <p class="ig-card__desc">{{ g.description || 'بدون وصف' }}</p>
+    </div>
+    <button type="button" class="ig-card__count" (click)="openItems(g)">
+      <strong>{{ g.itemsCount }}</strong> صنف
+      <app-icon name="arrow-right" [size]="13" />
+    </button>
+  </div>
+</ng-template>
+
+<!-- Page -->
+<app-page-header [navId]="navId()">
+  <button type="button" class="ui-btn ui-btn--primary" (click)="editing.set(null)">
+    <app-icon name="plus" [size]="16" /> مجموعة جديدة
+  </button>
+</app-page-header>
+
+<app-list-toolbar placeholder="ابحث باسم المجموعة أو الكود…" [search]="state.query().search" [view]="state.view()"
+  [sort]="state.query().sort" [sortOptions]="sortOptions" [count]="list.count()" [activeFilters]="state.activeFilters()"
+  (searchChange)="state.setSearch($event)" (sortChange)="state.setSort($event)" (viewChange)="state.setView($event)"
+  (clearFilters)="state.clearFilters()">
+  <select filters class="ui-input" aria-label="الحالة" (change)="state.setFilter('status', $any($event.target).value)">
+    <option value="" [selected]="!state.query().filters['status']">كل الحالات</option>
+    <option value="active" [selected]="state.query().filters['status'] === 'active'">نشطة</option>
+    <option value="inactive" [selected]="state.query().filters['status'] === 'inactive'">موقوفة</option>
+  </select>
+</app-list-toolbar>
+
+<app-data-table [columns]="columns()" [data]="list.items()" [view]="state.view()" [sort]="state.query().sort"
+  [loading]="list.loading()" [initialLoading]="list.initialLoading()" [error]="list.error()"
+  [skeletonCount]="state.query().pageSize" [cardTemplate]="card" [actionsTemplate]="actions" emptyIcon="folder"
+  emptyTitle="لا توجد مجموعات مطابقة" emptyText="جرّب بحثًا آخر أو أضف مجموعة جديدة."
+  (sortChange)="state.toggleSort($event)" (retry)="list.reload()">
+  <button empty-actions type="button" class="ui-btn ui-btn--primary" (click)="editing.set(null)">
+    <app-icon name="plus" [size]="16" /> مجموعة جديدة
+  </button>
+</app-data-table>
+
+<app-pagination class="ig-pager" [pageIndex]="state.query().pageIndex" [pageSize]="state.query().pageSize"
+  [count]="list.count()" [totalPages]="list.totalPages()" [pageSizeOptions]="[12, 24, 48]" [disabled]="list.loading()"
+  (pageChange)="state.setPage($event)" (pageSizeChange)="state.setPageSize($event)" />
+
+<app-group-form-dialog [open]="editing() !== undefined" [group]="editing() ?? null" [parents]="parents()"
+  (closed)="editing.set(undefined)" (saved)="onSaved()" />

@@ -1,0 +1,344 @@
+/* ═══════════════════════════════════════════
+   UI KIT — buttons, fields, switch, chips.
+   Shared by every feature page; components only add layout.
+   ═══════════════════════════════════════════ */
+
+/* ── Buttons ──
+   <button class="ui-btn ui-btn--primary"><app-icon name="check"/> حفظ</button> */
+.ui-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  height: 40px;
+  padding: 0 16px;
+  border: 1px solid var(--brd2);
+  border-radius: 11px;
+  background: var(--bg2);
+  color: var(--txt);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  text-decoration: none;
+  cursor: pointer;
+  overflow: hidden;
+  transition:
+    background var(--dur-fast),
+    border-color var(--dur-fast),
+    color var(--dur-fast),
+    box-shadow var(--dur),
+    transform var(--dur-fast);
+
+  &:hover:not(:disabled) {
+    border-color: var(--txt3);
+  }
+  &:active:not(:disabled) {
+    transform: scale(0.97);
+  }
+  &:focus-visible {
+    outline: none;
+    box-shadow: var(--focus-ring);
+  }
+  &:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+
+  &--primary {
+    border-color: transparent;
+    background: var(--brand-gradient);
+    color: #fff;
+    box-shadow: 0 8px 20px -10px rgba(var(--primary-rgb), 0.9);
+
+    // Sheen sweeping across on hover.
+    &::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(110deg, transparent 30%, rgba(255, 255, 255, 0.28) 50%, transparent 70%);
+      transform: translateX(-120%);
+      transition: transform 0.7s var(--ease-out);
+    }
+    &:hover:not(:disabled) {
+      border-color: transparent;
+      box-shadow: 0 12px 26px -10px rgba(var(--primary-rgb), 0.95);
+      &::after {
+        transform: translateX(120%);
+      }
+    }
+  }
+
+  &--ghost {
+    border-color: transparent;
+    background: var(--bg3);
+    &:hover:not(:disabled) {
+      border-color: var(--brd2);
+      background: var(--bg2);
+    }
+  }
+
+  &--danger {
+    border-color: transparent;
+    background: var(--re-l);
+    color: var(--re);
+    &:hover:not(:disabled) {
+      border-color: var(--re);
+    }
+  }
+
+  &--sm {
+    height: 32px;
+    padding: 0 12px;
+    border-radius: 9px;
+    font-size: 12px;
+  }
+
+  &.is-loading {
+    color: transparent !important;
+    pointer-events: none;
+
+    &::before {
+      content: '';
+      position: absolute;
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255, 255, 255, 0.4);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: ui-spin 0.7s linear infinite;
+    }
+  }
+  &--ghost.is-loading::before {
+    border-color: var(--brd2);
+    border-top-color: var(--primary);
+  }
+}
+
+/* Square icon-only button (row actions). */
+.ui-icon-btn {
+  width: 32px;
+  height: 32px;
+  display: inline-grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--txt3);
+  cursor: pointer;
+  transition: background var(--dur-fast), color var(--dur-fast), transform var(--dur-fast), border-color var(--dur-fast);
+
+  &:hover {
+    background: var(--bg3);
+    border-color: var(--brd);
+    color: var(--txt);
+    transform: translateY(-1px);
+  }
+  &:active {
+    transform: scale(0.92);
+  }
+  &:focus-visible {
+    outline: none;
+    box-shadow: var(--focus-ring);
+  }
+  &--danger:hover {
+    background: var(--re-l);
+    border-color: transparent;
+    color: var(--re);
+  }
+}
+
+/* ── Fields ──
+   <label class="ui-field"><span class="ui-label is-required">الاسم</span><input class="ui-input"/></label> */
+.ui-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.ui-label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--txt2);
+
+  &.is-required::after {
+    content: ' *';
+    color: var(--primary);
+  }
+}
+
+.ui-hint {
+  font-size: 11.5px;
+  color: var(--txt3);
+}
+
+.ui-input {
+  width: 100%;
+  height: 42px;
+  padding: 0 13px;
+  border: 1px solid var(--brd2);
+  border-radius: 11px;
+  background: var(--bg2);
+  color: var(--txt);
+  font: inherit;
+  font-size: 13.5px;
+  outline: none;
+  transition: border-color var(--dur-fast), box-shadow var(--dur), background var(--dur-fast);
+
+  &::placeholder {
+    color: var(--txt3);
+  }
+  &:hover:not(:disabled):not(:focus) {
+    border-color: var(--txt3);
+  }
+  &:focus {
+    border-color: var(--primary);
+    box-shadow: var(--focus-ring);
+  }
+  &:disabled,
+  &[readonly] {
+    background: var(--bg3);
+    color: var(--txt2);
+  }
+  &.ng-invalid.ng-touched {
+    border-color: var(--re);
+    box-shadow: 0 0 0 3px var(--re-l);
+  }
+}
+
+textarea.ui-input {
+  height: auto;
+  min-height: 92px;
+  padding: 10px 13px;
+  resize: vertical;
+  line-height: 1.6;
+}
+
+select.ui-input {
+  appearance: none;
+  padding-inline-end: 34px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 20 20' fill='none'%3E%3Cpath d='M5 7.5 10 12.5 15 7.5' stroke='%238b8c93' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: var(--end) 12px center;
+  cursor: pointer;
+}
+
+/* Input with a trailing unit/currency */
+.ui-affix {
+  position: relative;
+
+  .ui-input {
+    padding-inline-end: 52px;
+  }
+  &__text {
+    position: absolute;
+    inset-inline-end: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--txt3);
+    pointer-events: none;
+  }
+}
+
+/* ── Switch ──
+   <label class="ui-switch"><input type="checkbox"/><span class="ui-switch__track"></span> نشط</label> */
+.ui-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--txt);
+  cursor: pointer;
+  user-select: none;
+
+  input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  &__track {
+    position: relative;
+    flex-shrink: 0;
+    width: 40px;
+    height: 23px;
+    border-radius: 999px;
+    background: var(--brd2);
+    transition: background var(--dur);
+
+    &::after {
+      content: '';
+      position: absolute;
+      top: 3px;
+      inset-inline-start: 3px;
+      width: 17px;
+      height: 17px;
+      border-radius: 50%;
+      background: #fff;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+      transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+  }
+
+  input:checked + &__track {
+    background: var(--brand-gradient);
+    &::after {
+      transform: translateX(calc(17px * var(--dir)));
+    }
+  }
+  input:focus-visible + &__track {
+    box-shadow: var(--focus-ring);
+  }
+}
+
+/* ── Chip with a colour dot ──
+   <span class="ui-chip" [style.--chip]="group.color">الفرامل</span> */
+.ui-chip {
+  --chip: var(--txt3);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--chip) 12%, transparent);
+  color: var(--txt);
+  font-size: 11.5px;
+  font-weight: 600;
+  white-space: nowrap;
+
+  &::before {
+    content: '';
+    flex-shrink: 0;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--chip);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--chip) 22%, transparent);
+  }
+}
+
+/* Monospace code (item codes, barcodes) */
+.ui-code {
+  direction: ltr;
+  unicode-bidi: isolate;
+  font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  font-size: 12px;
+  color: var(--txt2);
+}
+
+@keyframes ui-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-btn--primary::after {
+    display: none;
+  }
+}

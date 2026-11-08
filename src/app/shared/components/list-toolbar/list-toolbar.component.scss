@@ -1,0 +1,237 @@
+:host {
+  display: block;
+  margin-bottom: 14px;
+}
+
+.lt {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid var(--brd);
+  border-radius: var(--rx);
+  background: var(--bg2);
+  box-shadow: var(--shadow);
+}
+
+/* Search grows to fill; filters + controls wrap below it on small screens. */
+.lt__search {
+  position: relative;
+  flex: 1 1 260px;
+  min-width: 0;
+}
+
+.lt__glyph {
+  position: absolute;
+  inset-inline-start: 13px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--txt3);
+  pointer-events: none;
+  transition: color var(--dur-fast);
+}
+
+.lt__search:focus-within .lt__glyph {
+  color: var(--primary);
+}
+
+.lt__input {
+  width: 100%;
+  height: 40px;
+  padding-block: 0;
+  padding-inline: 38px 36px;
+  border: 1px solid transparent;
+  border-radius: 11px;
+  background: var(--bg3);
+  color: var(--txt);
+  font: inherit;
+  font-size: 13px;
+  outline: none;
+  transition: background var(--dur-fast), border-color var(--dur-fast), box-shadow var(--dur);
+
+  &::placeholder {
+    color: var(--txt3);
+  }
+  &::-webkit-search-cancel-button {
+    display: none;
+  }
+  &:focus {
+    background: var(--bg2);
+    border-color: var(--primary);
+    box-shadow: var(--focus-ring);
+  }
+}
+
+.lt__clear {
+  position: absolute;
+  inset-inline-end: 8px;
+  top: 8px;
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--txt3);
+  cursor: pointer;
+  animation: lt-pop 0.2s var(--ease-out);
+
+  &:hover {
+    background: var(--bg2);
+    color: var(--primary);
+  }
+}
+
+.lt__filters {
+  display: contents;
+
+  ::ng-deep [filters] {
+    flex: 0 1 190px;
+    min-width: 150px;
+    height: 40px;
+  }
+}
+
+.lt__end {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-inline-start: auto;
+}
+
+.lt__count {
+  font-size: 12px;
+  color: var(--txt3);
+  white-space: nowrap;
+
+  strong {
+    color: var(--txt);
+    font-weight: 700;
+  }
+}
+
+.lt__badge {
+  min-width: 18px;
+  height: 18px;
+  display: grid;
+  place-items: center;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--primary);
+  color: #fff;
+  font-size: 10.5px;
+}
+
+.lt__reset {
+  animation: lt-pop 0.25s var(--ease-out);
+}
+
+/* Sort picker */
+.lt__sort {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 40px;
+  padding-inline: 12px 4px;
+  border: 1px solid var(--brd);
+  border-radius: 11px;
+  background: var(--bg2);
+  color: var(--txt3);
+  transition: border-color var(--dur-fast);
+
+  &:focus-within {
+    border-color: var(--primary);
+    box-shadow: var(--focus-ring);
+  }
+
+  select {
+    height: 100%;
+    padding-inline: 6px;
+    border: 0;
+    background: transparent;
+    color: var(--txt);
+    font: inherit;
+    font-size: 12.5px;
+    outline: none;
+    cursor: pointer;
+  }
+}
+
+/* Table / cards segmented switch with a sliding pill */
+.lt__view {
+  position: relative;
+  display: flex;
+  padding: 3px;
+  border-radius: 11px;
+  background: var(--bg3);
+
+  button {
+    position: relative;
+    z-index: 1;
+    width: 36px;
+    height: 34px;
+    display: grid;
+    place-items: center;
+    padding: 0;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--txt3);
+    cursor: pointer;
+    transition: color var(--dur);
+
+    &[aria-pressed='true'] {
+      color: var(--primary);
+    }
+    &:focus-visible {
+      outline: none;
+      box-shadow: var(--focus-ring);
+    }
+  }
+
+  // Phones always show cards (DataTable decides), so the switch is pointless there.
+  @media (max-width: 767.98px) {
+    display: none;
+  }
+}
+
+.lt__view-pill {
+  position: absolute;
+  top: 3px;
+  inset-inline-start: 3px;
+  width: 36px;
+  height: 34px;
+  border-radius: 8px;
+  background: var(--bg2);
+  box-shadow: var(--shadow);
+  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  &.is-cards {
+    transform: translateX(calc(36px * var(--dir)));
+  }
+}
+
+@media (max-width: 575.98px) {
+  .lt__filters ::ng-deep [filters] {
+    flex: 1 1 calc(50% - 5px);
+  }
+  .lt__end {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .lt__sort {
+    flex: 1;
+    select {
+      flex: 1;
+      min-width: 0;
+    }
+  }
+}
+
+@keyframes lt-pop {
+  from { opacity: 0; transform: scale(0.9); }
+  to   { opacity: 1; transform: none; }
+}

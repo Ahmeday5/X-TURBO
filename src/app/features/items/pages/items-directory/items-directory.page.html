@@ -1,0 +1,82 @@
+<!-- Cell / card templates (static, so view-child signals resolve on first pass) -->
+<ng-template #codeCell let-item><span class="ui-code">{{ item.code }}</span></ng-template>
+
+<ng-template #nameCell let-item>
+  <div class="id-name">
+    <span class="id-name__text">{{ item.name }}</span>
+    <span class="ui-chip" [style.--chip]="item.groupColor">{{ item.groupName }}</span>
+  </div>
+</ng-template>
+
+<ng-template #priceCell let-item>
+  <div class="id-price">
+    <strong>{{ money(item.salePrice) }}</strong>
+    <small>هامش {{ margin(item.purchasePrice, item.salePrice) }}%</small>
+  </div>
+</ng-template>
+
+<ng-template #stockCell let-item>
+  <app-stock-meter [stock]="item.stock" [minStock]="item.minStock" />
+</ng-template>
+
+<ng-template #statusCell let-item>
+  <span class="status-pill" [class.status-pill--good]="item.isActive" [class.status-pill--neutral]="!item.isActive">
+    {{ item.isActive ? 'نشط' : 'موقوف' }}
+  </span>
+</ng-template>
+
+<ng-template #actions let-item>
+  <button type="button" class="ui-icon-btn" title="تعديل" [attr.aria-label]="'تعديل ' + item.name" (click)="edit(item)">
+    <app-icon name="edit" [size]="16" />
+  </button>
+  <button type="button" class="ui-icon-btn ui-icon-btn--danger" title="حذف" [attr.aria-label]="'حذف ' + item.name"
+    (click)="remove(item)">
+    <app-icon name="trash" [size]="16" />
+  </button>
+</ng-template>
+
+<ng-template #card let-item><app-item-card [item]="item" /></ng-template>
+
+<!-- Page -->
+<app-page-header [navId]="navId()">
+  <a class="ui-btn ui-btn--ghost" routerLink="/items/groups"><app-icon name="folder" [size]="16" /> المجموعات</a>
+  <a class="ui-btn ui-btn--primary" routerLink="/items/define"><app-icon name="plus" [size]="16" /> صنف جديد</a>
+</app-page-header>
+
+<app-list-toolbar placeholder="ابحث بالاسم أو الكود أو الباركود أو الماركة…" [search]="state.query().search"
+  [view]="state.view()" [sort]="state.query().sort" [sortOptions]="sortOptions" [count]="list.count()"
+  [activeFilters]="state.activeFilters()" (searchChange)="state.setSearch($event)" (sortChange)="state.setSort($event)"
+  (viewChange)="state.setView($event)" (clearFilters)="state.clearFilters()">
+  <select filters class="ui-input" aria-label="المجموعة"
+    (change)="state.setFilter('groupId', $any($event.target).value)">
+    <option value="">كل المجموعات</option>
+    @for (g of groups(); track g.id) {
+    <option [value]="g.id" [selected]="state.query().filters['groupId'] === g.id">{{ g.name }}</option>
+    }
+  </select>
+  <select filters class="ui-input" aria-label="الحالة" (change)="state.setFilter('status', $any($event.target).value)">
+    <option value="" [selected]="!state.query().filters['status']">كل الحالات</option>
+    <option value="active" [selected]="state.query().filters['status'] === 'active'">نشط</option>
+    <option value="inactive" [selected]="state.query().filters['status'] === 'inactive'">موقوف</option>
+  </select>
+  <select filters class="ui-input" aria-label="الرصيد" (change)="state.setFilter('stock', $any($event.target).value)">
+    <option value="" [selected]="!state.query().filters['stock']">كل الأرصدة</option>
+    <option value="ok" [selected]="state.query().filters['stock'] === 'ok'">متوفر</option>
+    <option value="low" [selected]="state.query().filters['stock'] === 'low'">منخفض</option>
+    <option value="out" [selected]="state.query().filters['stock'] === 'out'">نفد</option>
+  </select>
+</app-list-toolbar>
+
+<app-data-table [columns]="columns()" [data]="list.items()" [view]="state.view()" [sort]="state.query().sort"
+  [loading]="list.loading()" [initialLoading]="list.initialLoading()" [error]="list.error()"
+  [skeletonCount]="state.query().pageSize" [cardTemplate]="card" [actionsTemplate]="actions" emptyIcon="box"
+  emptyTitle="لا توجد أصناف مطابقة" emptyText="جرّب تعديل البحث أو الفلاتر، أو أضف صنفًا جديدًا."
+  (sortChange)="state.toggleSort($event)" (retry)="list.reload()">
+  <a empty-actions class="ui-btn ui-btn--primary" routerLink="/items/define">
+    <app-icon name="plus" [size]="16" /> صنف جديد
+  </a>
+</app-data-table>
+
+<app-pagination class="id-pager" [pageIndex]="state.query().pageIndex" [pageSize]="state.query().pageSize"
+  [count]="list.count()" [totalPages]="list.totalPages()" [pageSizeOptions]="[12, 24, 48, 96]"
+  [disabled]="list.loading()" (pageChange)="state.setPage($event)" (pageSizeChange)="state.setPageSize($event)" />

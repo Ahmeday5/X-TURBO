@@ -1,31 +1,47 @@
 import { Route, Routes } from '@angular/router';
 import { authGuard } from './core/auth/guards/auth.guard';
 import { guestGuard } from './core/auth/guards/guest.guard';
-import { permissionGuard } from './core/auth/guards/permission.guard';
-import { NAV_SECTIONS } from './core/constants/nav.constants';
-import { MenuItem } from './core/models/menu-item.model';
+import { accessGuard } from './core/auth/guards/access.guard';
+import { NAV_LEAVES } from './core/constants/nav.constants';
+import { NavLeaf } from './core/models/nav.model';
 import { environment } from '../environments/environment';
 
 /** Browser-tab title: "<page> · X-TURBO". */
 const pageTitle = (page: string): string => `${page} · ${environment.appName}`;
 
-/** Nav items whose real pages exist — every other nav entry gets a placeholder route. */
-const BUILT_ROUTES = new Set(['/dashboard']);
+type LoadComponent = NonNullable<Route['loadComponent']>;
 
 /**
- * Routed, permission-guarded placeholder for each module still in development.
- * Derived from NAV_SECTIONS so the sidebar and the router can never drift.
+ * Nav pages with a real screen. Every other nav page gets the shared module
+ * page, so a new screen only needs an entry here.
  */
-const moduleRoutes: Route[] = NAV_SECTIONS.flatMap((s) => s.items)
-  .filter((item) => !BUILT_ROUTES.has(item.route))
-  .map((item: MenuItem) => ({
-    path: item.route.replace(/^\//, ''),
-    title: pageTitle(item.label),
-    canActivate: item.permissions?.length ? [permissionGuard(item.permissions, { mode: 'any' })] : [],
-    data: { title: item.label, icon: item.icon },
-    loadComponent: () =>
-      import('./features/coming-soon/coming-soon.component').then((m) => m.ComingSoonComponent),
-  }));
+const BUILT_PAGES: Readonly<Record<string, LoadComponent>> = {
+  '/items/define': () => import('./features/items/pages/item-form/item-form.page').then((m) => m.ItemFormPage),
+  '/items/groups': () => import('./features/items/pages/item-groups/item-groups.page').then((m) => m.ItemGroupsPage),
+  '/items/directory': () =>
+    import('./features/items/pages/items-directory/items-directory.page').then((m) => m.ItemsDirectoryPage),
+};
+
+const modulePage: LoadComponent = () =>
+  import('./features/module-page/module-page.component').then((m) => m.ModulePageComponent);
+
+/** Same OR-gate the sidebar applies, so a hidden page is also unreachable by URL. */
+const gateFor = (leaf: NavLeaf): Route['canActivate'] =>
+  leaf.permissions?.length || leaf.roles?.length
+    ? [accessGuard({ anyPermission: leaf.permissions, anyRole: leaf.roles })]
+    : [];
+
+/**
+ * One routed, guarded page per nav entry, derived from NAV_SECTIONS so the
+ * sidebar and the router can never drift.
+ */
+const moduleRoutes: Route[] = NAV_LEAVES.filter((leaf) => leaf.route !== '/dashboard').map((leaf) => ({
+  path: leaf.route.replace(/^\//, ''),
+  title: pageTitle(leaf.label),
+  canActivate: gateFor(leaf),
+  data: { navId: leaf.id },
+  loadComponent: BUILT_PAGES[leaf.route] ?? modulePage,
+}));
 
 export const routes: Routes = [
   // Auth area — only reachable when NOT signed in

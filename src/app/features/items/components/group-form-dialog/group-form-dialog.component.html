@@ -1,0 +1,58 @@
+<app-modal [open]="open()" [title]="isEdit() ? 'تعديل مجموعة' : 'مجموعة جديدة'" size="md" (closed)="closed.emit()">
+  <form id="group-form" class="gf" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+    <!-- Live chip preview -->
+    <div class="gf__preview" [style.--chip]="form.controls.color.value">
+      <span class="gf__preview-icon"><app-icon name="folder" [size]="22" /></span>
+      <div>
+        <strong>{{ form.controls.name.value || 'اسم المجموعة' }}</strong>
+        <small>{{ group()?.code ?? 'كود تلقائي' }}</small>
+      </div>
+    </div>
+
+    <label class="ui-field">
+      <span class="ui-label is-required">اسم المجموعة</span>
+      <input class="ui-input" formControlName="name" placeholder="مثال: الفرامل" />
+      <app-form-error [control]="form.controls.name" label="اسم المجموعة" />
+    </label>
+
+    <label class="ui-field">
+      <span class="ui-label">المجموعة الرئيسية</span>
+      <select class="ui-input" formControlName="parentId">
+        <option value="">— بدون (مجموعة رئيسية) —</option>
+        @for (p of parentOptions(); track p.id) {<option [value]="p.id">{{ p.name }}</option>}
+      </select>
+    </label>
+
+    <label class="ui-field">
+      <span class="ui-label">الوصف</span>
+      <textarea class="ui-input" formControlName="description" rows="2" placeholder="ما الذي تضمه هذه المجموعة؟"></textarea>
+    </label>
+
+    <div class="ui-field">
+      <span class="ui-label">اللون</span>
+      <div class="gf__colors" role="radiogroup" aria-label="لون المجموعة">
+        @for (c of colors; track c) {
+        <button type="button" class="gf__swatch" role="radio" [style.--chip]="c"
+          [attr.aria-checked]="form.controls.color.value === c" [attr.aria-label]="'اللون ' + c"
+          (click)="form.controls.color.setValue(c)">
+          <app-icon name="check" [size]="14" />
+        </button>
+        }
+      </div>
+    </div>
+
+    <label class="ui-switch">
+      <input type="checkbox" formControlName="isActive" />
+      <span class="ui-switch__track"></span>
+      مجموعة نشطة
+    </label>
+  </form>
+
+  <div modal-footer class="gf__footer">
+    <button type="button" class="ui-btn ui-btn--ghost" (click)="closed.emit()">إلغاء</button>
+    <button type="submit" form="group-form" class="ui-btn ui-btn--primary" [class.is-loading]="saving()"
+      [disabled]="saving()">
+      <app-icon name="check" [size]="16" /> {{ isEdit() ? 'حفظ التعديلات' : 'إضافة المجموعة' }}
+    </button>
+  </div>
+</app-modal>

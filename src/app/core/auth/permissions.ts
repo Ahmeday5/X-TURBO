@@ -10,23 +10,17 @@ export const PERMISSIONS = {
   reports: 'Reports.View',
 
   orders: 'Orders.View',
-  pos: 'Pos.Access',
-  customers: 'Customers.View',
-  shipping: 'Shipping.View',
-
-  products: 'Products.View',
-  categories: 'Categories.View',
-
-  inventory: 'Inventory.View',
-  warehouses: 'Warehouses.View',
-  transfers: 'Transfers.View',
-
-  suppliers: 'Suppliers.View',
-  purchasing: 'Purchasing.View',
-
-  accounting: 'Accounting.View',
   invoices: 'Invoices.View',
+  pos: 'Pos.Access',
+
+  items: 'Items.View',
+  warehouses: 'Warehouses.View',
+  inventory: 'Inventory.View',
+
+  customers: 'Customers.View',
+  vouchers: 'Vouchers.View',
   payments: 'Payments.View',
+  accounts: 'Accounts.View',
 
   users: 'Users.Manage',
   settings: 'Settings.Manage',

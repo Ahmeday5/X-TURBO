@@ -1,24 +1,91 @@
 <nav class="sb" [class.is-collapsed]="layout.collapsed()" [class.is-open]="layout.mobileOpen()"
-  aria-label="القائمة الرئيسية">
-  <div class="sb__scroll">
-    @for (section of sections(); track section.label) {
+  [class.is-searching]="searching()" aria-label="القائمة الرئيسية">
+
+  <!-- ── Search ── -->
+  <div class="sb__search" role="search">
+    <button type="button" class="sb__search-btn" (click)="focusSearch()" aria-label="البحث في القائمة"
+      title="البحث في القائمة" [attr.tabindex]="rail() ? null : -1" [attr.aria-hidden]="rail() ? null : true">
+      <app-icon name="search" [size]="18" />
+    </button>
+
+    <div class="sb__field">
+      <app-icon class="sb__field-glyph" name="search" [size]="15" />
+      <input #searchInput class="sb__input" type="search" placeholder="ابحث في القائمة…" autocomplete="off"
+        spellcheck="false" aria-label="ابحث في القائمة" aria-controls="sb-list" [attr.tabindex]="rail() ? -1 : null"
+        [value]="query()" (input)="onSearchInput($any($event.target).value)" (keydown)="onSearchKeydown($event)" />
+      @if (query()) {
+      <button type="button" class="sb__clear" (click)="clearSearch()" aria-label="مسح البحث">
+        <app-icon name="x" [size]="14" />
+      </button>
+      } @else {
+      <kbd class="sb__kbd ltr" aria-hidden="true">/</kbd>
+      }
+    </div>
+  </div>
+
+  <span class="visually-hidden" aria-live="polite">
+    @if (searching()) { {{ matchCount() ? matchCount() + ' نتيجة' : 'لا توجد نتائج' }} }
+  </span>
+
+  <!-- ── Navigation ── -->
+  <div #scroller id="sb-list" class="sb__scroll" appHoverGlide="[data-nav]" (keydown)="onListKeydown($event)">
+    @for (section of view(); track section.label) {
     <div class="sb__section">
       <div class="sb__label"><span>{{ section.label }}</span></div>
 
-      @for (item of section.items; track item.id) {
-      <a class="sb__item" [routerLink]="item.route" routerLinkActive="is-active" #rla="routerLinkActive"
-        [attr.aria-current]="rla.isActive ? 'page' : null" [attr.title]="layout.collapsed() ? item.label : null"
-        [style.--i]="item.order" (click)="layout.closeMobile()">
-        <span class="sb__icon"><app-icon [name]="item.icon" [size]="18" /></span>
-        <span class="sb__text">{{ item.label }}</span>
+      @for (row of section.rows; track row.id) {
+      @if (row.children; as children) {
+      <!-- Group -->
+      <div class="sb__group" [class.is-open]="isOpen(row)" [class.has-active]="row.active"
+        [class.is-flyout]="flyout()?.row?.id === row.id" [style.--i]="row.order">
+        <button type="button" class="sb__item sb__item--group" data-nav [attr.aria-expanded]="rail() ? flyout()?.row?.id === row.id : isOpen(row)"
+          [attr.aria-controls]="rail() ? 'sb-fly' : 'sbg-' + row.id" [attr.aria-haspopup]="rail() ? 'menu' : null"
+          [attr.title]="rail() ? row.label : null" (click)="onGroupClick(row, $event)"
+          (mouseenter)="onGroupEnter(row, $event)" (mouseleave)="rail() && scheduleFlyoutClose()">
+          <span class="sb__icon"><app-icon [name]="row.icon" [size]="18" /></span>
+          <span class="sb__text"><app-highlight [text]="row.label" [query]="query()" /></span>
+          <span class="sb__count sb__text" aria-hidden="true">{{ children.length }}</span>
+          <app-icon class="sb__caret sb__text" name="chevron-down" [size]="15" />
+        </button>
+
+        <div class="sb__sub" [id]="'sbg-' + row.id" role="group" [attr.aria-label]="row.label"
+          [attr.inert]="isOpen(row) ? null : ''">
+          <div class="sb__sub-inner">
+            @for (child of children; track child.id) {
+            <a class="sb__child" data-nav [routerLink]="child.route" routerLinkActive="is-active" [routerLinkActiveOptions]="exactPath"
+              #cla="routerLinkActive" [attr.aria-current]="cla.isActive ? 'page' : null" [style.--j]="child.index"
+              (click)="onNavigate()">
+              <span class="sb__child-icon"><app-icon [name]="child.icon" [size]="15" /></span>
+              <span class="sb__child-text"><app-highlight [text]="child.label" [query]="query()" /></span>
+            </a>
+            }
+          </div>
+        </div>
+      </div>
+      } @else {
+      <!-- Direct link -->
+      <a class="sb__item" data-nav [routerLink]="row.route" routerLinkActive="is-active" [routerLinkActiveOptions]="exactPath" #rla="routerLinkActive"
+        [attr.aria-current]="rla.isActive ? 'page' : null" [attr.title]="rail() ? row.label : null"
+        [style.--i]="row.order" (click)="onNavigate()">
+        <span class="sb__icon"><app-icon [name]="row.icon" [size]="18" /></span>
+        <span class="sb__text"><app-highlight [text]="row.label" [query]="query()" /></span>
       </a>
       }
+      }
+    </div>
+    } @empty {
+    <div class="sb__empty">
+      <span class="sb__empty-icon"><app-icon name="search" [size]="22" /></span>
+      <p class="sb__empty-title">لا توجد صفحات مطابقة</p>
+      <p class="sb__empty-text">جرّب كلمة أخرى مثل «فاتورة» أو «سند».</p>
+      <button type="button" class="sb__empty-btn" (click)="clearSearch()">مسح البحث</button>
     </div>
     }
   </div>
 
+  <!-- ── Footer ── -->
   <footer class="sb__foot">
-    <button type="button" class="sb__collapse" (click)="layout.toggleCollapsed()"
+    <button type="button" class="sb__collapse" (click)="toggleCollapsed()"
       [attr.aria-label]="layout.collapsed() ? 'توسيع القائمة' : 'طي القائمة'"
       [attr.aria-expanded]="!layout.collapsed()">
       <span class="sb__icon"><app-icon class="sb__chev" name="chevron-left" [size]="16" /></span>
@@ -27,3 +94,21 @@
     <span class="sb__version sb__text ltr">v{{ appVersion }}</span>
   </footer>
 </nav>
+
+<!-- ── Rail flyout (collapsed desktop sidebar) ── -->
+@if (flyout(); as fly) {
+<div id="sb-fly" class="sb-fly" role="menu" [attr.aria-label]="fly.row.label" [style.top.px]="fly.top"
+  (mouseenter)="cancelFlyoutClose()" (mouseleave)="scheduleFlyoutClose()" (keydown)="onFlyoutKeydown($event)">
+  <div class="sb-fly__head">
+    <span class="sb-fly__head-icon"><app-icon [name]="fly.row.icon" [size]="16" /></span>
+    {{ fly.row.label }}
+  </div>
+  @for (child of fly.row.children; track child.id) {
+  <a class="sb-fly__item" role="menuitem" data-nav [routerLink]="child.route" routerLinkActive="is-active" [routerLinkActiveOptions]="exactPath"
+    [style.--j]="child.index" (click)="onNavigate()">
+    <span class="sb-fly__icon"><app-icon [name]="child.icon" [size]="15" /></span>
+    {{ child.label }}
+  </a>
+  }
+</div>
+}

@@ -1,44 +1,136 @@
-<div class="tw">
-  <table class="table">
-    <thead>
-      <tr>
-        @for (col of columns(); track col.key) {
-        <th [style.width]="col.width" [style.text-align]="col.align ?? 'start'">
-          {{ col.label }}
-        </th>
-        }
-        @if (hasActions()) {
-        <th style="width: 100px; text-align: center">{{ actionsLabel() }}</th>
-        }
-      </tr>
-    </thead>
-    <tbody>
-      @if (data().length === 0) {
-      <tr>
-        <td [attr.colspan]="hasActions() ? columns().length + 1 : columns().length"
-          style="text-align:center; padding: 24px; color: var(--txt3)">
-          {{ emptyMessage() }}
-        </td>
-      </tr>
-      }
-      @for (row of data(); track rowKey(row)) {
-      <tr (click)="rowClick.emit(row)" [style.cursor]="rowClickable() ? 'pointer' : ''">
-        @for (col of columns(); track col.key) {
-        <td [style.text-align]="col.align ?? 'start'">
-          @if (col.cellTemplate) {
-          <ng-container *ngTemplateOutlet="col.cellTemplate; context: { $implicit: row }" />
-          } @else {
-          {{ getCellValue(row, col.key) }}
+<div class="dt" [class.is-busy]="loading() && !initialLoading()" [attr.aria-busy]="loading()">
+  <span class="dt__progress" aria-hidden="true"></span>
+
+  @if (error() && !data().length) {
+  <!-- Error -->
+  <div class="dt__state dt__state--error" role="alert">
+    <span class="dt__state-icon"><app-icon name="alert" [size]="26" /></span>
+    <p class="dt__state-title">تعذّر تحميل البيانات</p>
+    <p class="dt__state-text">{{ error() }}</p>
+    <button type="button" class="ui-btn ui-btn--ghost" (click)="retry.emit()">
+      <app-icon name="refresh" [size]="15" /> إعادة المحاولة
+    </button>
+  </div>
+  } @else if (initialLoading()) {
+  <!-- Skeleton -->
+  @if (mode() === 'table') {
+  <div class="dt__scroll">
+    <table class="dt__table">
+      <thead>
+        <tr>
+          @for (col of columns(); track col.key) {<th [style.width]="col.width">{{ col.label }}</th>}
+          @if (actionsTemplate()) {<th class="dt__actions-h"></th>}
+        </tr>
+      </thead>
+      <tbody>
+        @for (i of skeletons(); track i) {
+        <tr>
+          @for (col of columns(); track col.key) {
+          <td><span class="skeleton dt__sk" [style.width.%]="55 + ((i * 17 + $index * 23) % 40)"></span></td>
           }
-        </td>
+          @if (actionsTemplate()) {<td><span class="skeleton dt__sk dt__sk--btn"></span></td>}
+        </tr>
         }
-        @if (hasActions()) {
-        <td style="text-align: center">
-          <ng-content select="[actions]" />
-        </td>
+      </tbody>
+    </table>
+  </div>
+  } @else {
+  <div class="dt__cards">
+    @for (i of skeletons(); track i) {
+    <div class="dt__card dt__card--sk">
+      <span class="skeleton dt__sk dt__sk--avatar"></span>
+      <span class="skeleton dt__sk" style="width: 70%"></span>
+      <span class="skeleton dt__sk" style="width: 45%"></span>
+      <span class="skeleton dt__sk" style="width: 90%; height: 34px"></span>
+    </div>
+    }
+  </div>
+  }
+  } @else if (!data().length) {
+  <!-- Empty -->
+  <div class="dt__state">
+    <span class="dt__state-icon"><app-icon [name]="emptyIcon()" [size]="26" /></span>
+    <p class="dt__state-title">{{ emptyTitle() }}</p>
+    @if (emptyText()) {<p class="dt__state-text">{{ emptyText() }}</p>}
+    <ng-content select="[empty-actions]" />
+  </div>
+  } @else if (mode() === 'table') {
+  <!-- Table -->
+  <div class="dt__scroll">
+    <table class="dt__table">
+      <thead>
+        <tr>
+          @for (col of columns(); track col.key) {
+          <th [style.width]="col.width" [style.text-align]="col.align ?? 'start'" [attr.aria-sort]="ariaSort(col)"
+            scope="col">
+            @if (col.sortable) {
+            <button type="button" class="dt__sort" [class.is-sorted]="sortDir(col.key)"
+              (click)="sortChange.emit(col.key)">
+              {{ col.label }}
+              <span class="dt__sort-icon" [attr.data-dir]="sortDir(col.key)" aria-hidden="true">
+                <i></i><i></i>
+              </span>
+            </button>
+            } @else {
+            {{ col.label }}
+            }
+          </th>
+          }
+          @if (actionsTemplate()) {<th class="dt__actions-h" scope="col">{{ actionsLabel() }}</th>}
+        </tr>
+      </thead>
+      <tbody>
+        @for (row of data(); track rowKey(row); let i = $index) {
+        <tr class="dt__row" [class.is-clickable]="rowClickable()" [style.--i]="i" (click)="rowClick.emit(row)">
+          @for (col of columns(); track col.key) {
+          <td [style.text-align]="col.align ?? 'start'">
+            @if (col.cellTemplate) {
+            <ng-container *ngTemplateOutlet="col.cellTemplate; context: { $implicit: row }" />
+            } @else {
+            {{ cellValue(row, col.key) }}
+            }
+          </td>
+          }
+          @if (actionsTemplate(); as actions) {
+          <td class="dt__actions" (click)="$event.stopPropagation()">
+            <ng-container *ngTemplateOutlet="actions; context: { $implicit: row }" />
+          </td>
+          }
+        </tr>
         }
-      </tr>
+      </tbody>
+    </table>
+  </div>
+  } @else {
+  <!-- Cards -->
+  <div class="dt__cards">
+    @for (row of data(); track rowKey(row); let i = $index) {
+    <article class="dt__card" [class.is-clickable]="rowClickable()" [style.--i]="i" (click)="rowClick.emit(row)">
+      @if (cardTemplate(); as card) {
+      <ng-container *ngTemplateOutlet="card; context: { $implicit: row }" />
+      } @else {
+      <dl class="dt__card-list">
+        @for (col of columns(); track col.key) {
+        <div>
+          <dt>{{ col.label }}</dt>
+          <dd>
+            @if (col.cellTemplate) {
+            <ng-container *ngTemplateOutlet="col.cellTemplate; context: { $implicit: row }" />
+            } @else {
+            {{ cellValue(row, col.key) }}
+            }
+          </dd>
+        </div>
+        }
+      </dl>
       }
-    </tbody>
-  </table>
+      @if (actionsTemplate(); as actions) {
+      <footer class="dt__card-actions" (click)="$event.stopPropagation()">
+        <ng-container *ngTemplateOutlet="actions; context: { $implicit: row }" />
+      </footer>
+      }
+    </article>
+    }
+  </div>
+  }
 </div>

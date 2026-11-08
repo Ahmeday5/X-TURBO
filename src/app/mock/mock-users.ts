@@ -28,13 +28,11 @@ export const DEMO_USERS: readonly MockUser[] = [
     role: ROLES.warehouseManager,
     permissions: [
       P.dashboard,
-      P.products,
-      P.categories,
-      P.inventory,
+      P.items,
       P.warehouses,
-      P.transfers,
-      P.suppliers,
-      P.purchasing,
+      P.inventory,
+      // Stock transfers, goods issue/receipt live in the invoices module.
+      P.invoices,
     ],
   },
 ];

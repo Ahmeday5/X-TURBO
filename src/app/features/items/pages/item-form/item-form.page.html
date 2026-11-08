@@ -1,0 +1,153 @@
+<app-page-header [navId]="navId()" [title]="isEdit() ? 'تعديل صنف' : ''"
+  [subtitle]="isEdit() ? (current()?.name ?? '') : ''">
+  <a class="ui-btn ui-btn--ghost" routerLink="/items/directory"><app-icon name="table" [size]="16" /> دليل الأصناف</a>
+</app-page-header>
+
+<form class="if" [formGroup]="form" (ngSubmit)="submit('save')" [class.is-loading]="loadingItem()" novalidate>
+  <div class="if__main">
+    <!-- Basic info -->
+    <section class="if__section" style="--i: 0">
+      <header class="if__section-head">
+        <span class="if__section-icon"><app-icon name="box" [size]="17" /></span>
+        <div>
+          <h2>البيانات الأساسية</h2>
+          <p>اسم الصنف وتصنيفه ووحدة البيع</p>
+        </div>
+      </header>
+
+      <div class="if__grid">
+        <label class="ui-field if__span-2">
+          <span class="ui-label is-required">اسم الصنف</span>
+          <input class="ui-input" formControlName="name" placeholder="مثال: تيل فرامل أمامي — تويوتا كورولا" />
+          <app-form-error [control]="form.controls.name" label="اسم الصنف" />
+        </label>
+
+        <div class="ui-field">
+          <span class="ui-label is-required">المجموعة</span>
+          <app-searchable-select formControlName="groupId" [options]="groupOptions()" placeholder="اختر المجموعة"
+            searchPlaceholder="ابحث في المجموعات…" />
+          <app-form-error [control]="form.controls.groupId" label="المجموعة" />
+        </div>
+
+        <label class="ui-field">
+          <span class="ui-label is-required">الوحدة</span>
+          <select class="ui-input" formControlName="unit">
+            @for (u of units; track u) {<option [value]="u">{{ u }}</option>}
+          </select>
+        </label>
+
+        <label class="ui-field">
+          <span class="ui-label">الماركة</span>
+          <input class="ui-input" formControlName="brand" placeholder="بوش، دينسو، أصلي…" />
+        </label>
+
+        <label class="ui-field">
+          <span class="ui-label">الباركود</span>
+          <div class="ui-affix">
+            <input class="ui-input ltr" formControlName="barcode" inputmode="numeric" placeholder="6221000000000" />
+            <span class="ui-affix__text"><app-icon name="barcode" [size]="16" /></span>
+          </div>
+          <app-form-error [control]="form.controls.barcode" label="الباركود" />
+        </label>
+      </div>
+    </section>
+
+    <!-- Pricing -->
+    <section class="if__section" style="--i: 1">
+      <header class="if__section-head">
+        <span class="if__section-icon"><app-icon name="coins" [size]="17" /></span>
+        <div>
+          <h2>التسعير</h2>
+          <p>الهامش يُحسب تلقائيًا من سعري الشراء والبيع</p>
+        </div>
+      </header>
+
+      <div class="if__grid if__grid--3">
+        <label class="ui-field">
+          <span class="ui-label is-required">سعر الشراء</span>
+          <div class="ui-affix">
+            <input class="ui-input" type="number" min="0" step="0.01" formControlName="purchasePrice" />
+            <span class="ui-affix__text">ج.م</span>
+          </div>
+          <app-form-error [control]="form.controls.purchasePrice" label="سعر الشراء" />
+        </label>
+
+        <label class="ui-field">
+          <span class="ui-label is-required">سعر البيع</span>
+          <div class="ui-affix">
+            <input class="ui-input" type="number" min="0" step="0.01" formControlName="salePrice" />
+            <span class="ui-affix__text">ج.م</span>
+          </div>
+          <app-form-error [control]="form.controls.salePrice" label="سعر البيع" />
+        </label>
+
+        <div class="if__margin" [class.is-negative]="margin() < 0">
+          <span>الهامش</span>
+          <strong>{{ margin() }}%</strong>
+          <small>{{ profit() >= 0 ? 'ربح' : 'خسارة' }} {{ profit() < 0 ? -profit() : profit() }} ج.م / {{ preview().unit }}</small>
+        </div>
+      </div>
+
+      @if (margin() < 0) {
+      <p class="if__warn"><app-icon name="alert" [size]="15" /> سعر البيع أقل من سعر الشراء.</p>
+      }
+    </section>
+
+    <!-- Stock & status -->
+    <section class="if__section" style="--i: 2">
+      <header class="if__section-head">
+        <span class="if__section-icon"><app-icon name="layers" [size]="17" /></span>
+        <div>
+          <h2>المخزون والحالة</h2>
+          <p>حد الطلب يُستخدم لتنبيهات نقص المخزون</p>
+        </div>
+      </header>
+
+      <div class="if__grid">
+        <label class="ui-field">
+          <span class="ui-label is-required">حد الطلب</span>
+          <input class="ui-input" type="number" min="0" formControlName="minStock" />
+          <span class="ui-hint">ينبّهك النظام عندما يصل الرصيد لهذا الحد.</span>
+          <app-form-error [control]="form.controls.minStock" label="حد الطلب" />
+        </label>
+
+        <div class="ui-field if__switch">
+          <span class="ui-label">الحالة</span>
+          <label class="ui-switch">
+            <input type="checkbox" formControlName="isActive" />
+            <span class="ui-switch__track"></span>
+            {{ form.controls.isActive.value ? 'نشط ويظهر في البيع' : 'موقوف' }}
+          </label>
+        </div>
+
+        <label class="ui-field if__span-2">
+          <span class="ui-label">الوصف</span>
+          <textarea class="ui-input" formControlName="description" rows="3"
+            placeholder="ملاحظات، أرقام بديلة، موديلات متوافقة…"></textarea>
+        </label>
+      </div>
+    </section>
+  </div>
+
+  <!-- Live preview -->
+  <aside class="if__aside">
+    <div class="if__preview">
+      <span class="if__preview-label"><app-icon name="eye" [size]="14" /> معاينة مباشرة</span>
+      <app-item-card [item]="preview()" />
+    </div>
+  </aside>
+
+  <!-- Sticky actions -->
+  <footer class="if__actions">
+    <a class="ui-btn ui-btn--ghost" routerLink="/items/directory">إلغاء</a>
+    @if (!isEdit()) {
+    <button type="button" class="ui-btn ui-btn--ghost" [class.is-loading]="saving() === 'saveNew'" [disabled]="!!saving()"
+      (click)="submit('saveNew')">
+      <app-icon name="plus" [size]="16" /> حفظ وإضافة آخر
+    </button>
+    }
+    <button type="submit" class="ui-btn ui-btn--primary" [class.is-loading]="saving() === 'save'" [disabled]="!!saving()">
+      <app-icon name="check" [size]="16" /> {{ isEdit() ? 'حفظ التعديلات' : 'حفظ الصنف' }}
+    </button>
+  </footer>
+</form>

@@ -1,49 +1,69 @@
 import { computed, inject, Injectable } from '@angular/core';
 import { AuthService } from '../auth/services/auth.service';
 import { NAV_SECTIONS } from '../constants/nav.constants';
-import { MenuItem, MenuSection } from '../models/menu-item.model';
+import { flattenNav, isNavGroup, NavEntry, NavGate, NavLeaf, NavSection } from '../models/nav.model';
+import { matchesAll, tokenize } from '../../shared/utils/arabic-search.util';
 
 /**
- * Single source of the navigation the current user may see. The sidebar and
- * the topbar search both read from here, so visibility rules live in one place
- * and re-evaluate automatically on login / cross-tab session changes.
+ * Single source of the navigation the current user may see. The sidebar, the
+ * topbar search and page headers all read from here, so visibility rules live
+ * in one place and re-evaluate automatically on login / cross-tab changes.
  */
 @Injectable({ providedIn: 'root' })
 export class NavigationService {
   private readonly auth = inject(AuthService);
 
-  /** Sections with hidden items removed; empty sections are dropped entirely. */
-  readonly sections = computed<MenuSection[]>(() => {
+  /**
+   * The visible tree. Children inherit their group's gate unless they declare
+   * their own; groups and sections left empty are dropped entirely.
+   */
+  readonly sections = computed<NavSection[]>(() => {
     const permissions = this.auth.permissionSet();
     const role = this.auth.currentUser()?.role;
+    const visible = (gate: NavGate) => this.passes(gate, permissions, role);
+
     return NAV_SECTIONS.map((section) => ({
       ...section,
-      items: section.items.filter((item) => this.isVisible(item, permissions, role)),
+      items: section.items.flatMap((entry): NavEntry[] => {
+        if (!isNavGroup(entry)) return visible(entry) ? [entry] : [];
+        const children = entry.children.filter((child) =>
+          visible(child.permissions?.length || child.roles?.length ? child : entry),
+        );
+        return children.length ? [{ ...entry, children }] : [];
+      }),
     })).filter((section) => section.items.length > 0);
   });
 
-  /** Flat list of visible items, each tagged with its section label. */
-  readonly items = computed(() =>
-    this.sections().flatMap((section) => section.items.map((item) => ({ ...item, section: section.label }))),
-  );
+  /** Every visible page, flattened, in display order. */
+  readonly leaves = computed<NavLeaf[]>(() => flattenNav(this.sections()));
 
-  /** Case-insensitive match on label, section and keywords. */
-  search(term: string): Array<MenuItem & { section: string }> {
-    const q = term.trim().toLowerCase();
-    if (!q) return this.items();
-    return this.items().filter((item) =>
-      [item.label, item.section, ...(item.keywords ?? [])].some((text) => text.toLowerCase().includes(q)),
+  /** Visible page by id — `undefined` when it doesn't exist or is hidden. */
+  leaf(id: string): NavLeaf | undefined {
+    return this.leaves().find((leaf) => leaf.id === id);
+  }
+
+  /** Visible pages sharing a group with `id` (including itself). */
+  siblings(id: string): NavLeaf[] {
+    const groupId = this.leaf(id)?.group?.id;
+    return groupId ? this.leaves().filter((leaf) => leaf.group?.id === groupId) : [];
+  }
+
+  /** Arabic-aware match on label, group, section and keywords; every word must hit. */
+  search(term: string): NavLeaf[] {
+    const tokens = tokenize(term);
+    if (!tokens.length) return this.leaves();
+    return this.leaves().filter((leaf) =>
+      matchesAll([leaf.label, leaf.group?.label, leaf.section, ...(leaf.keywords ?? [])], tokens),
     );
   }
 
-  private isVisible(item: MenuItem, permissions: ReadonlySet<string>, role: string | undefined): boolean {
-    const hasPermGate = !!item.permissions?.length;
-    const hasRoleGate = !!item.roles?.length;
-    // No gate at all → visible to everyone.
+  /** Gates are OR-ed: a node declaring both shows when the user satisfies *either*. */
+  private passes(gate: NavGate, permissions: ReadonlySet<string>, role: string | undefined): boolean {
+    const hasPermGate = !!gate.permissions?.length;
+    const hasRoleGate = !!gate.roles?.length;
     if (!hasPermGate && !hasRoleGate) return true;
-    // Gates are OR-ed: an item declaring both shows when the user satisfies *either*.
-    const permMatch = hasPermGate && item.permissions!.some((p) => permissions.has(p));
-    const roleMatch = hasRoleGate && !!role && item.roles!.includes(role);
+    const permMatch = hasPermGate && gate.permissions!.some((p) => permissions.has(p));
+    const roleMatch = hasRoleGate && !!role && gate.roles!.includes(role);
     return permMatch || roleMatch;
   }
 }

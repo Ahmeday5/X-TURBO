@@ -1,0 +1,56 @@
+<div class="lt" role="search">
+  <div class="lt__search">
+    <app-icon class="lt__glyph" name="search" [size]="16" />
+    <input #input class="lt__input" type="search" autocomplete="off" [placeholder]="placeholder()"
+      [attr.aria-label]="placeholder()" [value]="term()" (input)="onType($any($event.target).value)"
+      (keydown.escape)="clear()" />
+    @if (term()) {
+    <button type="button" class="lt__clear" (click)="clear()" aria-label="مسح البحث">
+      <app-icon name="x" [size]="14" />
+    </button>
+    }
+  </div>
+
+  <div class="lt__filters">
+    <ng-content select="[filters]" />
+  </div>
+
+  <div class="lt__end">
+    @if (activeFilters()) {
+    <button type="button" class="ui-btn ui-btn--ghost ui-btn--sm lt__reset" (click)="clearFilters.emit()">
+      <app-icon name="x" [size]="13" /> مسح الفلاتر
+      <span class="lt__badge">{{ activeFilters() }}</span>
+    </button>
+    }
+
+    @if (count() !== null) {
+    <span class="lt__count" aria-live="polite"><strong>{{ count() }}</strong> نتيجة</span>
+    }
+
+    @if (sortOptions().length) {
+    <label class="lt__sort">
+      <span class="visually-hidden">ترتيب حسب</span>
+      <app-icon name="sliders" [size]="15" />
+      <select [value]="sortValue()" (change)="onSort($any($event.target).value)">
+        <option value="" [selected]="!sortValue()">الترتيب الافتراضي</option>
+        @for (opt of sortOptions(); track opt.key) {
+        <option [value]="opt.key + ':asc'" [selected]="sortValue() === opt.key + ':asc'">{{ opt.label }} ↑</option>
+        <option [value]="opt.key + ':desc'" [selected]="sortValue() === opt.key + ':desc'">{{ opt.label }} ↓</option>
+        }
+      </select>
+    </label>
+    }
+
+    <div class="lt__view" role="group" aria-label="طريقة العرض">
+      <span class="lt__view-pill" [class.is-cards]="view() === 'cards'" aria-hidden="true"></span>
+      <button type="button" [attr.aria-pressed]="view() === 'table'" title="جدول" aria-label="عرض كجدول"
+        (click)="viewChange.emit('table')">
+        <app-icon name="list" [size]="16" />
+      </button>
+      <button type="button" [attr.aria-pressed]="view() === 'cards'" title="كروت" aria-label="عرض ككروت"
+        (click)="viewChange.emit('cards')">
+        <app-icon name="grid" [size]="16" />
+      </button>
+    </div>
+  </div>
+</div>

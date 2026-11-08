@@ -15,8 +15,8 @@
         [attr.aria-selected]="i === activeIndex()" (pointerenter)="activeIndex.set(i)"
         (pointerdown)="$event.preventDefault(); go(item.route)">
         <span class="ns__icon"><app-icon [name]="item.icon" [size]="16" /></span>
-        <span class="ns__label">{{ item.label }}</span>
-        <span class="ns__section">{{ item.section }}</span>
+        <span class="ns__label"><app-highlight [text]="item.label" [query]="term()" /></span>
+        <span class="ns__section">{{ item.group?.label ?? item.section }}</span>
       </li>
       }
     </ul>

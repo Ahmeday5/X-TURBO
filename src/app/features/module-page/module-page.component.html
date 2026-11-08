@@ -1,0 +1,37 @@
+@if (page(); as p) {
+<app-page-header [navId]="p.id" />
+
+<section class="panel mp-hero reveal" style="--i: 1">
+  <span class="mp-hero__icon"><app-icon [name]="p.icon" [size]="28" /></span>
+  <div class="mp-hero__body">
+    <span class="status-pill status-pill--warning">قيد التطوير</span>
+    <p class="mp-hero__note">
+      المسار والصلاحيات جاهزة بالفعل، والشاشة نفسها ضمن خطة التطوير الحالية.
+    </p>
+  </div>
+</section>
+
+@if (related().length > 1) {
+<section class="mp-related" aria-labelledby="mp-related-title">
+  <h2 id="mp-related-title" class="mp-related__title reveal" style="--i: 2">
+    <app-icon [name]="p.group!.icon" [size]="16" /> صفحات {{ p.group!.label }}
+  </h2>
+
+  <div class="mp-grid">
+    @for (item of related(); track item.id; let i = $index) {
+    <a class="mp-card" [routerLink]="item.route" [class.is-current]="item.id === p.id"
+      [attr.aria-current]="item.id === p.id ? 'page' : null" [style.--i]="i + 3">
+      <span class="mp-card__icon"><app-icon [name]="item.icon" [size]="18" /></span>
+      <span class="mp-card__body">
+        <span class="mp-card__label">{{ item.label }}</span>
+        @if (item.description) {
+        <span class="mp-card__desc">{{ item.description }}</span>
+        }
+      </span>
+      <app-icon class="mp-card__go" name="arrow-right" [size]="14" />
+    </a>
+    }
+  </div>
+</section>
+}
+}

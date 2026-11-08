@@ -1,0 +1,238 @@
+:host {
+  display: block;
+}
+
+/* Form left, sticky preview right; preview drops above the actions on small screens. */
+.if {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  grid-template-areas:
+    'main aside'
+    'actions actions';
+  gap: 18px;
+  transition: opacity var(--dur);
+
+  &.is-loading {
+    opacity: 0.5;
+    pointer-events: none;
+  }
+
+  @media (max-width: 1199.98px) {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      'aside'
+      'main'
+      'actions';
+  }
+}
+
+.if__main {
+  grid-area: main;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.if__section {
+  padding: 20px;
+  border: 1px solid var(--brd);
+  border-radius: var(--rx);
+  background: var(--bg2);
+  box-shadow: var(--shadow);
+  animation: if-in 0.5s var(--ease-out) backwards;
+  animation-delay: calc(var(--i, 0) * 80ms + 80ms);
+  transition: border-color var(--dur), box-shadow var(--dur);
+
+  // The section being edited lifts slightly.
+  &:focus-within {
+    border-color: rgba(var(--primary-rgb), 0.35);
+    box-shadow: var(--shadow-lg);
+
+    .if__section-icon {
+      background: var(--brand-gradient);
+      color: #fff;
+      transform: rotate(-8deg) scale(1.06);
+    }
+  }
+
+  @media (max-width: 575.98px) {
+    padding: 16px;
+  }
+}
+
+.if__section-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 18px;
+
+  h2 {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--txt);
+  }
+  p {
+    margin: 2px 0 0;
+    font-size: 12px;
+    color: var(--txt3);
+  }
+}
+
+.if__section-icon {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 11px;
+  background: var(--primary-soft);
+  color: var(--primary);
+  transition: background var(--dur), color var(--dur), transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.if__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+
+  &--3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  @media (max-width: 767.98px) {
+    &,
+    &--3 {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+}
+
+.if__span-2 {
+  grid-column: 1 / -1;
+}
+
+.if__switch {
+  justify-content: flex-start;
+
+  .ui-switch {
+    height: 42px;
+  }
+}
+
+/* Live margin tile */
+.if__margin {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: var(--gr-l);
+  color: var(--gr);
+  transition: background var(--dur), color var(--dur);
+
+  span {
+    font-size: 11.5px;
+    font-weight: 600;
+  }
+  strong {
+    font-size: 22px;
+    font-weight: 800;
+    line-height: 1.1;
+  }
+  small {
+    font-size: 11px;
+    opacity: 0.85;
+  }
+
+  &.is-negative {
+    background: var(--re-l);
+    color: var(--re);
+  }
+}
+
+.if__warn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 12px 0 0;
+  font-size: 12.5px;
+  color: var(--re);
+  animation: if-shake 0.4s var(--ease-out);
+}
+
+/* Preview */
+.if__aside {
+  grid-area: aside;
+  min-width: 0;
+}
+
+.if__preview {
+  position: sticky;
+  top: 0;
+  padding: 18px;
+  border: 1px solid var(--brd);
+  border-radius: var(--rx);
+  background:
+    radial-gradient(260px 160px at 100% 0, rgba(var(--primary-rgb), 0.08), transparent 70%),
+    var(--bg2);
+  box-shadow: var(--shadow);
+  animation: if-in 0.55s var(--ease-out) 0.2s backwards;
+}
+
+.if__preview-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 14px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--txt3);
+}
+
+/* Sticky action bar */
+.if__actions {
+  grid-area: actions;
+  position: sticky;
+  bottom: -32px; // flush with the content area's bottom padding
+  z-index: 5;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-inline: -4px;
+  padding: 12px 4px;
+  background: linear-gradient(to top, var(--bg) 70%, transparent);
+
+  @media (max-width: 575.98px) {
+    flex-wrap: wrap;
+
+    .ui-btn {
+      flex: 1 1 auto;
+    }
+    .ui-btn--primary {
+      order: -1;
+      flex-basis: 100%;
+    }
+  }
+}
+
+@keyframes if-in {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: none; }
+}
+
+@keyframes if-shake {
+  0%, 100% { transform: none; }
+  25%      { transform: translateX(-4px); }
+  75%      { transform: translateX(4px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .if__section,
+  .if__preview,
+  .if__warn {
+    animation: none;
+  }
+}

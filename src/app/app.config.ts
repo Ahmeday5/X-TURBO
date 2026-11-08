@@ -1,5 +1,7 @@
 import {
+  APP_INITIALIZER,
   ApplicationConfig,
+  inject,
   provideZoneChangeDetection,
 } from '@angular/core';
 import {
@@ -19,6 +21,7 @@ import { provideAnimationsAsync } from '@angular/platform-browser/animations/asy
 
 import { routes } from './app.routes';
 import { authInterceptor } from './core/auth/interceptors/auth.interceptor';
+import { AuthService } from './core/auth/services/auth.service';
 import { cacheInterceptor } from './core/interceptors/cache.interceptor';
 import { errorInterceptor } from './core/interceptors/error.interceptor';
 import { loaderInterceptor } from './core/interceptors/loader.interceptor';
@@ -59,5 +62,14 @@ export const appConfig: ApplicationConfig = {
       ]),
     ),
     provideAnimationsAsync(),
+    // Refresh the restored session's permissions in the background (non-blocking).
+    {
+      provide: APP_INITIALIZER,
+      multi: true,
+      useFactory: () => {
+        const auth = inject(AuthService);
+        return () => auth.syncPermissions();
+      },
+    },
   ],
 };

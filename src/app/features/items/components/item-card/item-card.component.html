@@ -1,0 +1,32 @@
+@let it = item();
+<header class="ic__head">
+  <span class="ic__avatar" [style.--chip]="it.groupColor || 'var(--txt3)'"><app-icon name="box" [size]="20" /></span>
+  <div class="ic__title">
+    <span class="ui-code">{{ it.code || '—' }}</span>
+    <h3>{{ it.name || 'اسم الصنف' }}</h3>
+  </div>
+</header>
+
+<div class="ic__meta">
+  @if (it.groupName) {
+  <span class="ui-chip" [style.--chip]="it.groupColor">{{ it.groupName }}</span>
+  }
+  <span class="status-pill" [class.status-pill--good]="it.isActive" [class.status-pill--neutral]="!it.isActive">
+    {{ it.isActive ? 'نشط' : 'موقوف' }}
+  </span>
+</div>
+
+<div class="ic__stats">
+  <div>
+    <small>سعر البيع</small>
+    <strong>{{ price() }}</strong>
+  </div>
+  <div>
+    <small>الهامش</small>
+    <strong [class.is-negative]="margin() < 0">{{ margin() }}%</strong>
+  </div>
+  <div>
+    <small>الرصيد · {{ it.unit }}</small>
+    <app-stock-meter [stock]="it.stock" [minStock]="it.minStock" />
+  </div>
+</div>

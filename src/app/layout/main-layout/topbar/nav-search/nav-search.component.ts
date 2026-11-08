@@ -12,6 +12,7 @@ import { Router } from '@angular/router';
 import { NavigationService } from '../../../../core/services/navigation.service';
 import { IconComponent } from '../../../../shared/components/icon/icon.component';
 import { ClickOutsideDirective } from '../../../../shared/directives/click-outside.directive';
+import { HighlightComponent } from '../../../../shared/components/highlight/highlight.component';
 
 /**
  * Topbar "jump to page" search over the user's visible navigation.
@@ -22,7 +23,7 @@ import { ClickOutsideDirective } from '../../../../shared/directives/click-outsi
   selector: 'app-nav-search',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [IconComponent, ClickOutsideDirective],
+  imports: [IconComponent, ClickOutsideDirective, HighlightComponent],
   templateUrl: './nav-search.component.html',
   styleUrl: './nav-search.component.scss',
 })
