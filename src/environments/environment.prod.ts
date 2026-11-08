@@ -8,8 +8,8 @@ export const environment = {
   currency: 'EGP',
 
   apiUrl: 'https://api.example.com/api',
-  /** Never serve mock data in production. */
-  mockApi: false,
+  /** Keep the demo login available on the deployed site. */
+  mockApi: true,
   tokenKey: 'xturbo_access_token',
   refreshTokenKey: 'xturbo_refresh_token',
   /** Must match the key read by the anti-flash script in index.html. */
