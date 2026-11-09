@@ -7,6 +7,8 @@ import { SKIP_ERROR_TOAST } from '../http/http-context.tokens';
 import { ApiError, ApiFieldErrors } from '../models/api-response.model';
 import { AUTH_ENDPOINTS } from '../auth/auth.config';
 import { environment } from '../../../environments/environment';
+import { API_ERROR_CODES } from '../http/api-error-codes';
+import { waitText } from '../utils/api-error.util';
 
 /**
  * Normalizes every HTTP failure into an `ApiError` and (unless the caller
@@ -26,15 +28,29 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
   const auth = inject(AuthService);
 
   return next(req).pipe(
-    catchError((err: HttpErrorResponse) => {
-      const apiError = normalizeError(err);
+    catchError((err: unknown) => {
+      // Errors raised by a nested request (e.g. the token refresh issued from
+      // the auth interceptor) were already normalized + logged by their own
+      // pass through this interceptor — forward them untouched.
+      if (!(err instanceof HttpErrorResponse)) return throwError(() => err);
+
+      const apiError = normalizeError(err, req.url);
       logError(req.method, req.url, err, apiError);
+
+      // Permissions were revoked server-side mid-session: re-read them so the
+      // sidebar / buttons the user can no longer use disappear.
+      if (apiError.status === 403 && auth.isAuthenticated()) {
+        auth.syncPermissions();
+      }
 
       // Suppress toasts when the user is not authenticated — covers in-flight
       // requests that fail after an explicit logout (the token was just cleared).
+      // A 401 outside login is owned by the auth flow, which either retries
+      // transparently or logs out with its own "session expired" notice.
       const silent =
         req.context.get(SKIP_ERROR_TOAST) ||
         req.url.includes(AUTH_ENDPOINTS.refresh) ||
+        (apiError.status === 401 && !req.url.includes(AUTH_ENDPOINTS.login)) ||
         !auth.isAuthenticated();
 
       if (!silent) toast.error(apiError.message);
@@ -44,27 +60,63 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
   );
 };
 
-function normalizeError(err: HttpErrorResponse): ApiError {
+function normalizeError(err: HttpErrorResponse, url: string): ApiError {
   const status = err.status ?? 0;
-  const body = err.error ?? {};
+  const body = err.error && typeof err.error === 'object' ? err.error : {};
+
+  const code: string | undefined = typeof body?.code === 'string' ? body.code : undefined;
+  const traceId: string | undefined =
+    (typeof body?.traceId === 'string' && body.traceId) ||
+    err.headers?.get('X-Correlation-Id') ||
+    undefined;
+  const retryAfterSec = parseRetryAfter(err.headers?.get('Retry-After'));
 
   const rawMessage: string =
     body?.message || body?.error || body?.detail || body?.title || '';
-  const message = rawMessage.trim() || statusMessage(status, err);
+  let message =
+    rawMessage.trim() || codeMessage(code, retryAfterSec) || statusMessage(status, err, url);
+
+  // Unexpected server faults: give the user something to quote to support.
+  if ((status >= 500 || code === API_ERROR_CODES.internal) && traceId) {
+    message = `${message} (رقم المتابعة: ${traceId})`;
+  }
 
   const fieldErrors: ApiFieldErrors | undefined =
     body?.errors && typeof body.errors === 'object' ? body.errors : undefined;
 
-  return {
-    status,
-    code: body?.code,
-    message,
-    fieldErrors,
-    raw: body,
-  };
+  return { status, code, message, fieldErrors, traceId, retryAfterSec, raw: body };
 }
 
-function statusMessage(status: number, err: HttpErrorResponse): string {
+/** Fallback text for well-known codes when the server sent no message. */
+function codeMessage(code: string | undefined, retryAfterSec?: number): string | null {
+  switch (code) {
+    case API_ERROR_CODES.concurrencyConflict:
+      return 'البيانات اتعدلت من مستخدم آخر، حدّث الصفحة وحاول مرة أخرى';
+    case API_ERROR_CODES.loginLocked:
+      return `تم قفل الحساب مؤقتًا بسبب محاولات دخول خاطئة متكررة، حاول بعد ${waitText(retryAfterSec, 15 * 60)}`;
+    case API_ERROR_CODES.rateLimited:
+      return `طلبات كثيرة، حاول بعد ${waitText(retryAfterSec, 60)}`;
+    case API_ERROR_CODES.sessionExpired:
+      return 'انتهت صلاحية الجلسة، برجاء تسجيل الدخول مرة أخرى';
+    case API_ERROR_CODES.forbidden:
+      return 'ليس لديك صلاحية لتنفيذ هذا الإجراء';
+    case API_ERROR_CODES.notFound:
+    case API_ERROR_CODES.routeNotFound:
+      return 'العنصر المطلوب غير موجود';
+    default:
+      return null;
+  }
+}
+
+function parseRetryAfter(raw: string | null | undefined): number | undefined {
+  if (!raw) return undefined;
+  const secs = Number(raw);
+  if (Number.isFinite(secs) && secs >= 0) return Math.ceil(secs);
+  const at = Date.parse(raw);
+  return Number.isNaN(at) ? undefined : Math.max(0, Math.ceil((at - Date.now()) / 1000));
+}
+
+function statusMessage(status: number, err: HttpErrorResponse, url: string): string {
   if (status === 0) {
     // Browser blocked the request before it could complete — most commonly
     // CORS or DNS/network failure. The browser hides the real cause for
@@ -76,7 +128,9 @@ function statusMessage(status: number, err: HttpErrorResponse): string {
 
   const messages: Record<number, string> = {
     400: 'الطلب غير صالح',
-    401: 'بيانات الدخول غير صحيحة',
+    401: url.includes(AUTH_ENDPOINTS.login)
+      ? 'بيانات الدخول غير صحيحة'
+      : 'غير مصرح، برجاء تسجيل الدخول مرة أخرى',
     403: 'ليس لديك صلاحية لتنفيذ هذا الإجراء',
     404: 'العنصر المطلوب غير موجود',
     409: 'حدث تعارض في البيانات',
@@ -101,7 +155,8 @@ function logError(
   // users can copy/paste a useful trace into bug reports.
   if (environment.production) {
     console.error(
-      `[HTTP ${apiError.status}] ${method} ${url} — ${apiError.message}`,
+      `[HTTP ${apiError.status}${apiError.code ? ` ${apiError.code}` : ''}] ${method} ${url} — ${apiError.message}` +
+        (apiError.traceId ? ` [traceId ${apiError.traceId}]` : ''),
     );
     return;
   }
@@ -114,6 +169,8 @@ function logError(
     console.error(groupLabel);
   }
   console.error('Message :', apiError.message);
+  if (apiError.code) console.error('Code    :', apiError.code);
+  if (apiError.traceId) console.error('TraceId :', apiError.traceId);
   console.error('Status  :', err.status, err.statusText || '(no statusText)');
   if (apiError.fieldErrors) console.error('Fields  :', apiError.fieldErrors);
   if (err.error) console.error('Body    :', err.error);

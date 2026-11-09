@@ -1,3 +1,4 @@
+import { AbstractControl } from '@angular/forms';
 import { ApiError } from '../models/api-response.model';
 
 /**
@@ -29,6 +30,68 @@ export function apiErrorToMessage(
   if (fieldMessage) return fieldMessage;
 
   return err.message?.trim() || fallback;
+}
+
+/**
+ * Pushes a 422's field errors onto the matching FormControls so each message
+ * shows under its own input (via `<app-form-error>`, which renders string
+ * error payloads verbatim).
+ *
+ *   error: (err: ApiError) => {
+ *     const rest = applyServerErrors(this.form, err);
+ *     if (rest) this.toast.error(rest);
+ *   }
+ *
+ * - Keys are camelCase paths: `name`, `lines[0].qty`, `address.city`.
+ * - `aliases` maps a server key to a different control path when the form
+ *   doesn't mirror the DTO (`{ customerIds: 'recipients' }`).
+ * - Errors on controls are set as `{ server: '<message>' }` and clear on the
+ *   next edit (Angular re-runs validators on value change).
+ *
+ * @returns the messages that matched no control (joined), or `null` — show
+ *   these in a toast / banner so nothing is silently dropped.
+ */
+export function applyServerErrors(
+  form: AbstractControl,
+  err: ApiError | null | undefined,
+  aliases: Readonly<Record<string, string>> = {},
+): string | null {
+  const fieldErrors = err?.fieldErrors;
+  if (!fieldErrors) return null;
+
+  const unmatched: string[] = [];
+  for (const [key, value] of Object.entries(fieldErrors)) {
+    const messages = (Array.isArray(value) ? value : [value]).filter(
+      (m): m is string => typeof m === 'string' && m.trim().length > 0,
+    );
+    if (messages.length === 0) continue;
+
+    const control = form.get(toControlPath(aliases[key] ?? key));
+    if (control && control !== form) {
+      control.setErrors({ ...(control.errors ?? {}), server: messages[0] });
+      control.markAsTouched();
+    } else {
+      unmatched.push(...messages);
+    }
+  }
+  return unmatched.length ? unmatched.join('، ') : null;
+}
+
+/** Arabic wait duration: "30 ثانية" / "دقيقة" / "دقيقتين" / "5 دقائق" / "15 دقيقة". */
+export function waitText(seconds: number | undefined, defaultSec: number): string {
+  const s = seconds ?? defaultSec;
+  if (s < 60) return `${Math.max(1, s)} ثانية`;
+  const m = Math.ceil(s / 60);
+  return m === 1 ? 'دقيقة' : m === 2 ? 'دقيقتين' : m <= 10 ? `${m} دقائق` : `${m} دقيقة`;
+}
+
+/** `lines[0].qty` → `['lines', 0, 'qty']` (also tolerates `Lines[0].Qty`). */
+function toControlPath(key: string): (string | number)[] {
+  return key
+    .replace(/\[(\d+)\]/g, '.$1')
+    .split('.')
+    .filter(Boolean)
+    .map((seg) => (/^\d+$/.test(seg) ? Number(seg) : seg.charAt(0).toLowerCase() + seg.slice(1)));
 }
 
 /**

@@ -2,6 +2,8 @@ import { ChangeDetectionStrategy, Component, computed, effect, inject, input, ou
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { finalize } from 'rxjs';
 import { ToastService } from '../../../../core/services/toast.service';
+import { ApiError } from '../../../../core/models/api-response.model';
+import { applyServerErrors } from '../../../../core/utils/api-error.util';
 import { FormErrorComponent } from '../../../../shared/components/form-error/form-error.component';
 import { IconComponent } from '../../../../shared/components/icon/icon.component';
 import { ModalComponent } from '../../../../shared/components/modal/modal.component';
@@ -77,9 +79,12 @@ export class GroupFormDialogComponent {
     this.saving.set(true);
     (id ? this.groups.update(id, payload) : this.groups.create(payload))
       .pipe(finalize(() => this.saving.set(false)))
-      .subscribe((group) => {
-        this.toast.success(id ? 'تم تحديث المجموعة' : 'تم إضافة المجموعة');
-        this.saved.emit(group);
+      .subscribe({
+        next: (group) => {
+          this.toast.success(id ? 'تم تحديث المجموعة' : 'تم إضافة المجموعة');
+          this.saved.emit(group);
+        },
+        error: (err: ApiError) => applyServerErrors(this.form, err),
       });
   }
 }

@@ -18,9 +18,16 @@ export type ApiFieldErrors = Record<string, string[] | string>;
 /** Normalized error surfaced to the rest of the app. */
 export interface ApiError {
   status: number;
+  /** Stable machine-readable code (`ITEM_HAS_MOVEMENTS`, …) — branch on this, never on `message`. */
   code?: string;
+  /** User-facing (Arabic) message, as sent by the server when available. */
   message: string;
+  /** 422 only — camelCase keys, nested paths like `lines[0].qty`. */
   fieldErrors?: ApiFieldErrors;
+  /** Server correlation id (body `traceId` or `X-Correlation-Id` header) — quote it in bug reports. */
+  traceId?: string;
+  /** Seconds from the `Retry-After` header on 429 responses, when exposed. */
+  retryAfterSec?: number;
   raw?: unknown;
 }
 

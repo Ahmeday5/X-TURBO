@@ -20,6 +20,7 @@ import {
 } from '../../shared/components/icon/icon.component';
 import {
   formatInteger,
+  businessHour,
   formatLongDate,
   formatMoney,
   formatMoneyCompact,
@@ -121,7 +122,7 @@ export class DashboardComponent {
 
   protected readonly today = formatLongDate(new Date());
   protected readonly greeting = computed(() => {
-    const part = new Date().getHours() < 12 ? 'صباح الخير' : 'مساء الخير';
+    const part = businessHour() < 12 ? 'صباح الخير' : 'مساء الخير';
     const first = this.auth.currentUser()?.name.split(/\s+/)[0];
     return first ? `${part}، ${first}` : part;
   });

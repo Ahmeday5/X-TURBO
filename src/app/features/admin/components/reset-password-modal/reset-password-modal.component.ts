@@ -3,6 +3,8 @@ import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { finalize } from 'rxjs';
 import { ToastService } from '../../../../core/services/toast.service';
+import { ApiError } from '../../../../core/models/api-response.model';
+import { applyServerErrors } from '../../../../core/utils/api-error.util';
 import { FormErrorComponent } from '../../../../shared/components/form-error/form-error.component';
 import { IconComponent } from '../../../../shared/components/icon/icon.component';
 import { ModalComponent } from '../../../../shared/components/modal/modal.component';
@@ -108,9 +110,13 @@ export class ResetPasswordModalComponent {
     this.api
       .resetPassword(u.id, this.form.controls.password.value)
       .pipe(finalize(() => this.saving.set(false)))
-      .subscribe(() => {
-        this.toast.success(`تم تعيين كلمة مرور جديدة لـ ${u.name}`);
-        this.closed.emit();
+      .subscribe({
+        next: () => {
+          this.toast.success(`تم تعيين كلمة مرور جديدة لـ ${u.name}`);
+          this.closed.emit();
+        },
+        // 422 (password policy) → message under the password field.
+        error: (err: ApiError) => applyServerErrors(this.form, err),
       });
   }
 }

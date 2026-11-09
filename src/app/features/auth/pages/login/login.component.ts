@@ -16,6 +16,26 @@ import { DEFAULT_AUTHENTICATED_ROUTE } from '../../../../core/auth/auth.config';
 import { environment } from '../../../../../environments/environment';
 import { FormShake } from '../../utils/form-shake';
 import { DEMO_ACCOUNTS, DemoAccount } from '../../../../mock';
+import { API_ERROR_CODES } from '../../../../core/http/api-error-codes';
+import { applyServerErrors, waitText } from '../../../../core/utils/api-error.util';
+
+/**
+ * Login-specific wording. Suspended users get the same 401 "invalid
+ * credentials" message as a wrong password (by design, server-side).
+ */
+function loginErrorMessage(err: ApiError): string {
+  switch (err.code) {
+    case API_ERROR_CODES.loginLocked:
+      return `تم قفل الحساب مؤقتًا بعد 5 محاولات دخول خاطئة، حاول بعد ${waitText(err.retryAfterSec, 15 * 60)}`;
+    case API_ERROR_CODES.rateLimited:
+      return `محاولات كثيرة من هذا الجهاز، انتظر ${waitText(err.retryAfterSec, 60)} ثم حاول مرة أخرى`;
+  }
+  if (err.status === 0) {
+    return 'تعذر الاتصال بالخادم، تحقق من اتصالك بالإنترنت وحاول مرة أخرى';
+  }
+  if (err.status >= 500) return err.message || 'خطأ في الخادم، حاول مرة أخرى لاحقًا';
+  return err.message || 'البريد الإلكتروني أو كلمة المرور غير صحيحة';
+}
 
 @Component({
   selector: 'app-login',
@@ -84,7 +104,8 @@ export class LoginComponent {
       },
       error: (err: ApiError) => {
         this.isSubmitting.set(false);
-        this.serverError.set(err.message);
+        const unmatched = applyServerErrors(this.form, err);
+        this.serverError.set(err.fieldErrors ? unmatched : loginErrorMessage(err));
         this.shake.play();
       },
     });

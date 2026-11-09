@@ -1,7 +1,7 @@
 import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { ApiService } from '../../../core/services/api.service';
-import { withSkipLoader } from '../../../core/http/http-context.tokens';
+import { withSilentErrors, withSkipLoader } from '../../../core/http/http-context.tokens';
 import { PagedResponse } from '../../../core/models/api-response.model';
 import { ListQuery, toListParams } from '../../../core/models/list-query.model';
 import { Item, ItemPayload } from '../models/item.model';
@@ -31,7 +31,11 @@ export class ItemsService {
     return this.api.put<Item>(ITEMS_ENDPOINTS.byId(id), payload);
   }
 
+  /**
+   * Errors are NOT toasted — the caller decides (409 `ITEM_HAS_MOVEMENTS`
+   * offers to deactivate the item instead).
+   */
   delete(id: string): Observable<void> {
-    return this.api.delete<void>(ITEMS_ENDPOINTS.byId(id));
+    return this.api.delete<void>(ITEMS_ENDPOINTS.byId(id), { context: withSilentErrors() });
   }
 }

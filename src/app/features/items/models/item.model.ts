@@ -25,7 +25,21 @@ export type ItemPayload = Pick<
   'name' | 'groupId' | 'unit' | 'barcode' | 'brand' | 'purchasePrice' | 'salePrice' | 'minStock' | 'description' | 'isActive'
 >;
 
-export const ITEM_UNITS = ['قطعة', 'طقم', 'لتر', 'علبة', 'كرتونة', 'متر', 'زوج'] as const;
+/** Business-rule codes the items API answers with (409). */
+export const ITEM_ERROR_CODES = {
+  /** Item has stock movements — can never be deleted, only deactivated. */
+  hasMovements: 'ITEM_HAS_MOVEMENTS',
+  /** Group still contains items. */
+  groupHasItems: 'GROUP_HAS_ITEMS',
+} as const;
+
+/** Full update payload from a loaded item (e.g. to toggle `isActive`). */
+export function toItemPayload(item: Item, patch: Partial<ItemPayload> = {}): ItemPayload {
+  const { name, groupId, unit, barcode, brand, purchasePrice, salePrice, minStock, description, isActive } = item;
+  return { name, groupId, unit, barcode, brand, purchasePrice, salePrice, minStock, description, isActive, ...patch };
+}
+
+export const ITEM_UNITS =['قطعة', 'طقم', 'لتر', 'علبة', 'كرتونة', 'متر', 'زوج'] as const;
 export type ItemUnit = (typeof ITEM_UNITS)[number];
 
 export type StockLevel = 'out' | 'low' | 'ok';

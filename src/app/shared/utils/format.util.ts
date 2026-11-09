@@ -25,10 +25,55 @@ const moneyCompact = new Intl.NumberFormat(LOCALE, {
   maximumFractionDigits: 1,
 });
 const relative = new Intl.RelativeTimeFormat(LOCALE, { numeric: 'auto' });
-const dayMonth = new Intl.DateTimeFormat(LOCALE, { day: 'numeric', month: 'short' });
-const month = new Intl.DateTimeFormat(LOCALE, { month: 'short', year: '2-digit' });
-const dateTime = new Intl.DateTimeFormat(LOCALE, { day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit' });
-const longDate = new Intl.DateTimeFormat(LOCALE, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+
+/**
+ * Dates follow the API contract:
+ *   - timestamps are UTC ISO with `Z` → shown in the business time zone
+ *     (Cairo), whatever time zone the viewer's device is set to;
+ *   - date-only values (`YYYY-MM-DD`: report buckets, document dates) are
+ *     already Cairo calendar days → shown as-is. `new Date('2026-11-03')` is
+ *     UTC midnight, so they're formatted in UTC to never shift a day.
+ */
+const TIME_ZONE = environment.timeZone;
+const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
+
+interface ZonedFormat {
+  zoned: Intl.DateTimeFormat;
+  dateOnly: Intl.DateTimeFormat;
+}
+
+function zonedFormat(options: Intl.DateTimeFormatOptions): ZonedFormat {
+  return {
+    zoned: new Intl.DateTimeFormat(LOCALE, { ...options, timeZone: TIME_ZONE }),
+    dateOnly: new Intl.DateTimeFormat(LOCALE, { ...options, timeZone: 'UTC' }),
+  };
+}
+
+function formatIso(f: ZonedFormat, iso: string): string {
+  if (!iso) return '';
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return iso;
+  return DATE_ONLY.test(iso) ? f.dateOnly.format(date) : f.zoned.format(date);
+}
+
+const dayMonth = zonedFormat({ day: 'numeric', month: 'short' });
+const month = zonedFormat({ month: 'short', year: '2-digit' });
+const shortDate = zonedFormat({ day: 'numeric', month: 'short', year: 'numeric' });
+const dateTime = zonedFormat({ day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit' });
+const longDate = new Intl.DateTimeFormat(LOCALE, {
+  weekday: 'long',
+  day: 'numeric',
+  month: 'long',
+  year: 'numeric',
+  timeZone: TIME_ZONE,
+});
+/** en-CA formats as YYYY-MM-DD. */
+const isoDay = new Intl.DateTimeFormat('en-CA', {
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+  timeZone: TIME_ZONE,
+});
 
 /** 1,284 */
 export const formatInteger = (value: number): string => integer.format(value);
@@ -49,13 +94,28 @@ export const formatDelta = (pct: number): string =>
   `${pct > 0 ? '+' : pct < 0 ? '−' : ''}${Math.abs(pct).toFixed(1)}%`;
 
 /** 4 نوفمبر */
-export const formatDayMonth = (iso: string): string => dayMonth.format(new Date(iso));
+export const formatDayMonth = (iso: string): string => formatIso(dayMonth, iso);
 
 /** نوفمبر 26 */
-export const formatMonth = (iso: string): string => month.format(new Date(iso));
+export const formatMonth = (iso: string): string => formatIso(month, iso);
 
-/** 4 نوفمبر 2026، 3:15 م */
-export const formatDateTime = (iso: string): string => dateTime.format(new Date(iso));
+/** 4 نوفمبر 2026 */
+export const formatShortDate = (iso: string): string => formatIso(shortDate, iso);
+
+/** 4 نوفمبر 2026، 3:15 م — Cairo time. */
+export const formatDateTime = (iso: string): string => formatIso(dateTime, iso);
+
+/**
+ * Today's Cairo calendar day as `YYYY-MM-DD` — use for date filters / default
+ * document dates instead of `new Date().toISOString().slice(0, 10)` (that is
+ * the UTC day, which is still "yesterday" in Cairo until 02:00/03:00).
+ */
+export const todayIso = (now: Date = new Date()): string => isoDay.format(now);
+
+const hourOnly = new Intl.DateTimeFormat('en-GB', { hour: 'numeric', hourCycle: 'h23', timeZone: TIME_ZONE });
+
+/** Current hour (0–23) in Cairo — e.g. for a "good morning / evening" greeting. */
+export const businessHour = (now: Date = new Date()): number => Number(hourOnly.format(now)) % 24;
 
 /** 12.5% */
 export const formatPercent = (pct: number): string => `${Math.round(pct * 10) / 10}%`;

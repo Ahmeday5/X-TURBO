@@ -10,6 +10,7 @@ import { AuthService } from '../services/auth.service';
 import { SKIP_AUTH } from '../../http/http-context.tokens';
 import { AUTH_ENDPOINTS } from '../auth.config';
 import { isJwtExpired } from '../utils/jwt.util';
+import { API_ERROR_CODES } from '../../http/api-error-codes';
 
 /**
  * Attaches `Authorization: Bearer <token>` to every request unless the caller
@@ -52,6 +53,14 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
       if (err.status !== 401 || isAuthEndpoint(req.url)) {
         return throwError(() => err);
       }
+      // 401 SESSION_EXPIRED: the server revoked the whole session (token
+      // reuse, user suspended, permissions changed) — a refresh would fail
+      // too, so go straight to login. Plain 401 UNAUTHORIZED (or no code)
+      // just means the access token is stale: refresh once and retry.
+      if (errorCode(err) === API_ERROR_CODES.sessionExpired) {
+        auth.expireSession();
+        return throwError(() => err);
+      }
       return retryAfterRefresh(req, next, auth);
     })
   );
@@ -77,6 +86,11 @@ function withAuthHeader(
   token: string,
 ): HttpRequest<unknown> {
   return req.clone({ setHeaders: { Authorization: `Bearer ${token}` } });
+}
+
+function errorCode(err: HttpErrorResponse): string | undefined {
+  const body = err.error as { code?: unknown } | null;
+  return body && typeof body === 'object' && typeof body.code === 'string' ? body.code : undefined;
 }
 
 function isAuthEndpoint(url: string): boolean {

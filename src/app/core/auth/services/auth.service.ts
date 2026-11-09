@@ -12,7 +12,8 @@ import {
 } from 'rxjs/operators';
 import { environment } from '../../../../environments/environment';
 import { ApiService } from '../../services/api.service';
-import { StorageService } from '../../services/storage.service';
+import { StorageArea, StorageService } from '../../services/storage.service';
+import { API_ERROR_CODES } from '../../http/api-error-codes';
 import { DeviceService } from './device.service';
 import { ToastService } from '../../services/toast.service';
 import { HttpCacheService } from '../../services/http-cache.service';
@@ -68,16 +69,23 @@ const MAX_SETTIMEOUT_DELAY_MS = 2_147_000_000;
  */
 const AUTH_FATAL_STATUSES: ReadonlySet<number> = new Set([400, 401, 403]);
 
+/** Fallback access-token lifetime when neither `exp` nor `expiresAtUtc` is usable (API issues 30 min). */
+const DEFAULT_ACCESS_TOKEN_TTL_MS = 30 * 60 * 1000;
+
 /**
- * Set of strings your backend uses to signal that a refresh token was
- * already used (rotation/reuse detection). Adjust to match your API, or
- * clear the array to disable reuse-detection handling entirely (every
- * refresh failure is then classified purely by HTTP status).
+ * Rotated tokens handed to sibling tabs. Only needed for `sessionStorage`
+ * sessions: a duplicated tab starts with a copy of the same refresh token,
+ * and once one tab rotates it the copy is dead (re-using it makes the API
+ * revoke the whole session). Tabs still holding `from` adopt the new pair.
  */
-const REUSE_DETECTED_MARKERS: readonly string[] = ['reuse'];
+interface RotatedTokens {
+  from: string;
+  accessToken: string;
+  refreshToken: string;
+}
 
 type CrossTabMessage =
-  | { type: 'session-updated'; from: string }
+  | { type: 'session-updated'; from: string; rotated?: RotatedTokens }
   | { type: 'logged-out'; from: string };
 
 export interface LoginInput {
@@ -156,12 +164,22 @@ export class AuthService {
       deviceId: dev.deviceId,
     };
 
+    // "Remember me" → tokens survive restarts (localStorage, 30-day refresh
+    // token server-side); otherwise they die with the tab (sessionStorage).
+    const area: StorageArea = input.rememberMe ? 'local' : 'session';
+
     return this.api
       .post<AuthResponseData>(AUTH_ENDPOINTS.login, payload, {
         context: withInlineHandling(withSkipAuth()),
       })
       .pipe(
-        tap((data) => this.persistSession(data, true)),
+        tap((data) => {
+          // Drop a leftover session in the OTHER area. The target area is
+          // simply overwritten — removing its keys first would fire a
+          // `storage` event that other tabs read as a logout.
+          this.wipeStoredSession([area === 'local' ? 'session' : 'local']);
+          this.persistSession(data, true, area);
+        }),
         switchMap((data) => this.hydratePermissions(this.toUser(data)))
       );
   }
@@ -184,8 +202,15 @@ export class AuthService {
   syncPermissions(): void {
     const user = this.currentUserSignal();
     if (!user || !this.isLoggedIn()) return;
-    this.hydratePermissions(user).subscribe();
+    // Collapse bursts (e.g. several 403s from one page) into one /auth/me call.
+    if (this.permissionSyncInFlight) return;
+    this.permissionSyncInFlight = true;
+    this.hydratePermissions(user)
+      .pipe(finalize(() => (this.permissionSyncInFlight = false)))
+      .subscribe();
   }
+
+  private permissionSyncInFlight = false;
 
   private hydratePermissions(baseUser: User): Observable<User> {
     return this.api
@@ -209,9 +234,18 @@ export class AuthService {
       avatar: this.deriveAvatar(name),
       permissions: this.resolvePermissions(data?.permissions),
     };
-    this.storage.setJson(USER_KEY, merged);
+    this.storage.setJson(USER_KEY, merged, this.activeArea());
     this.currentUserSignal.set(merged);
     return merged;
+  }
+
+  /**
+   * Called by the auth interceptor when the API answers 401 `SESSION_EXPIRED`
+   * (refresh-token reuse, user suspended, permissions changed): the session
+   * is gone server-side, so refreshing is pointless — clear it and go to login.
+   */
+  expireSession(): void {
+    this.scheduleSessionExpiredLogout();
   }
 
   logout(opts: LogoutOptions = {}): void {
@@ -226,9 +260,12 @@ export class AuthService {
     if (callApi && refreshToken) {
       const payload: LogoutRequest = { refreshToken };
       // Fire-and-forget — never block redirect on the network roundtrip.
+      // Sent WITHOUT the Bearer header (API contract): the refresh token in
+      // the body identifies the session, and skipping auth also stops the
+      // interceptor from refreshing an expired access token just to log out.
       this.api
         .post<unknown>(AUTH_ENDPOINTS.logout, payload, {
-          context: withInlineHandling(),
+          context: withInlineHandling(withSkipAuth()),
         })
         .subscribe({ error: () => {} });
     }
@@ -291,11 +328,16 @@ export class AuthService {
   }
 
   getAccessToken(): string | null {
-    return this.storage.get(environment.tokenKey);
+    return this.storage.get(environment.tokenKey, this.activeArea());
   }
 
   getRefreshToken(): string | null {
-    return this.storage.get(environment.refreshTokenKey);
+    return this.storage.get(environment.refreshTokenKey, this.activeArea());
+  }
+
+  /** Where the current session lives: `session` for "don't remember me" logins. */
+  private activeArea(): StorageArea {
+    return this.storage.get(environment.refreshTokenKey, 'session') ? 'session' : 'local';
   }
 
   isLoggedIn(): boolean {
@@ -454,19 +496,14 @@ export class AuthService {
   }
 
   /**
-   * Server-signaled "your refresh token was already used". Checks
-   * `REUSE_DETECTED_MARKERS` against the error body's `details`/`message` —
-   * adjust that list (in this file's constants) to match your backend's
-   * actual reuse-detection error shape, or clear it to disable this path.
+   * The API revoked the session (401 `SESSION_EXPIRED`) — most often because
+   * a refresh token was presented twice. That can be a benign cross-tab race
+   * (another tab rotated first), so the caller re-checks storage before
+   * giving up. Reads `code` from the normalized `ApiError` or a raw body.
    */
   private isReuseDetected(err: unknown): boolean {
-    if (REUSE_DETECTED_MARKERS.length === 0) return false;
-    const body = (err as { error?: { details?: string; message?: string } } | null)?.error;
-    const raw = (err as { raw?: { details?: string; message?: string } } | null)?.raw;
-    const haystacks = [body?.details, body?.message, raw?.details, raw?.message]
-      .filter((s): s is string => typeof s === 'string')
-      .map((s) => s.toLowerCase());
-    return haystacks.some((s) => REUSE_DETECTED_MARKERS.some((marker) => s.includes(marker)));
+    const e = err as { code?: string; error?: { code?: string } } | null;
+    return (e?.code ?? e?.error?.code) === API_ERROR_CODES.sessionExpired;
   }
 
   // ────────────────────── persistence ──────────────────────
@@ -475,22 +512,25 @@ export class AuthService {
    * @param updateUser whether to overwrite the cached user from this response.
    *   `true` for /login (full payload), `false` for /refresh (user fields can
    *   come back empty and would clobber the real values).
+   * @param area where to store the session — login decides it from
+   *   "remember me"; refreshes keep the session where it already lives.
    */
   private persistSession(
     data: AuthResponseData,
     updateUser: boolean,
+    area: StorageArea = this.activeArea(),
   ): AuthTokens {
     // On the refresh path, tolerate a backend that doesn't rotate the
     // refresh token: fall back to the one already in storage so a
     // successful 2xx is never thrown away. Login always returns both.
-    const fallbackRefreshToken = updateUser ? null : this.getRefreshToken();
-    const tokens = this.extractTokens(data, fallbackRefreshToken);
-    this.storage.set(environment.tokenKey, tokens.accessToken);
-    this.storage.set(environment.refreshTokenKey, tokens.refreshToken);
+    const previousRefreshToken = updateUser ? null : this.getRefreshToken();
+    const tokens = this.extractTokens(data, previousRefreshToken);
+    this.storage.set(environment.tokenKey, tokens.accessToken, area);
+    this.storage.set(environment.refreshTokenKey, tokens.refreshToken, area);
 
     if (updateUser && data.userId) {
       const user = this.toUser(data);
-      this.storage.setJson(USER_KEY, user);
+      this.storage.setJson(USER_KEY, user, area);
       this.currentUserSignal.set(user);
     } else if (!this.currentUserSignal()) {
       // Stale tab booting up after a previous refresh — rehydrate the user
@@ -501,15 +541,19 @@ export class AuthService {
 
     this.refreshFailureStreak = 0;
     this.sessionDead = false;
-    this.broadcast({ type: 'session-updated', from: this.tabId });
+    // localStorage is shared, so siblings just re-read it. sessionStorage is
+    // per-tab: hand the rotated pair to any duplicate tab holding the old one.
+    const rotated: RotatedTokens | undefined =
+      area === 'session' && previousRefreshToken && previousRefreshToken !== tokens.refreshToken
+        ? { from: previousRefreshToken, accessToken: tokens.accessToken, refreshToken: tokens.refreshToken }
+        : undefined;
+    this.broadcast({ type: 'session-updated', from: this.tabId, rotated });
     this.scheduleProactiveRefresh();
     return tokens;
   }
 
   private clearLocalSession(): void {
-    this.storage.remove(environment.tokenKey);
-    this.storage.remove(environment.refreshTokenKey);
-    this.storage.remove(USER_KEY);
+    this.wipeStoredSession();
     this.currentUserSignal.set(null);
     this.cancelScheduledRefresh();
     this.inflightRefresh = null;
@@ -519,9 +563,18 @@ export class AuthService {
     this.httpCache.clear();
   }
 
+  /** Removes tokens + cached user from the given storage areas (default: both). */
+  private wipeStoredSession(areas: readonly StorageArea[] = ['local', 'session']): void {
+    for (const area of areas) {
+      this.storage.remove(environment.tokenKey, area);
+      this.storage.remove(environment.refreshTokenKey, area);
+      this.storage.remove(USER_KEY, area);
+    }
+  }
+
   private loadStoredUser(): User | null {
     if (!this.getAccessToken() || !this.getRefreshToken()) return null;
-    return this.storage.getJson<User>(USER_KEY);
+    return this.storage.getJson<User>(USER_KEY, this.activeArea());
   }
 
   // ────────────────────── mappers ──────────────────────
@@ -607,7 +660,7 @@ export class AuthService {
       if (!Number.isNaN(parsed) && parsed > Date.now()) return parsed;
     }
 
-    return Date.now() + 15 * 60 * 1000;
+    return Date.now() + DEFAULT_ACCESS_TOKEN_TTL_MS;
   }
 
   /** Returns stored tokens IFF the access token is still safely valid. */
@@ -770,6 +823,15 @@ export class AuthService {
     }
 
     if (msg.type === 'session-updated') {
+      const rotated = msg.rotated;
+      if (
+        rotated &&
+        this.activeArea() === 'session' &&
+        this.getRefreshToken() === rotated.from
+      ) {
+        this.storage.set(environment.tokenKey, rotated.accessToken, 'session');
+        this.storage.set(environment.refreshTokenKey, rotated.refreshToken, 'session');
+      }
       this.currentUserSignal.set(this.loadStoredUser());
       this.scheduleProactiveRefresh();
     }

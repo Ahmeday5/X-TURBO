@@ -4,6 +4,8 @@ import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angula
 import { Router, RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
 import { ToastService } from '../../../../core/services/toast.service';
+import { ApiError } from '../../../../core/models/api-response.model';
+import { applyServerErrors } from '../../../../core/utils/api-error.util';
 import { FormErrorComponent } from '../../../../shared/components/form-error/form-error.component';
 import { IconComponent } from '../../../../shared/components/icon/icon.component';
 import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
@@ -114,10 +116,14 @@ export class ItemFormPage {
     const request$ = id ? this.items.update(id, payload) : this.items.create(payload);
 
     this.saving.set(mode);
-    request$.pipe(finalize(() => this.saving.set(null))).subscribe((item) => {
-      this.toast.success(id ? 'تم تحديث الصنف' : `تم إضافة الصنف ${item.code}`);
-      if (mode === 'saveNew') this.resetForCreate();
-      else this.router.navigate(['/items/directory']);
+    request$.pipe(finalize(() => this.saving.set(null))).subscribe({
+      next: (item) => {
+        this.toast.success(id ? 'تم تحديث الصنف' : `تم إضافة الصنف ${item.code}`);
+        if (mode === 'saveNew') this.resetForCreate();
+        else this.router.navigate(['/items/directory']);
+      },
+      // 422 → messages under their fields (e.g. duplicate barcode, price rules).
+      error: (err: ApiError) => applyServerErrors(this.form, err),
     });
   }
 

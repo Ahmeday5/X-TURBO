@@ -5,6 +5,9 @@ import { finalize } from 'rxjs';
 import { Permission, PERMISSIONS } from '../../../../core/auth/permissions';
 import { Role, ROLES } from '../../../../core/auth/roles';
 import { ToastService } from '../../../../core/services/toast.service';
+import { AuthService } from '../../../../core/auth/services/auth.service';
+import { ApiError } from '../../../../core/models/api-response.model';
+import { applyServerErrors } from '../../../../core/utils/api-error.util';
 import { AvatarComponent } from '../../../../shared/components/avatar/avatar.component';
 import { DrawerComponent } from '../../../../shared/components/drawer/drawer.component';
 import { FormErrorComponent } from '../../../../shared/components/form-error/form-error.component';
@@ -52,6 +55,7 @@ export class UserFormDrawerComponent {
   private readonly fb = inject(NonNullableFormBuilder);
   private readonly api = inject(UsersService);
   private readonly toast = inject(ToastService);
+  private readonly auth = inject(AuthService);
 
   readonly userId = input<string>('');
   /** The signed-in user — can't lock themselves out. */
@@ -171,9 +175,17 @@ export class UserFormDrawerComponent {
     this.saving.set(true);
     (id ? this.api.update(id, payload) : this.api.create(payload))
       .pipe(finalize(() => this.saving.set(false)))
-      .subscribe((u) => {
-        this.toast.success(id ? 'تم تحديث بيانات المستخدم' : `تم إضافة المستخدم ${u.name}`);
-        this.saved.emit(u);
+      .subscribe({
+        next: (u) => {
+          this.toast.success(id ? 'تم تحديث بيانات المستخدم' : `تم إضافة المستخدم ${u.name}`);
+          // Editing yourself: pick up the new role/permissions right away
+          // (if the API revoked the session for it, this lands on login).
+          if (id && id === this.selfId()) this.auth.syncPermissions();
+          this.saved.emit(u);
+        },
+        // 422 → show each message under its field (the interceptor already
+        // toasted the summary; 409s like a duplicate email stay as that toast).
+        error: (err: ApiError) => applyServerErrors(this.form, err),
       });
   }
 

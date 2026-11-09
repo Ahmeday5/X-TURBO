@@ -13,6 +13,9 @@ import { createListResource } from '../../../../shared/list/list-resource';
 import { UrlListState } from '../../../../shared/list/url-list-state';
 import { GroupFormDialogComponent } from '../../components/group-form-dialog/group-form-dialog.component';
 import { ItemGroup } from '../../models/item-group.model';
+import { ITEM_ERROR_CODES } from '../../models/item.model';
+import { ApiError } from '../../../../core/models/api-response.model';
+import { hasErrorCode } from '../../../../core/http/api-error-codes';
 import { ItemGroupsService } from '../../services/item-groups.service';
 
 /** Item groups: list (table/cards) with create / edit in a modal. */
@@ -98,9 +101,26 @@ export class ItemGroupsPage {
       type: 'danger',
     });
     if (!confirmed) return;
-    this.api.delete(group.id).subscribe(() => {
-      this.toast.success('تم حذف المجموعة');
-      this.onSaved();
+    this.api.delete(group.id).subscribe({
+      next: () => {
+        this.toast.success('تم حذف المجموعة');
+        this.onSaved();
+      },
+      error: (err: ApiError) => {
+        if (hasErrorCode(err, ITEM_ERROR_CODES.groupHasItems)) void this.offerShowItems(group, err.message);
+        else this.toast.error(err.message);
+      },
     });
+  }
+
+  /** A group that still has items can't be deleted — offer to open them so they can be moved. */
+  private async offerShowItems(group: ItemGroup, serverMessage: string): Promise<void> {
+    const show = await this.dialog.confirm({
+      title: 'لا يمكن حذف المجموعة',
+      message: `${serverMessage || `مجموعة «${group.name}» تحتوي على أصناف.`}\nانقل الأصناف لمجموعة أخرى أو أوقف المجموعة بدلًا من حذفها.`,
+      confirmText: 'عرض أصناف المجموعة',
+      type: 'warning',
+    });
+    if (show) this.openItems(group);
   }
 }

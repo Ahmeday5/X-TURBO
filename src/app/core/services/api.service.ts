@@ -106,11 +106,16 @@ export class ApiService {
     return params;
   }
 
-  /** Normalize both `{ data, success, ... }` envelopes and raw `<T>` payloads. */
+  /**
+   * Normalize both `{ success, data }` envelopes and raw `<T>` payloads.
+   * A real envelope (has a boolean `success`) always yields its `data` —
+   * including `null` for void operations (`{ success: true, data: null }`).
+   */
   private unwrap<T>(res: ApiResponse<T> | T): T {
-    if (res && typeof res === 'object' && 'data' in (res as object)) {
+    if (res && typeof res === 'object') {
       const env = res as ApiResponse<T>;
-      return (env.data ?? (env as unknown as T)) as T;
+      if (typeof env.success === 'boolean') return env.data as T;
+      if ('data' in env) return (env.data ?? (env as unknown as T)) as T;
     }
     return res as T;
   }

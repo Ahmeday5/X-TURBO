@@ -3,6 +3,8 @@
   color: var(--txt2);
   line-height: 1.7;
   margin: 0;
+  /* Honour "\n" in messages (e.g. server reason + suggested next step). */
+  white-space: pre-line;
 }
 
 .cd-title-danger  { color: var(--re); }

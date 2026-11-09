@@ -1,7 +1,7 @@
 import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { ApiService } from '../../../core/services/api.service';
-import { withSkipLoader } from '../../../core/http/http-context.tokens';
+import { withSilentErrors, withSkipLoader } from '../../../core/http/http-context.tokens';
 import { PagedResponse } from '../../../core/models/api-response.model';
 import { ListQuery, toListParams } from '../../../core/models/list-query.model';
 import { ItemGroup, ItemGroupOption, ItemGroupPayload } from '../models/item-group.model';
@@ -33,7 +33,8 @@ export class ItemGroupsService {
     return this.api.put<ItemGroup>(ITEM_GROUPS_ENDPOINTS.byId(id), payload);
   }
 
+  /** Errors are NOT toasted — the caller handles 409 `GROUP_HAS_ITEMS`. */
   delete(id: string): Observable<void> {
-    return this.api.delete<void>(ITEM_GROUPS_ENDPOINTS.byId(id));
+    return this.api.delete<void>(ITEM_GROUPS_ENDPOINTS.byId(id), { context: withSilentErrors() });
   }
 }

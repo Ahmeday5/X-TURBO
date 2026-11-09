@@ -13,7 +13,9 @@ import { UrlListState } from '../../../../shared/list/url-list-state';
 import { formatMoney } from '../../../../shared/utils/format.util';
 import { ItemCardComponent } from '../../components/item-card/item-card.component';
 import { StockMeterComponent } from '../../components/stock-meter/stock-meter.component';
-import { Item, marginPct } from '../../models/item.model';
+import { Item, ITEM_ERROR_CODES, marginPct, toItemPayload } from '../../models/item.model';
+import { ApiError } from '../../../../core/models/api-response.model';
+import { hasErrorCode } from '../../../../core/http/api-error-codes';
 import { ItemGroupsService } from '../../services/item-groups.service';
 import { ItemsService } from '../../services/items.service';
 
@@ -90,8 +92,37 @@ export class ItemsDirectoryPage {
       type: 'danger',
     });
     if (!confirmed) return;
-    this.items.delete(item.id).subscribe(() => {
-      this.toast.success('تم حذف الصنف');
+    this.items.delete(item.id).subscribe({
+      next: () => {
+        this.toast.success('تم حذف الصنف');
+        this.list.reload();
+      },
+      error: (err: ApiError) => {
+        if (hasErrorCode(err, ITEM_ERROR_CODES.hasMovements)) void this.offerDeactivate(item, err.message);
+        else this.toast.error(err.message);
+      },
+    });
+  }
+
+  /**
+   * An item with stock movements can never be deleted (even at zero stock) —
+   * the API's answer is to deactivate it, which hides it from new documents
+   * while keeping its history intact.
+   */
+  private async offerDeactivate(item: Item, serverMessage: string): Promise<void> {
+    if (!item.isActive) {
+      this.toast.error(serverMessage || 'لا يمكن حذف صنف عليه حركات، وهو موقوف بالفعل');
+      return;
+    }
+    const deactivate = await this.dialog.confirm({
+      title: 'لا يمكن حذف الصنف',
+      message: `${serverMessage || `«${item.name}» عليه حركات مخزنية ولا يمكن حذفه.`}\nهل تريد إيقافه بدلًا من ذلك؟ لن يظهر في المستندات الجديدة وسيبقى تاريخه كما هو.`,
+      confirmText: 'إيقاف الصنف',
+      type: 'warning',
+    });
+    if (!deactivate) return;
+    this.items.update(item.id, toItemPayload(item, { isActive: false })).subscribe(() => {
+      this.toast.success(`تم إيقاف «${item.name}»`);
       this.list.reload();
     });
   }
