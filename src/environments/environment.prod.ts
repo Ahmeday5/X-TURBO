@@ -10,11 +10,8 @@ export const environment = {
   timeZone: 'Africa/Cairo',
 
   apiUrl: 'https://xturbo.runasp.net/api',
-  /**
-   * Keep the demo login on the deployed site until the dashboard's domain is
-   * added to the API's `Cors:Origins` — then flip this to `false` (plan M23).
-   */
-  mockApi: true,
+  /** Real API. (The API's `Cors:Origins` allows http://xturbo.theonesystemco.com.) */
+  mockApi: false,
   tokenKey: 'xturbo_access_token',
   refreshTokenKey: 'xturbo_refresh_token',
   /** Must match the key read by the anti-flash script in index.html. */
