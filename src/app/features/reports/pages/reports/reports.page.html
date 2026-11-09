@@ -1,0 +1,202 @@
+<!-- Product table cell / card templates -->
+<ng-template #productCell [appRowOf]="products.items()" let-p>
+  <div class="rp-product">
+    <span class="rp-product__name">{{ p.name }}</span>
+    <div class="rp-product__meta">
+      <span class="ui-code">{{ p.code }}</span>
+      <span class="ui-chip" [style.--chip]="p.groupColor">{{ p.groupName }}</span>
+    </div>
+  </div>
+</ng-template>
+
+<ng-template #unitsCell [appRowOf]="products.items()" let-p>
+  <div class="rp-stack rp-stack--center">
+    <strong>{{ integer(p.unitsSold) }}</strong>
+    <small>{{ integer(p.orders) }} طلب</small>
+  </div>
+</ng-template>
+
+<ng-template #revenueCell [appRowOf]="products.items()" let-p><strong class="rp-num">{{ money(p.revenue) }}</strong></ng-template>
+
+<ng-template #profitCell [appRowOf]="products.items()" let-p>
+  <div class="rp-stack rp-stack--end">
+    <strong class="rp-num">{{ money(p.profit) }}</strong>
+    <small [class.is-low]="p.marginPct < 15">هامش {{ percent(p.marginPct) }}</small>
+  </div>
+</ng-template>
+
+<ng-template #shareCell [appRowOf]="products.items()" let-p>
+  <div class="rp-share">
+    <span class="rp-share__track"><span class="rp-share__bar" [style.--w]="p.sharePct / maxShare()"></span></span>
+    <small>{{ percent(p.sharePct) }}</small>
+  </div>
+</ng-template>
+
+<ng-template #card [appRowOf]="products.items()" let-p>
+  <div class="rp-card">
+    <div class="rp-card__head">
+      <span class="rp-card__icon" [style.--chip]="p.groupColor"><app-icon name="box" [size]="18" /></span>
+      <div class="rp-product">
+        <span class="rp-product__name">{{ p.name }}</span>
+        <div class="rp-product__meta">
+          <span class="ui-code">{{ p.code }}</span>
+          <span class="ui-chip" [style.--chip]="p.groupColor">{{ p.groupName }}</span>
+        </div>
+      </div>
+    </div>
+    <dl class="rp-card__stats">
+      <div><dt>المبيعات</dt><dd>{{ moneyCompact(p.revenue) }}</dd></div>
+      <div><dt>الكمية</dt><dd>{{ integer(p.unitsSold) }}</dd></div>
+      <div><dt>الهامش</dt><dd [class.is-low]="p.marginPct < 15">{{ percent(p.marginPct) }}</dd></div>
+    </dl>
+    <div class="rp-share">
+      <span class="rp-share__track"><span class="rp-share__bar" [style.--w]="p.sharePct / maxShare()"></span></span>
+      <small>{{ percent(p.sharePct) }} من المبيعات</small>
+    </div>
+  </div>
+</ng-template>
+
+<!-- Page -->
+<app-page-header [navId]="navId()" [subtitle]="'أداء المبيعات والأرباح · ' + period()">
+  <div class="seg rp-range" role="group" aria-label="الفترة الزمنية">
+    @for (r of ranges; track r.value) {
+    <button type="button" class="seg__btn" [attr.aria-pressed]="range() === r.value" (click)="setRange(r.value)">
+      {{ r.label }}
+    </button>
+    }
+  </div>
+  <button type="button" class="refresh-btn" [class.is-spinning]="overview.loading()" [disabled]="overview.loading()"
+    title="تحديث" aria-label="تحديث التقارير" (click)="refresh()">
+    <app-icon name="refresh" [size]="16" />
+  </button>
+</app-page-header>
+
+@if (overview.value(); as o) {
+<div class="bento" [class.is-refreshing]="overview.loading()" [attr.aria-busy]="overview.loading()">
+  @for (k of kpis; track k.key; let i = $index) {
+  <app-kpi-card class="span-3 reveal" [style.--i]="i" [label]="k.label" [icon]="k.icon" [kpi]="o.kpis[k.key]"
+    [format]="k.format" period="مقارنة بالفترة السابقة" />
+  }
+
+  <!-- Trend -->
+  @if (trend(); as t) {
+  <section class="panel span-8 reveal rp-trend" style="--i: 4">
+    <header class="panel__head">
+      <div>
+        <h2 class="panel__title">{{ t.name }} عبر الوقت</h2>
+        <p class="panel__sub">{{ period() }}</p>
+      </div>
+      <div class="seg" role="group" aria-label="المؤشر">
+        <button type="button" class="seg__btn" [attr.aria-pressed]="metric() === 'revenue'" (click)="setMetric('revenue')">
+          المبيعات
+        </button>
+        <button type="button" class="seg__btn" [attr.aria-pressed]="metric() === 'orders'" (click)="setMetric('orders')">
+          الطلبات
+        </button>
+      </div>
+    </header>
+    <div class="rp-trend__total">
+      <strong [appCountUp]="t.total" [countUpFormat]="t.format"></strong>
+      <app-delta [pct]="t.deltaPct" period="مقارنة بالفترة السابقة" />
+    </div>
+    <app-area-chart [points]="t.points" [seriesName]="t.name" [formatValue]="t.format" [formatTick]="t.tick"
+      [height]="280" />
+  </section>
+  }
+
+  <section class="panel span-4 reveal" style="--i: 5">
+    <header class="panel__head">
+      <div>
+        <h2 class="panel__title">حالات الطلبات</h2>
+        <p class="panel__sub">توزيع كل الطلبات · {{ period() }}</p>
+      </div>
+    </header>
+    <app-donut-chart [segments]="statusSegments()" centerLabel="طلب" [format]="integer" />
+  </section>
+
+  <section class="panel span-4 reveal" style="--i: 6">
+    <header class="panel__head">
+      <div>
+        <h2 class="panel__title">المبيعات حسب المجموعة</h2>
+        <p class="panel__sub">أعلى المجموعات إيرادًا</p>
+      </div>
+    </header>
+    @if (categoryRows().length) {
+    <app-bar-list [items]="categoryRows()" />
+    } @else {
+    <p class="rp-empty">لا توجد مبيعات في هذه الفترة</p>
+    }
+  </section>
+
+  <section class="panel span-4 reveal" style="--i: 7">
+    <header class="panel__head">
+      <div>
+        <h2 class="panel__title">طرق الدفع</h2>
+        <p class="panel__sub">حسب قيمة المبيعات</p>
+      </div>
+    </header>
+    <app-donut-chart [segments]="paymentSegments()" centerLabel="إجمالي المدفوعات" [format]="moneyCompact" />
+  </section>
+
+  <section class="panel span-4 reveal" style="--i: 8">
+    <header class="panel__head">
+      <div>
+        <h2 class="panel__title">قنوات البيع</h2>
+        <p class="panel__sub">الإيراد وعدد الطلبات لكل قناة</p>
+      </div>
+    </header>
+    <app-bar-list [items]="channelRows()" />
+  </section>
+</div>
+} @else if (overview.error()) {
+<div class="panel page-state reveal">
+  <span class="page-state__icon"><app-icon name="alert" [size]="22" /></span>
+  <h2 class="panel__title">تعذّر تحميل التقارير</h2>
+  <p class="panel__sub">{{ overview.error() }}</p>
+  <button type="button" class="ui-btn ui-btn--primary" (click)="overview.reload()">إعادة المحاولة</button>
+</div>
+} @else {
+<div class="bento" aria-busy="true" aria-label="جارٍ تحميل التقارير">
+  @for (i of [1, 2, 3, 4]; track i) {
+  <div class="panel panel--skeleton span-3">
+    <span class="skeleton" style="width: 45%; height: 12px"></span>
+    <span class="skeleton" style="width: 70%; height: 26px"></span>
+    <span class="skeleton" style="width: 100%; height: 36px"></span>
+  </div>
+  }
+  <div class="panel panel--skeleton span-8"><span class="skeleton" style="height: 340px"></span></div>
+  <div class="panel panel--skeleton span-4"><span class="skeleton" style="height: 340px"></span></div>
+</div>
+}
+
+<!-- Product performance -->
+<section class="rp-products reveal" style="--i: 9">
+  <header class="rp-products__head">
+    <div>
+      <h2 class="panel__title">أداء الأصناف</h2>
+      <p class="panel__sub">المبيعات والأرباح لكل صنف · {{ period() }}</p>
+    </div>
+    <button type="button" class="ui-btn ui-btn--ghost ui-btn--sm" [class.is-loading]="exporting()"
+      [disabled]="exporting() || !products.count()" (click)="export()">
+      <app-icon name="file-lines" [size]="15" /> تصدير CSV
+    </button>
+  </header>
+
+  <app-list-toolbar placeholder="ابحث باسم الصنف أو الكود أو المجموعة…" [search]="state.query().search"
+    [view]="state.view()" [sort]="state.query().sort" [sortOptions]="sortOptions" [count]="products.count()"
+    [activeFilters]="state.activeFilters()" (searchChange)="state.setSearch($event)" (sortChange)="state.setSort($event)"
+    (viewChange)="state.setView($event)" (clearFilters)="state.clearFilters()">
+    <app-filter-select filters label="المجموعة" allLabel="كل المجموعات" [options]="groupOptions()"
+      [value]="state.query().filters['groupId']" (valueChange)="state.setFilter('groupId', $event)" />
+  </app-list-toolbar>
+
+  <app-data-table [columns]="columns()" [data]="products.items()" [view]="state.view()" [sort]="state.query().sort"
+    [loading]="products.loading()" [initialLoading]="products.initialLoading()" [error]="products.error()"
+    [skeletonCount]="state.query().pageSize" [cardTemplate]="card" emptyIcon="chart"
+    emptyTitle="لا توجد مبيعات مطابقة" emptyText="جرّب فترة أطول أو عدّل البحث والمجموعة."
+    (sortChange)="state.toggleSort($event)" (retry)="products.reload()" />
+
+  <app-pagination class="rp-pager" [pageIndex]="state.query().pageIndex" [pageSize]="state.query().pageSize"
+    [count]="products.count()" [totalPages]="products.totalPages()" [pageSizeOptions]="[10, 25, 50, 100]"
+    [disabled]="products.loading()" (pageChange)="state.setPage($event)" (pageSizeChange)="state.setPageSize($event)" />
+</section>

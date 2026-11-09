@@ -15,7 +15,7 @@
         </button>
         }
       </div>
-      <button type="button" class="btn db-refresh" [class.is-spinning]="loading()" [disabled]="loading()"
+      <button type="button" class="refresh-btn" [class.is-spinning]="loading()" [disabled]="loading()"
         (click)="reload()" aria-label="تحديث البيانات" title="تحديث">
         <app-icon name="refresh" [size]="15" />
       </button>
@@ -24,22 +24,22 @@
 
   @if (data(); as d) {
   <!-- Refetch keeps the frame: dim, don't flash a skeleton -->
-  <div class="db-grid" [class.is-refreshing]="loading()" [attr.aria-busy]="loading()">
+  <div class="bento" [class.is-refreshing]="loading()" [attr.aria-busy]="loading()">
     @for (card of kpiCards; track card.key; let i = $index) {
-    <app-kpi-card class="db-span-3 reveal" [style.--i]="i + 1" [label]="card.label" [icon]="card.icon"
+    <app-kpi-card class="span-3 reveal" [style.--i]="i + 1" [label]="card.label" [icon]="card.icon"
       [kpi]="d.kpis[card.key]" [format]="card.format" [upIsGood]="card.upIsGood" [period]="comparison()" />
     }
 
-    <app-revenue-panel class="db-span-8 reveal" style="--i: 5" [revenue]="d.revenue" [period]="period()" />
+    <app-revenue-panel class="span-8 reveal" style="--i: 5" [revenue]="d.revenue" [period]="period()" />
 
-    <app-channel-panel class="db-span-4 reveal" style="--i: 6" [channels]="d.channels" [period]="period()" />
+    <app-channel-panel class="span-4 reveal" style="--i: 6" [channels]="d.channels" [period]="period()" />
 
-    <app-recent-orders-panel class="db-span-8 reveal" style="--i: 7" [orders]="d.recentOrders" />
-    <app-warehouse-panel class="db-span-4 reveal" style="--i: 8" [warehouses]="d.warehouses" />
+    <app-recent-orders-panel class="span-8 reveal" style="--i: 7" [orders]="d.recentOrders" />
+    <app-warehouse-panel class="span-4 reveal" style="--i: 8" [warehouses]="d.warehouses" />
 
-    <app-low-stock-panel class="db-span-6 reveal" style="--i: 9" [items]="d.lowStock" />
+    <app-low-stock-panel class="span-6 reveal" style="--i: 9" [items]="d.lowStock" />
 
-    <section class="panel db-span-6 reveal" style="--i: 10">
+    <section class="panel span-6 reveal" style="--i: 10">
       <header class="panel__head">
         <div>
           <h2 class="panel__title">القطع الأكثر مبيعًا</h2>
@@ -50,24 +50,24 @@
     </section>
   </div>
   } @else if (error()) {
-  <div class="panel db-error reveal">
-    <span class="db-error__icon"><app-icon name="alert" [size]="22" /></span>
+  <div class="panel page-state reveal">
+    <span class="page-state__icon"><app-icon name="alert" [size]="22" /></span>
     <h2 class="panel__title">تعذر تحميل لوحة التحكم</h2>
     <p class="panel__sub">{{ error() }}</p>
-    <button type="button" class="btn btn-primary" (click)="reload()">إعادة المحاولة</button>
+    <button type="button" class="ui-btn ui-btn--primary" (click)="reload()">إعادة المحاولة</button>
   </div>
   } @else {
   <!-- First load only -->
-  <div class="db-grid" aria-busy="true" aria-label="جارٍ تحميل لوحة التحكم">
+  <div class="bento" aria-busy="true" aria-label="جارٍ تحميل لوحة التحكم">
     @for (i of [1, 2, 3, 4]; track i) {
-    <div class="panel db-span-3 db-skel">
+    <div class="panel span-3 panel--skeleton">
       <span class="skeleton" style="width: 45%; height: 12px"></span>
       <span class="skeleton" style="width: 70%; height: 26px"></span>
       <span class="skeleton" style="width: 100%; height: 36px"></span>
     </div>
     }
-    <div class="panel db-span-8 db-skel"><span class="skeleton" style="height: 330px"></span></div>
-    <div class="panel db-span-4 db-skel"><span class="skeleton" style="height: 330px"></span></div>
+    <div class="panel span-8 panel--skeleton"><span class="skeleton" style="height: 330px"></span></div>
+    <div class="panel span-4 panel--skeleton"><span class="skeleton" style="height: 330px"></span></div>
   </div>
   }
 </div>

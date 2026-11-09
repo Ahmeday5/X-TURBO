@@ -25,7 +25,7 @@ import {
   formatMoneyCompact,
 } from '../../shared/utils/format.util';
 import { ChannelPanelComponent } from './components/channel-panel/channel-panel.component';
-import { KpiCardComponent } from './components/kpi-card/kpi-card.component';
+import { KpiCardComponent } from '../../shared/components/kpi-card/kpi-card.component';
 import { LowStockPanelComponent } from './components/low-stock-panel/low-stock-panel.component';
 import { RecentOrdersPanelComponent } from './components/recent-orders-panel/recent-orders-panel.component';
 import { RevenuePanelComponent } from './components/revenue-panel/revenue-panel.component';

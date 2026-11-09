@@ -1,0 +1,122 @@
+<app-drawer [open]="!!orderId()" label="تفاصيل الطلب" (closed)="closed.emit()">
+  <div drawer-title class="odd-title">
+    @if (current(); as o) {
+    <div class="odd-title__row">
+      <h2 class="ltr">{{ o.number }}</h2>
+      <app-status-pill [view]="statusView[o.status]" />
+    </div>
+    <p>{{ dateTime(o.createdAt) }} · {{ channel[o.channel] }}</p>
+    } @else {
+    <span class="skeleton" style="width: 140px; height: 20px"></span>
+    <span class="skeleton" style="width: 200px; height: 12px; margin-top: 8px"></span>
+    }
+  </div>
+
+  @if (current(); as o) {
+  <div class="odd" [class.is-refreshing]="order.loading()">
+    <section class="odd-block odd-progress" style="--i: 0">
+      <app-order-progress [status]="o.status" [lastStep]="lastStep()" />
+    </section>
+
+    <section class="odd-stats" style="--i: 1">
+      <div>
+        <small>الإجمالي</small>
+        <strong>{{ money(o.total) }}</strong>
+      </div>
+      <div>
+        <small>الكمية</small>
+        <strong>{{ items(o.itemCount) }}</strong>
+      </div>
+      <div>
+        <small>{{ method[o.paymentMethod] }}</small>
+        <app-status-pill [view]="paymentView[o.paymentStatus]" />
+      </div>
+    </section>
+
+    <section class="odd-block odd-customer" style="--i: 2">
+      <app-avatar [name]="o.customerName" [size]="44" />
+      <div class="odd-customer__info">
+        <strong>{{ o.customerName }}</strong>
+        <a class="ltr" [href]="'tel:' + o.customerPhone"><app-icon name="user" [size]="12" /> {{ o.customerPhone }}</a>
+        <span><app-icon name="truck" [size]="12" /> {{ o.address }}</span>
+      </div>
+    </section>
+
+    @if (o.note) {
+    <p class="odd-note" style="--i: 3"><app-icon name="alert" [size]="14" /> {{ o.note }}</p>
+    }
+
+    <section class="odd-block" style="--i: 3">
+      <h3 class="odd-h">الأصناف <span>{{ o.lines.length }}</span></h3>
+      <ul class="odd-lines">
+        @for (l of o.lines; track l.itemId; let i = $index) {
+        <li [style.--i]="i">
+          <span class="odd-lines__qty">×{{ l.qty }}</span>
+          <div class="odd-lines__name">
+            <strong>{{ l.name }}</strong>
+            <span class="ui-code">{{ l.code }}</span>
+          </div>
+          <div class="odd-lines__price">
+            <strong>{{ money(l.total) }}</strong>
+            <small>{{ money(l.unitPrice) }} / قطعة</small>
+          </div>
+        </li>
+        }
+      </ul>
+      <dl class="odd-totals">
+        <div><dt>المجموع الفرعي</dt><dd>{{ money(o.subtotal) }}</dd></div>
+        @if (o.discount) {<div class="is-discount"><dt>الخصم</dt><dd>−{{ money(o.discount) }}</dd></div>}
+        @if (o.shipping) {<div><dt>الشحن</dt><dd>{{ money(o.shipping) }}</dd></div>}
+        <div class="is-total"><dt>الإجمالي</dt><dd>{{ money(o.total) }}</dd></div>
+      </dl>
+    </section>
+
+    <section class="odd-block" style="--i: 4">
+      <h3 class="odd-h">سجل الطلب</h3>
+      <ol class="odd-timeline">
+        @for (e of o.timeline; track $index; let i = $index; let last = $last) {
+        <li [style.--c]="statusView[e.status].color" [style.--i]="i" [class.is-last]="last">
+          <span class="odd-timeline__dot"></span>
+          <div>
+            <strong>{{ statusView[e.status].label }}</strong>
+            <span>{{ dateTime(e.at) }} · {{ e.by }}</span>
+            @if (e.note) {<em>{{ e.note }}</em>}
+          </div>
+        </li>
+        }
+      </ol>
+    </section>
+  </div>
+  } @else if (order.error()) {
+  <div class="page-state">
+    <span class="page-state__icon"><app-icon name="alert" [size]="22" /></span>
+    <p class="panel__title">{{ order.error() }}</p>
+    <button type="button" class="ui-btn ui-btn--ghost" (click)="order.reload()">
+      <app-icon name="refresh" [size]="15" /> إعادة المحاولة
+    </button>
+  </div>
+  } @else {
+  <div class="odd">
+    @for (h of [70, 64, 84, 220, 160]; track $index) {
+    <span class="skeleton" [style.height.px]="h"></span>
+    }
+  </div>
+  }
+
+  @if (current(); as o) {
+  <div drawer-footer class="odd-actions">
+    @if (cancellable()) {
+    <button type="button" class="ui-btn ui-btn--ghost odd-actions__cancel" [class.is-loading]="busy() === 'cancelled'"
+      [disabled]="!!busy()" (click)="cancel(o)">
+      <app-icon name="x" [size]="15" /> إلغاء الطلب
+    </button>
+    }
+    @if (next(); as n) {
+    <button type="button" class="ui-btn ui-btn--primary" [class.is-loading]="busy() === n" [disabled]="!!busy()"
+      (click)="advance(o)">
+      <app-icon name="check" [size]="15" /> {{ advanceLabel[n] }}
+    </button>
+    }
+  </div>
+  }
+</app-drawer>

@@ -1,9 +1,9 @@
 import { ChangeDetectionStrategy, Component, input } from '@angular/core';
-import { SparklineComponent } from '../../../../shared/components/charts/sparkline/sparkline.component';
-import { DeltaComponent } from '../../../../shared/components/delta/delta.component';
-import { IconComponent, IconName } from '../../../../shared/components/icon/icon.component';
-import { CountUpDirective } from '../../../../shared/directives/count-up.directive';
-import { KpiValue } from '../../models/dashboard.model';
+import { SparklineComponent } from '../charts/sparkline/sparkline.component';
+import { DeltaComponent } from '../delta/delta.component';
+import { IconComponent, IconName } from '../icon/icon.component';
+import { CountUpDirective } from '../../directives/count-up.directive';
+import { KpiValue } from '../../models/kpi.model';
 
 /** Stat tile: label · value (counts up) · delta vs previous period · sparkline. */
 @Component({

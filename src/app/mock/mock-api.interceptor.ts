@@ -5,10 +5,18 @@ import { environment } from '../../environments/environment';
 import { AUTH_MOCK_ROUTES } from './handlers/auth.handlers';
 import { DASHBOARD_MOCK_ROUTES } from './handlers/dashboard.handlers';
 import { ITEMS_MOCK_ROUTES } from './handlers/items.handlers';
+import { ORDERS_MOCK_ROUTES } from './handlers/orders.handlers';
+import { REPORTS_MOCK_ROUTES } from './handlers/reports.handlers';
 import { fail, latencyMs, MockRoute } from './mock-http';
 import { verifyAccessToken } from './mock-tokens';
 
-const ROUTES: readonly MockRoute[] = [...AUTH_MOCK_ROUTES, ...DASHBOARD_MOCK_ROUTES, ...ITEMS_MOCK_ROUTES];
+const ROUTES: readonly MockRoute[] = [
+  ...AUTH_MOCK_ROUTES,
+  ...DASHBOARD_MOCK_ROUTES,
+  ...ITEMS_MOCK_ROUTES,
+  ...ORDERS_MOCK_ROUTES,
+  ...REPORTS_MOCK_ROUTES,
+];
 
 /** Matches `items/:id` against `items/42` → `{ id: '42' }`; `null` when it doesn't match. */
 function matchPath(pattern: string, path: string): Record<string, string> | null {

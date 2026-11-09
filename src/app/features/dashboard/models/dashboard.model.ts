@@ -1,3 +1,9 @@
+import { OrderStatus } from '../../orders/models/order.model';
+import { KpiValue } from '../../../shared/models/kpi.model';
+
+export type { KpiValue } from '../../../shared/models/kpi.model';
+export type { OrderStatus } from '../../orders/models/order.model';
+
 /**
  * Wire contract of `GET dashboard/overview?range=…`.
  * Adjust to the real backend; UI labels/icons are owned by the components,
@@ -5,14 +11,6 @@
  */
 
 export type DashboardRange = '7d' | '30d' | '90d';
-
-export interface KpiValue {
-  value: number;
-  /** % change vs the previous period of equal length (e.g. 12.4 = +12.4%). */
-  deltaPct: number;
-  /** Oldest → newest, one value per bucket of the selected range. */
-  trend: number[];
-}
 
 export interface DashboardKpis {
   orders: KpiValue;
@@ -52,7 +50,6 @@ export interface LowStockItem {
   reorderLevel: number;
 }
 
-export type OrderStatus = 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
 
 export interface RecentOrder {
   id: string;

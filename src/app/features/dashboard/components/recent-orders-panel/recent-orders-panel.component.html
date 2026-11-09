@@ -37,9 +37,7 @@
             <div class="ro__time">{{ itemsLabel(o.itemCount) }}</div>
           </td>
           <td>
-            <span class="status-pill" [class]="'status-pill status-pill--' + status[o.status].tone">
-              {{ status[o.status].label }}
-            </span>
+            <app-status-pill [view]="status[o.status]" />
           </td>
         </tr>
         }

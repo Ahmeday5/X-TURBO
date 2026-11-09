@@ -16,6 +16,8 @@ type LoadComponent = NonNullable<Route['loadComponent']>;
  * page, so a new screen only needs an entry here.
  */
 const BUILT_PAGES: Readonly<Record<string, LoadComponent>> = {
+  '/orders': () => import('./features/orders/pages/orders/orders.page').then((m) => m.OrdersPage),
+  '/reports': () => import('./features/reports/pages/reports/reports.page').then((m) => m.ReportsPage),
   '/items/define': () => import('./features/items/pages/item-form/item-form.page').then((m) => m.ItemFormPage),
   '/items/groups': () => import('./features/items/pages/item-groups/item-groups.page').then((m) => m.ItemGroupsPage),
   '/items/directory': () =>

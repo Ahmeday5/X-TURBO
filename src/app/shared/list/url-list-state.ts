@@ -97,6 +97,19 @@ export class UrlListState {
     this.patch({ [Q.view]: view === this.defaultView ? null : view }, false);
   }
 
+  /**
+   * A page-level URL param outside the list query (a report range, the id of
+   * an open drawer…). Survives refresh like everything else here.
+   */
+  param(key: string, fallback = ''): Signal<string> {
+    return computed(() => this.params().get(key) ?? fallback);
+  }
+
+  /** Pass `null` (or the default) to drop the param and keep the URL clean. */
+  setParam(key: string, value: string | null, resetPage = false): void {
+    this.patch({ [key]: value || null }, resetPage);
+  }
+
   private read(p: ParamMap): ListQuery {
     const sortKey = p.get(Q.sort);
     const filters: Record<string, string> = {};

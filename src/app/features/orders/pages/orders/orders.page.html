@@ -1,0 +1,104 @@
+<!-- Cell / card templates -->
+<ng-template #numberCell [appRowOf]="list.items()" let-o>
+  <div class="op-number">
+    <span class="ui-code ltr">{{ o.number }}</span>
+    <small><app-icon name="clock" [size]="11" /> {{ relative(o.createdAt) }}</small>
+  </div>
+</ng-template>
+
+<ng-template #customerCell [appRowOf]="list.items()" let-o>
+  <div class="op-customer">
+    <app-avatar [name]="o.customerName" [size]="32" />
+    <div>
+      <strong>{{ o.customerName }}</strong>
+      <small>{{ o.city }}</small>
+    </div>
+  </div>
+</ng-template>
+
+<ng-template #channelCell [appRowOf]="list.items()" let-o>
+  <div class="op-stack">
+    <span>{{ channel[o.channel] }}</span>
+    <small>{{ items(o.itemCount) }}</small>
+  </div>
+</ng-template>
+
+<ng-template #totalCell [appRowOf]="list.items()" let-o>
+  <strong class="op-total">{{ money(o.total) }}</strong>
+</ng-template>
+
+<ng-template #paymentCell [appRowOf]="list.items()" let-o>
+  <div class="op-stack op-stack--center">
+    <app-status-pill [view]="paymentView[o.paymentStatus]" />
+    <small>{{ method[o.paymentMethod] }}</small>
+  </div>
+</ng-template>
+
+<ng-template #statusCell [appRowOf]="list.items()" let-o><app-status-pill [view]="statusView[o.status]" /></ng-template>
+
+<ng-template #actions [appRowOf]="list.items()" let-o>
+  <button type="button" class="ui-icon-btn" title="التفاصيل" [attr.aria-label]="'تفاصيل ' + o.number" (click)="open(o)">
+    <app-icon name="eye" [size]="16" />
+  </button>
+</ng-template>
+
+<ng-template #card [appRowOf]="list.items()" let-o><app-order-card [order]="o" /></ng-template>
+
+<!-- Page -->
+<app-page-header [navId]="navId()" subtitle="متابعة الطلبات من كل القنوات وتحديث حالاتها">
+  <button type="button" class="refresh-btn" [class.is-spinning]="list.loading()" [disabled]="list.loading()"
+    title="تحديث" aria-label="تحديث الطلبات" (click)="refresh()">
+    <app-icon name="refresh" [size]="16" />
+  </button>
+  <button type="button" class="ui-btn ui-btn--ghost" [class.is-loading]="exporting()"
+    [disabled]="exporting() || !list.count()" (click)="export()">
+    <app-icon name="file-lines" [size]="16" /> تصدير CSV
+  </button>
+</app-page-header>
+
+<!-- Summary for the current search / filters -->
+<div class="op-tiles" [class.is-refreshing]="stats.loading() && !!stats.value()">
+  @for (t of tiles; track t.label; let i = $index) {
+  <article class="panel panel--interactive op-tile reveal" [style.--i]="i" [style.--tone]="t.tone ?? 'var(--primary)'">
+    <span class="op-tile__icon"><app-icon [name]="t.icon" [size]="18" /></span>
+    <div class="op-tile__text">
+      <span>{{ t.label }}</span>
+      @if (stats.value(); as s) {
+      <strong [appCountUp]="t.value(s)" [countUpFormat]="t.format"></strong>
+      } @else {
+      <span class="skeleton" style="width: 90px; height: 22px"></span>
+      }
+    </div>
+  </article>
+  }
+</div>
+
+<app-order-status-tabs [stats]="stats.value()" [active]="activeStatus()" (statusChange)="setStatus($event)" />
+
+<app-list-toolbar placeholder="ابحث برقم الطلب أو اسم العميل أو الهاتف أو المدينة…" [search]="state.query().search"
+  [view]="state.view()" [sort]="state.query().sort" [sortOptions]="sortOptions" [count]="list.count()"
+  [activeFilters]="state.activeFilters()" (searchChange)="state.setSearch($event)" (sortChange)="state.setSort($event)"
+  (viewChange)="state.setView($event)" (clearFilters)="state.clearFilters()">
+  <app-filter-select filters label="الفترة" allLabel="كل الفترات" [options]="periodOptions"
+    [value]="state.query().filters['period']" (valueChange)="state.setFilter('period', $event)" />
+  <app-filter-select filters label="القناة" allLabel="كل القنوات" [options]="channelOptions"
+    [value]="state.query().filters['channel']" (valueChange)="state.setFilter('channel', $event)" />
+  <app-filter-select filters label="الدفع" allLabel="كل حالات الدفع" [options]="paymentOptions"
+    [value]="state.query().filters['payment']" (valueChange)="state.setFilter('payment', $event)" />
+</app-list-toolbar>
+
+<app-data-table [columns]="columns()" [data]="list.items()" [view]="state.view()" [sort]="state.query().sort"
+  [loading]="list.loading()" [initialLoading]="list.initialLoading()" [error]="list.error()"
+  [skeletonCount]="state.query().pageSize" [cardTemplate]="card" [actionsTemplate]="actions" [rowClickable]="true"
+  emptyIcon="cart" emptyTitle="لا توجد طلبات مطابقة" emptyText="جرّب تعديل البحث أو الفلاتر أو الفترة الزمنية."
+  (rowClick)="open($event)" (sortChange)="state.toggleSort($event)" (retry)="list.reload()">
+  <button empty-actions type="button" class="ui-btn ui-btn--ghost" (click)="state.clearFilters()">
+    <app-icon name="x" [size]="15" /> مسح الفلاتر
+  </button>
+</app-data-table>
+
+<app-pagination class="op-pager" [pageIndex]="state.query().pageIndex" [pageSize]="state.query().pageSize"
+  [count]="list.count()" [totalPages]="list.totalPages()" [pageSizeOptions]="[12, 24, 48, 96]"
+  [disabled]="list.loading()" (pageChange)="state.setPage($event)" (pageSizeChange)="state.setPageSize($event)" />
+
+<app-order-details-drawer [orderId]="openOrderId() || null" (closed)="closeDrawer()" (changed)="refresh()" />

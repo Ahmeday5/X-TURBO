@@ -4,6 +4,7 @@ import { Item, ItemPayload, ITEM_UNITS, stockLevel } from '../../features/items/
 import { GROUP_COLORS, ItemGroup, ItemGroupOption, ItemGroupPayload } from '../../features/items/models/item-group.model';
 import { bodyOf, queryCollection } from '../mock-collection';
 import { fail, MockContext, MockRoute, ok } from '../mock-http';
+import { daysAgo, seeded } from '../mock-utils';
 
 /**
  * In-memory items + groups "database". Seeded deterministically so lists are
@@ -210,20 +211,9 @@ function findOr404<T extends { id: string }>(rows: T[], id: string | undefined, 
   return row;
 }
 
-function daysAgo(days: number): string {
-  return new Date(Date.now() - days * 86_400_000).toISOString();
-}
-
-/** mulberry32 — tiny deterministic PRNG. */
-function seeded(seed: number): () => number {
-  let a = seed >>> 0;
-  return () => {
-    a = (a + 0x6d2b79f5) >>> 0;
-    let t = a;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
+/** Read-only view for other mock modules (orders, reports). */
+export function itemsSnapshot(): readonly Item[] {
+  return items;
 }
 
 const ITEM_BY_ID = 'items/:id';

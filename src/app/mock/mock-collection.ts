@@ -1,7 +1,7 @@
 import { PagedResponse } from '../core/models/api-response.model';
 import { matchesAll, tokenize } from '../shared/utils/arabic-search.util';
 
-interface CollectionOptions<T> {
+export interface CollectionOptions<T> {
   /** Fields matched by `search` (Arabic-aware, every word must hit). */
   searchFields: ReadonlyArray<keyof T>;
   /** Query param → predicate. Applied only when the param is present. */
@@ -17,15 +17,7 @@ export function queryCollection<T extends object>(
   query: URLSearchParams,
   options: CollectionOptions<T>,
 ): PagedResponse<T> {
-  const tokens = tokenize(query.get('search') ?? '');
-  let result = rows.filter((row) =>
-    matchesAll(options.searchFields.map((f) => String(row[f] ?? '')), tokens),
-  );
-
-  for (const [param, predicate] of Object.entries(options.filters ?? {})) {
-    const value = query.get(param);
-    if (value) result = result.filter((row) => predicate(row, value));
-  }
+  let result = filterCollection(rows, query, options);
 
   const sortBy = query.get('sortBy') as keyof T | null;
   if (sortBy) {
@@ -45,6 +37,22 @@ export function queryCollection<T extends object>(
     totalPages,
     data: result.slice(start, start + pageSize),
   };
+}
+
+/** Search + filters only (no sort / paging) — for totals that must match a list. */
+export function filterCollection<T extends object>(
+  rows: readonly T[],
+  query: URLSearchParams,
+  options: CollectionOptions<T>,
+): T[] {
+  const tokens = tokenize(query.get('search') ?? '');
+  let result = rows.filter((row) => matchesAll(options.searchFields.map((f) => String(row[f] ?? '')), tokens));
+
+  for (const [param, predicate] of Object.entries(options.filters ?? {})) {
+    const value = query.get(param);
+    if (value) result = result.filter((row) => predicate(row, value));
+  }
+  return result;
 }
 
 const collator = new Intl.Collator('ar', { numeric: true, sensitivity: 'base' });

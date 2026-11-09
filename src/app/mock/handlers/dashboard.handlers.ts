@@ -3,7 +3,6 @@ import {
   ChannelSales,
   DashboardOverview,
   DashboardRange,
-  KpiValue,
   LowStockItem,
   OrderStatus,
   RecentOrder,
@@ -12,6 +11,7 @@ import {
   WarehouseStatus,
 } from '../../features/dashboard/models/dashboard.model';
 import { MockContext, MockRoute, ok } from '../mock-http';
+import { kpi, pctChange, seeded, startOfDay, sum, walk } from '../mock-utils';
 
 /**
  * Deterministic, plausible numbers for an auto-parts retailer. Seeded per
@@ -161,45 +161,6 @@ function buildTopProducts(days: number, rand: () => number): TopProduct[] {
   })
     .sort((a, b) => b.revenue - a.revenue)
     .slice(0, 5);
-}
-
-// ── helpers ──
-
-function kpi(value: number, previous: number, trend: number[]): KpiValue {
-  return { value, deltaPct: pctChange(value, previous), trend };
-}
-
-function pctChange(current: number, previous: number): number {
-  return previous ? Math.round(((current - previous) / previous) * 1000) / 10 : 0;
-}
-
-/** Noisy walk from `from` to `to` — trend lines for stock-style KPIs. */
-function walk(length: number, from: number, to: number, rand: () => number): number[] {
-  return Array.from({ length }, (_, i) => {
-    const t = length === 1 ? 1 : i / (length - 1);
-    const jitter = (rand() - 0.5) * Math.abs(to - from) * 0.6;
-    return from + (to - from) * t + (i === length - 1 ? 0 : jitter);
-  });
-}
-
-function sum(values: number[]): number {
-  return values.reduce((a, b) => a + b, 0);
-}
-
-function startOfDay(d: Date): Date {
-  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
-}
-
-/** mulberry32 — tiny deterministic PRNG. */
-function seeded(seed: number): () => number {
-  let a = seed >>> 0;
-  return () => {
-    a = (a + 0x6d2b79f5) >>> 0;
-    let t = a;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
 }
 
 export const DASHBOARD_MOCK_ROUTES: MockRoute[] = [

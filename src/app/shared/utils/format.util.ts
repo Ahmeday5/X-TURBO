@@ -26,6 +26,8 @@ const moneyCompact = new Intl.NumberFormat(LOCALE, {
 });
 const relative = new Intl.RelativeTimeFormat(LOCALE, { numeric: 'auto' });
 const dayMonth = new Intl.DateTimeFormat(LOCALE, { day: 'numeric', month: 'short' });
+const month = new Intl.DateTimeFormat(LOCALE, { month: 'short', year: '2-digit' });
+const dateTime = new Intl.DateTimeFormat(LOCALE, { day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit' });
 const longDate = new Intl.DateTimeFormat(LOCALE, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 
 /** 1,284 */
@@ -48,6 +50,15 @@ export const formatDelta = (pct: number): string =>
 
 /** 4 نوفمبر */
 export const formatDayMonth = (iso: string): string => dayMonth.format(new Date(iso));
+
+/** نوفمبر 26 */
+export const formatMonth = (iso: string): string => month.format(new Date(iso));
+
+/** 4 نوفمبر 2026، 3:15 م */
+export const formatDateTime = (iso: string): string => dateTime.format(new Date(iso));
+
+/** 12.5% */
+export const formatPercent = (pct: number): string => `${Math.round(pct * 10) / 10}%`;
 
 /** الأربعاء، 4 نوفمبر 2026 */
 export const formatLongDate = (date: Date): string => longDate.format(date);
