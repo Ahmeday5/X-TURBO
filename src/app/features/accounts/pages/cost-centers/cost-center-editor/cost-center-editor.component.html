@@ -1,0 +1,90 @@
+<app-drawer [open]="open()" [label]="isEdit() ? 'تعديل مركز تكلفة' : 'مركز تكلفة جديد'" (closed)="closed.emit()">
+  <div drawer-title class="ce-title" [style.--cc]="value().color">
+    <span class="ce-title__icon"><app-icon name="target" [size]="20" /></span>
+    <div>
+      <span class="ce-title__kind">بطاقة تعريف مركز تكلفة</span>
+      <h2>{{ value().name || (isEdit() ? 'تعديل مركز تكلفة' : 'مركز تكلفة جديد') }}</h2>
+      <p>
+        @if (center(); as c) {<span class="ui-code ltr">{{ c.code }}</span>} @else {يُولَّد الكود تلقائيًا عند الحفظ}
+      </p>
+    </div>
+  </div>
+
+  <form id="cost-center-form" class="ce" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+    <div class="fp__grid">
+      <label class="ui-field fp__span-2">
+        <span class="ui-label is-required">اسم المركز</span>
+        <input class="ui-input" formControlName="name" placeholder="مثال: فرع المنصورة" autocomplete="off" />
+        <app-form-error [control]="form.controls.name" label="اسم المركز" />
+      </label>
+
+      <div class="ui-field">
+        <span class="ui-label">المركز الرئيسي</span>
+        <app-searchable-select formControlName="parentId" [options]="parentOptions()" placeholder="— بدون (مركز رئيسي) —"
+          searchPlaceholder="ابحث بالكود أو الاسم…" />
+      </div>
+
+      <label class="ui-field">
+        <span class="ui-label">المسؤول</span>
+        <input class="ui-input" formControlName="manager" placeholder="اسم مدير المركز" />
+        <app-form-error [control]="form.controls.manager" label="اسم المسؤول" />
+      </label>
+
+      <label class="ui-field fp__span-2">
+        <span class="ui-label">الموازنة السنوية</span>
+        <div class="ui-affix">
+          <input class="ui-input" type="number" min="0" step="1000" formControlName="annualBudget" />
+          <span class="ui-affix__text">ج.م</span>
+        </div>
+        <app-form-error [control]="form.controls.annualBudget" label="الموازنة" />
+        <span class="ui-hint">
+          @if (monthly() > 0) {بمتوسط {{ money(monthly()) }} شهريًا — } اترك صفرًا إن لم تكن للمركز موازنة.
+        </span>
+      </label>
+
+      <div class="ui-field fp__span-2">
+        <span class="ui-label">اللون</span>
+        <div class="ce-colors" role="radiogroup" aria-label="لون المركز">
+          @for (c of palette; track c) {
+          <button type="button" role="radio" class="ce-color" [style.--sw]="c" [attr.aria-checked]="value().color === c"
+            [attr.aria-label]="'اللون ' + c" (click)="pickColor(c)">
+            @if (value().color === c) {<app-icon name="check" [size]="14" />}
+          </button>
+          }
+        </div>
+        <span class="ui-hint">يميّز المركز في التقارير والرسوم وأقسام الموظفين.</span>
+      </div>
+
+      <div class="ui-field fp__switch fp__span-2">
+        <span class="ui-label">الحالة</span>
+        <label class="ui-switch">
+          <input type="checkbox" formControlName="isActive" />
+          <span class="ui-switch__track"></span>
+          {{ value().isActive ? 'نشط ويظهر في القيود' : 'موقوف — لا يُختار في قيود جديدة' }}
+        </label>
+      </div>
+
+      <label class="ui-field fp__span-2">
+        <span class="ui-label">ملاحظات</span>
+        <textarea class="ui-input" formControlName="notes" rows="2" placeholder="نطاق المركز، الأنشطة التي يغطيها…"></textarea>
+        <app-form-error [control]="form.controls.notes" label="الملاحظات" />
+      </label>
+    </div>
+
+    @if (center(); as c) {
+    <dl class="ce-facts">
+      <div><dt>المصروف الفعلي هذا العام</dt><dd>{{ money(c.actualSpend) }}</dd></div>
+      <div><dt>الإيرادات</dt><dd>{{ money(c.actualRevenue) }}</dd></div>
+      <div><dt>عدد القيود</dt><dd>{{ c.postingsCount }}</dd></div>
+    </dl>
+    }
+  </form>
+
+  <div drawer-footer class="ce-actions">
+    <button type="button" class="ui-btn ui-btn--ghost" (click)="closed.emit()">إلغاء</button>
+    <button type="submit" form="cost-center-form" class="ui-btn ui-btn--primary" [class.is-loading]="saving()"
+      [disabled]="saving()">
+      <app-icon name="check" [size]="16" /> {{ isEdit() ? 'حفظ التعديلات' : 'حفظ المركز' }}
+    </button>
+  </div>
+</app-drawer>

@@ -1,0 +1,245 @@
+<app-drawer [open]="!!paymentId()" label="تفاصيل عملية الدفع" (closed)="closed.emit()">
+  <div drawer-title class="pd-title">
+    @if (current(); as p) {
+    <span class="pd-title__kind" [style.--c]="methodView[p.method].color">
+      <app-icon [name]="methodView[p.method].icon" [size]="13" /> {{ methodView[p.method].label }} · {{ p.provider }}
+    </span>
+    <div class="pd-title__row">
+      <h2 class="ltr">{{ p.number }}</h2>
+      <app-status-pill [view]="statusView[p.status]" />
+    </div>
+    <p>{{ dateTime(p.createdAt) }}@if (p.attempt > 1) { · المحاولة {{ p.attempt }}}</p>
+    } @else if (payment.error()) {
+    <h2>تعذّر تحميل عملية الدفع</h2>
+    } @else {
+    <span class="skeleton" style="width: 140px; height: 20px"></span>
+    <span class="skeleton" style="width: 200px; height: 12px; margin-top: 8px"></span>
+    }
+  </div>
+
+  @if (current(); as p) {
+  <div class="pd" [class.is-refreshing]="payment.loading()">
+    <!-- Key figures -->
+    <section class="pd-stats" style="--i: 0">
+      <div><small>المبلغ</small><strong>{{ money(p.amount) }}</strong></div>
+      <div><small>الرسوم</small><strong>{{ money(p.fee) }}</strong></div>
+      <div><small>الصافي</small><strong [class.pd-red]="p.net < 0">{{ money(p.net) }}</strong></div>
+    </section>
+
+    @if (p.status === 'failed' && p.failureReason) {
+    <p class="pd-note pd-note--danger" style="--i: 1"><app-icon name="alert" [size]="14" /> {{ p.failureReason }}</p>
+    } @else if (p.status === 'pending') {
+    <p class="pd-note" style="--i: 1">
+      <app-icon name="clock" [size]="14" />
+      @if (p.method === 'cod') {بانتظار تحصيل المبلغ من العميل بواسطة مندوب {{ p.provider }} عند التسليم.}
+      @else if (p.method === 'fawry') {بانتظار سداد العميل لكود فوري <span class="ltr">{{ p.reference }}</span>.}
+      @else {بانتظار تأكيد بوابة الدفع.}
+    </p>
+    }
+
+    <!-- Customer & order -->
+    <section class="pd-block pd-customer" style="--i: 2">
+      <app-avatar [name]="p.customerName" [size]="42" />
+      <div class="pd-customer__info">
+        <strong>{{ p.customerName }}</strong>
+        <span class="ltr">{{ p.customerPhone }}</span>
+        <span>{{ p.city }}</span>
+      </div>
+      <button type="button" class="ui-btn ui-btn--ghost ui-btn--sm" (click)="openOrder(p)">
+        <app-icon name="cart" [size]="14" /> <span class="ltr">{{ p.orderNumber }}</span>
+      </button>
+    </section>
+
+    <!-- Gateway -->
+    <section class="pd-block" style="--i: 3">
+      <h3 class="pd-h">بيانات العملية</h3>
+      <dl class="pd-meta">
+        <div><dt>طريقة الدفع</dt><dd>{{ methodView[p.method].label }}</dd></div>
+        <div><dt>{{ p.method === 'cod' ? 'شركة الشحن' : 'مزود الخدمة' }}</dt><dd>{{ p.provider }}</dd></div>
+        <div>
+          <dt>{{ p.method === 'cod' ? 'رقم البوليصة' : p.method === 'fawry' ? 'كود فوري' : 'رقم المعاملة' }}</dt>
+          <dd><span class="ui-code ltr">{{ p.reference }}</span></dd>
+        </div>
+        @if (p.cardLast4) {<div><dt>البطاقة</dt><dd class="ltr pd-start">•••• {{ p.cardLast4 }}</dd></div>}
+        @if (p.paidAt) {<div><dt>تاريخ التحصيل</dt><dd>{{ dateTime(p.paidAt) }}</dd></div>}
+        @if (p.refunded) {<div><dt>إجمالي المسترد</dt><dd class="pd-red">{{ money(p.refunded) }}</dd></div>}
+      </dl>
+    </section>
+
+    <!-- Settlement -->
+    @if (p.settlementStatus; as st) {
+    <section class="pd-block" style="--i: 4">
+      <h3 class="pd-h">التسوية <app-status-pill [view]="settlementView[st]" /></h3>
+      <dl class="pd-meta">
+        @if (st === 'settled') {
+        <div><dt>تاريخ التسوية</dt><dd>{{ p.settledAt ? dateTime(p.settledAt) : '—' }}</dd></div>
+        <div><dt>دفعة التسوية</dt><dd><span class="ui-code ltr">{{ p.settlementBatch }}</span></dd></div>
+        } @else {
+        <div>
+          <dt>الموعد المتوقع</dt>
+          <dd [class.pd-red]="overdue(p)">{{ p.expectedSettlementDate ? day(p.expectedSettlementDate) : '—' }}@if (overdue(p)) { · متأخرة}</dd>
+        </div>
+        <div><dt>المبلغ المستحق</dt><dd>{{ money(p.net) }}</dd></div>
+        }
+      </dl>
+    </section>
+    }
+
+    <!-- Refunds -->
+    @if (p.refunds.length) {
+    <section class="pd-block" style="--i: 5">
+      <h3 class="pd-h">المبالغ المستردة <span class="pd-count">{{ p.refunds.length }}</span></h3>
+      <ul class="pd-refunds">
+        @for (r of p.refunds; track r.id) {
+        <li>
+          <div>
+            <strong>{{ r.reason }}</strong>
+            <small>{{ dateTime(r.at) }} · {{ r.by }}</small>
+          </div>
+          <strong class="pd-red">− {{ money(r.amount) }}</strong>
+        </li>
+        }
+      </ul>
+    </section>
+    }
+
+    <!-- Timeline -->
+    <section class="pd-block" style="--i: 6">
+      <h3 class="pd-h">سجل العملية</h3>
+      <ol class="pd-timeline">
+        @for (e of timeline(); track $index; let last = $last) {
+        <li [class.is-last]="last" [style.--c]="eventView[e.type].color">
+          <span class="pd-timeline__dot"></span>
+          <div>
+            <strong>{{ eventView[e.type].label }}@if (e.amount !== undefined) { · {{ money(e.amount) }}}</strong>
+            <span>{{ dateTime(e.at) }} · {{ e.by }}</span>
+            @if (e.note) {<em>{{ e.note }}</em>}
+          </div>
+        </li>
+        }
+      </ol>
+    </section>
+  </div>
+  }
+
+  <div drawer-footer class="pd-actions">
+    @if (current(); as p) {
+    @if (p.status === 'pending') {
+    <button type="button" class="ui-btn ui-btn--primary" [class.is-loading]="busy() === 'confirm'" [disabled]="!!busy()"
+      (click)="openConfirm()">
+      <app-icon name="check" [size]="16" /> {{ p.method === 'cod' ? 'تأكيد التحصيل' : 'تأكيد السداد' }}
+    </button>
+    <button type="button" class="ui-btn ui-btn--danger" [class.is-loading]="busy() === 'fail'" [disabled]="!!busy()"
+      (click)="openFail()">
+      <app-icon name="x" [size]="16" /> تعذّر التحصيل
+    </button>
+    }
+    @if (canRetry(p)) {
+    <button type="button" class="ui-btn ui-btn--primary" [class.is-loading]="busy() === 'retry'" [disabled]="!!busy()"
+      (click)="retry(p)">
+      <app-icon name="refresh" [size]="16" /> إعادة محاولة التحصيل
+    </button>
+    }
+    @if (canSettle(p)) {
+    <button type="button" class="ui-btn ui-btn--primary" [class.is-loading]="busy() === 'settle'" [disabled]="!!busy()"
+      (click)="settle(p)">
+      <app-icon name="scale" [size]="16" /> تأكيد التسوية
+    </button>
+    }
+    @if (canRefund(p)) {
+    <button type="button" class="ui-btn ui-btn--ghost" [class.is-loading]="busy() === 'refund'" [disabled]="!!busy()"
+      (click)="openRefund()">
+      <app-icon name="return" [size]="16" /> استرداد
+    </button>
+    }
+    }
+  </div>
+</app-drawer>
+
+<!-- Refund -->
+<app-modal [open]="modal() === 'refund'" title="استرداد مبلغ" size="sm" (closed)="modal.set(null)">
+  @if (current(); as p) {
+  <p class="pd-modal-text">
+    المتاح للاسترداد من {{ p.number }}: <strong>{{ money(refundable(p)) }}</strong>.
+    رسوم {{ p.method === 'cod' ? 'التحصيل' : 'البوابة' }} ({{ money(p.fee) }}) لا تُسترد.
+  </p>
+  <div class="pd-form">
+    <div class="seg" role="radiogroup" aria-label="نوع الاسترداد">
+      <button type="button" class="seg__btn" role="radio" [attr.aria-pressed]="refundMode() === 'full'"
+        (click)="refundMode.set('full')">استرداد كامل</button>
+      <button type="button" class="seg__btn" role="radio" [attr.aria-pressed]="refundMode() === 'partial'"
+        (click)="refundMode.set('partial')">استرداد جزئي</button>
+    </div>
+    @if (refundMode() === 'partial') {
+    <label class="ui-field">
+      <span class="ui-label is-required">المبلغ</span>
+      <input class="ui-input ltr" type="number" min="0" step="0.01" [max]="refundable(p)" inputmode="decimal"
+        [value]="refundAmount() ?? ''" (input)="setRefundAmount($any($event.target).value)" placeholder="0.00" />
+      @if (refundError(); as err) {<span class="ui-hint pd-red">{{ err }}</span>}
+    </label>
+    }
+    <label class="ui-field">
+      <span class="ui-label is-required">سبب الاسترداد</span>
+      <textarea class="ui-input" rows="3" [value]="refundReason()" (input)="refundReason.set($any($event.target).value)"
+        placeholder="مثال: مرتجع — صنف تالف"></textarea>
+    </label>
+  </div>
+  }
+  <div modal-footer class="pd-modal-actions">
+    <button type="button" class="ui-btn ui-btn--ghost" (click)="modal.set(null)">تراجع</button>
+    @if (current(); as p) {
+    <button type="button" class="ui-btn ui-btn--danger" [disabled]="!refundValid()" (click)="submitRefund(p)">
+      <app-icon name="return" [size]="16" />
+      استرداد {{ money(refundMode() === 'full' ? refundable(p) : (refundAmount() ?? 0)) }}
+    </button>
+    }
+  </div>
+</app-modal>
+
+<!-- Collection failed -->
+<app-modal [open]="modal() === 'fail'" title="تعذّر التحصيل" size="sm" (closed)="modal.set(null)">
+  <p class="pd-modal-text">ستُسجَّل العملية كـ«فشل».@if (current()?.method === 'cod') { يمكن إعادة محاولة التحصيل لاحقًا.}</p>
+  <label class="ui-field">
+    <span class="ui-label is-required">السبب</span>
+    <textarea class="ui-input" rows="3" [value]="failReason()" (input)="failReason.set($any($event.target).value)"
+      placeholder="مثال: العميل غير متواجد بالعنوان"></textarea>
+  </label>
+  <div modal-footer class="pd-modal-actions">
+    <button type="button" class="ui-btn ui-btn--ghost" (click)="modal.set(null)">تراجع</button>
+    @if (current(); as p) {
+    <button type="button" class="ui-btn ui-btn--danger" [disabled]="!failReason().trim()" (click)="submitFail(p)">
+      <app-icon name="x" [size]="16" /> تسجيل الفشل
+    </button>
+    }
+  </div>
+</app-modal>
+
+<!-- Confirm collection -->
+<app-modal [open]="modal() === 'confirm'" [title]="current()?.method === 'cod' ? 'تأكيد التحصيل' : 'تأكيد السداد'" size="sm"
+  (closed)="modal.set(null)">
+  @if (current(); as p) {
+  <p class="pd-modal-text">
+    سيتم تسجيل تحصيل <strong>{{ money(p.amount) }}</strong> للطلب <span class="ltr">{{ p.orderNumber }}</span>
+    وإضافته إلى المبالغ بانتظار التسوية.
+  </p>
+  <div class="pd-form">
+    <label class="ui-field">
+      <span class="ui-label">{{ p.method === 'cod' ? 'رقم إيصال المندوب' : 'رقم المعاملة' }} (اختياري)</span>
+      <input class="ui-input ltr" type="text" [value]="confirmReference()"
+        (input)="confirmReference.set($any($event.target).value)" [placeholder]="p.reference" />
+    </label>
+    <label class="ui-field">
+      <span class="ui-label">ملاحظة (اختياري)</span>
+      <input class="ui-input" type="text" [value]="confirmNote()" (input)="confirmNote.set($any($event.target).value)" />
+    </label>
+  </div>
+  }
+  <div modal-footer class="pd-modal-actions">
+    <button type="button" class="ui-btn ui-btn--ghost" (click)="modal.set(null)">تراجع</button>
+    @if (current(); as p) {
+    <button type="button" class="ui-btn ui-btn--primary" (click)="submitConfirm(p)">
+      <app-icon name="check" [size]="16" /> تأكيد
+    </button>
+    }
+  </div>
+</app-modal>

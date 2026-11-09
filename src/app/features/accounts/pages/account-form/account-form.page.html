@@ -1,0 +1,194 @@
+<app-page-header [navId]="navId()" [title]="isEdit() ? 'تعديل حساب' : ''"
+  [subtitle]="isEdit() ? (current() ? current()!.code + ' — ' + current()!.name : '') : ''">
+  <a class="ui-btn ui-btn--ghost" routerLink="/accounts/chart"><app-icon name="sitemap" [size]="16" /> دليل الحسابات</a>
+</app-page-header>
+
+<form class="fp" [formGroup]="form" (ngSubmit)="submit('save')" [class.is-loading]="chart.loading() && !chart.value()"
+  novalidate>
+  <div class="fp__main">
+    <!-- Position in the tree -->
+    <section class="fp__section" style="--i: 0">
+      <header class="fp__section-head">
+        <span class="fp__section-icon"><app-icon name="sitemap" [size]="17" /></span>
+        <div>
+          <h2>موقع الحساب في الشجرة</h2>
+          <p>الحساب الرئيسي يحدد النوع والكود تلقائيًا</p>
+        </div>
+      </header>
+
+      <div class="fp__grid">
+        <div class="ui-field fp__span-2">
+          <span class="ui-label">الحساب الرئيسي</span>
+          <app-searchable-select formControlName="parentId" [options]="parentOptions()"
+            placeholder="— بدون (حساب رئيسي في المستوى الأول) —" searchPlaceholder="ابحث بالكود أو الاسم…" />
+          @if (isEdit()) {<span class="ui-hint">لا يمكن نقل الحساب بعد إنشائه.</span>}
+        </div>
+
+        <label class="ui-field fp__span-2">
+          <span class="ui-label is-required">اسم الحساب</span>
+          <input class="ui-input" formControlName="name" placeholder="مثال: صندوق فرع الإسكندرية" />
+          <app-form-error [control]="form.controls.name" label="اسم الحساب" />
+        </label>
+
+        <div class="ui-field">
+          <span class="ui-label is-required">نوع الحساب</span>
+          <div class="afp-types" role="radiogroup" aria-label="نوع الحساب">
+            @for (t of types; track t) {
+            <button type="button" role="radio" class="afp-type" [style.--tone]="typeView[t].color"
+              [attr.aria-checked]="form.controls.type.value === t" [disabled]="form.controls.type.disabled"
+              (click)="form.controls.type.setValue(t)">
+              {{ typeView[t].label }}
+            </button>
+            }
+          </div>
+          @if (form.controls.type.disabled && !isEdit()) {<span class="ui-hint">موروث من الحساب الرئيسي.</span>}
+        </div>
+
+        <div class="ui-field">
+          <span class="ui-label is-required">طبيعة الحساب</span>
+          <div class="seg afp-seg" role="radiogroup" aria-label="طبيعة الحساب">
+            @for (n of natures; track n) {
+            <button type="button" class="seg__btn" role="radio" [attr.aria-pressed]="form.controls.nature.value === n"
+              [attr.aria-checked]="form.controls.nature.value === n" (click)="form.controls.nature.setValue(n)">
+              {{ natureLabel[n] }}
+            </button>
+            }
+          </div>
+          <span class="ui-hint">الطبيعة المعتادة لـ{{ typeView[form.controls.type.value].label }}:
+            {{ natureLabel[typeView[form.controls.type.value].nature] }}</span>
+        </div>
+
+        <div class="ui-field fp__span-2">
+          <span class="ui-label">تصنيف الحساب</span>
+          <div class="afp-kinds">
+            <button type="button" class="afp-kind" [class.is-on]="!form.controls.isGroup.value"
+              [disabled]="form.controls.isGroup.disabled" (click)="form.controls.isGroup.setValue(false)">
+              <app-icon name="file" [size]="18" />
+              <span><strong>حساب فرعي</strong><small>تُسجَّل عليه القيود مباشرة</small></span>
+            </button>
+            <button type="button" class="afp-kind" [class.is-on]="form.controls.isGroup.value"
+              [disabled]="form.controls.isGroup.disabled" (click)="form.controls.isGroup.setValue(true)">
+              <app-icon name="folder" [size]="18" />
+              <span><strong>حساب تجميعي</strong><small>يجمع أرصدة الحسابات التابعة له</small></span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Balance & controls -->
+    <section class="fp__section" style="--i: 1">
+      <header class="fp__section-head">
+        <span class="fp__section-icon"><app-icon name="coins" [size]="17" /></span>
+        <div>
+          <h2>الرصيد والضوابط</h2>
+          <p>{{ form.controls.isGroup.value ? 'رصيد الحساب التجميعي محسوب من الحسابات الفرعية' : 'الرصيد الافتتاحي على طبيعة الحساب' }}</p>
+        </div>
+      </header>
+
+      <div class="fp__grid">
+        <label class="ui-field">
+          <span class="ui-label">العملة</span>
+          <select class="ui-input" formControlName="currency">
+            @for (c of activeCurrencies(); track c.id) {<option [value]="c.code">{{ c.name }} ({{ c.code }})</option>}
+            @if (!activeCurrencies().length) {<option value="EGP">جنيه مصري (EGP)</option>}
+          </select>
+        </label>
+
+        @if (!form.controls.isGroup.value) {
+        <label class="ui-field">
+          <span class="ui-label">الرصيد الافتتاحي</span>
+          <div class="ui-affix">
+            <input class="ui-input" type="number" step="0.01" formControlName="openingBalance" />
+            <span class="ui-affix__text">{{ natureLabel[form.controls.nature.value] }}</span>
+          </div>
+          <span class="ui-hint">قيمة سالبة تعني رصيدًا على الطبيعة المعاكسة.</span>
+        </label>
+
+        <div class="ui-field fp__switch">
+          <span class="ui-label">مراكز التكلفة</span>
+          <label class="ui-switch">
+            <input type="checkbox" formControlName="costCenterRequired" />
+            <span class="ui-switch__track"></span>
+            يتطلب مركز تكلفة في كل قيد
+          </label>
+        </div>
+        }
+
+        <div class="ui-field fp__switch">
+          <span class="ui-label">الحالة</span>
+          <label class="ui-switch">
+            <input type="checkbox" formControlName="isActive" />
+            <span class="ui-switch__track"></span>
+            {{ form.controls.isActive.value ? 'نشط ويظهر في القيود' : 'موقوف' }}
+          </label>
+          @if (current()?.isSystem) {<span class="ui-hint">حساب نظامي — لا يمكن إيقافه.</span>}
+        </div>
+
+        <label class="ui-field fp__span-2">
+          <span class="ui-label">ملاحظات</span>
+          <textarea class="ui-input" formControlName="notes" rows="2" placeholder="الغرض من الحساب، تعليمات الاستخدام…"></textarea>
+        </label>
+      </div>
+    </section>
+  </div>
+
+  <!-- Live preview -->
+  <aside class="fp__aside">
+    <div class="fp__preview afp-preview" [style.--tone]="typeView[form.controls.type.value].color">
+      <span class="fp__preview-label"><app-icon name="eye" [size]="14" /> معاينة مباشرة</span>
+
+      <ol class="afp-path" aria-label="موقع الحساب">
+        @for (p of path(); track p.id) {
+        <li><span class="ui-code ltr">{{ p.code }}</span> {{ p.name }}</li>
+        }
+        <li class="is-self">
+          <span class="ui-code ltr">{{ code() || '—' }}</span>
+          <strong>{{ form.controls.name.value || 'اسم الحساب' }}</strong>
+        </li>
+      </ol>
+
+      <div class="afp-card">
+        <span class="afp-card__icon"><app-icon [name]="form.controls.isGroup.value ? 'folder' : 'file'" [size]="22" /></span>
+        <div>
+          <small>{{ isEdit() ? 'الكود' : 'الكود المتوقع' }}</small>
+          <strong class="ltr">{{ code() || '—' }}</strong>
+        </div>
+        <app-status-pill [view]="typeView[form.controls.type.value]" />
+      </div>
+
+      <dl class="afp-facts">
+        <div><dt>الطبيعة</dt><dd>{{ natureLabel[form.controls.nature.value] }}</dd></div>
+        <div><dt>المستوى</dt><dd>{{ path().length + 1 }}</dd></div>
+        <div><dt>التصنيف</dt><dd>{{ form.controls.isGroup.value ? 'تجميعي' : 'فرعي' }}</dd></div>
+        <div><dt>العملة</dt><dd class="ltr">{{ form.controls.currency.value }}</dd></div>
+      </dl>
+
+      @if (current(); as c) {
+      <div class="afp-balance">
+        <span>الرصيد الحالي</span>
+        <strong>{{ balance()!.amount }} <small>{{ balance()!.side }}</small></strong>
+        <div class="afp-balance__row">
+          <span>إجمالي مدين <b>{{ money(c.totalDebit) }}</b></span>
+          <span>إجمالي دائن <b>{{ money(c.totalCredit) }}</b></span>
+        </div>
+        @if (c.childrenCount) {<small>يضم {{ c.childrenCount }} حسابات فرعية مباشرة</small>}
+      </div>
+      }
+    </div>
+  </aside>
+
+  <!-- Sticky actions -->
+  <footer class="fp__actions">
+    <a class="ui-btn ui-btn--ghost" routerLink="/accounts/chart">إلغاء</a>
+    @if (!isEdit()) {
+    <button type="button" class="ui-btn ui-btn--ghost" [class.is-loading]="saving() === 'saveNew'" [disabled]="!!saving()"
+      (click)="submit('saveNew')">
+      <app-icon name="plus" [size]="16" /> حفظ وإضافة حساب مماثل
+    </button>
+    }
+    <button type="submit" class="ui-btn ui-btn--primary" [class.is-loading]="saving() === 'save'" [disabled]="!!saving()">
+      <app-icon name="check" [size]="16" /> {{ isEdit() ? 'حفظ التعديلات' : 'حفظ الحساب' }}
+    </button>
+  </footer>
+</form>

@@ -1,0 +1,169 @@
+<app-page-header [navId]="navId()">
+  <button type="button" class="refresh-btn" [class.is-spinning]="list.loading()" [disabled]="list.loading()"
+    title="تحديث" aria-label="تحديث الأسعار" (click)="list.reload()">
+    <app-icon name="refresh" [size]="16" />
+  </button>
+  <button type="button" class="ui-btn ui-btn--primary" (click)="openCreate()">
+    <app-icon name="plus" [size]="16" /> عملة جديدة
+  </button>
+</app-page-header>
+
+<app-summary-tiles [tiles]="tiles()" [refreshing]="list.loading() && !!list.value()" />
+
+<div class="xr">
+  <!-- Currencies -->
+  <div class="xr__main">
+    <div class="xr-bar">
+      <div class="xr-search">
+        <app-icon class="xr-search__glyph" name="search" [size]="16" />
+        <input type="search" class="ui-input" placeholder="ابحث بالرمز أو الاسم…" aria-label="بحث في العملات"
+          [value]="term()" (input)="term.set($any($event.target).value)" (keydown.escape)="term.set('')" />
+      </div>
+      <div class="seg" role="group" aria-label="تصفية حسب الحالة">
+        <button type="button" class="seg__btn" [attr.aria-pressed]="status() === 'all'" (click)="status.set('all')">الكل</button>
+        <button type="button" class="seg__btn" [attr.aria-pressed]="status() === 'active'" (click)="status.set('active')">النشطة</button>
+        <button type="button" class="seg__btn" [attr.aria-pressed]="status() === 'inactive'" (click)="status.set('inactive')">الموقوفة</button>
+      </div>
+    </div>
+
+    @if (list.error() && !list.value()) {
+    <div class="panel page-state">
+      <app-icon name="alert" [size]="28" />
+      <p>{{ list.error() }}</p>
+      <button type="button" class="ui-btn ui-btn--ghost" (click)="list.reload()">إعادة المحاولة</button>
+    </div>
+    } @else if (!list.value()) {
+    <div class="xr-grid">
+      @for (i of [0, 1, 2, 3, 4, 5]; track i) {<div class="panel xr-card xr-card--skel"><span class="skeleton"></span><span class="skeleton"></span><span class="skeleton"></span></div>}
+    </div>
+    } @else {
+    <div class="xr-grid" [class.is-refreshing]="list.loading()">
+      @for (c of visible(); track c.id; let i = $index) {
+      <article class="panel xr-card reveal" [style.--i]="i" [class.is-inactive]="!c.isActive" [class.is-busy]="busyId() === c.id">
+        <header class="xr-card__head">
+          <span class="xr-card__symbol">{{ c.symbol }}</span>
+          <div class="xr-card__title">
+            <strong>{{ c.name }}</strong>
+            <span class="ui-code ltr">{{ c.code }}</span>
+          </div>
+          <label class="ui-switch xr-card__switch" [title]="c.isActive ? 'إيقاف العملة' : 'تفعيل العملة'">
+            <input type="checkbox" [checked]="c.isActive" [disabled]="busyId() === c.id"
+              [attr.aria-label]="(c.isActive ? 'إيقاف ' : 'تفعيل ') + c.name" (change)="toggleActive(c)" />
+            <span class="ui-switch__track"></span>
+          </label>
+        </header>
+
+        @if (quickId() === c.id) {
+        <form class="xr-quick" (submit)="$event.preventDefault(); saveQuick(c, rateInput.value)">
+          <div class="ui-affix">
+            <input #rateInput class="ui-input ltr" type="number" step="0.0001" min="0" [value]="c.rate"
+              [attr.aria-label]="'السعر الجديد لـ ' + c.name" (keydown.escape)="quickId.set(null)" />
+            <span class="ui-affix__text">ج.م</span>
+          </div>
+          <button type="submit" class="ui-icon-btn" title="حفظ السعر" aria-label="حفظ السعر" [disabled]="busyId() === c.id">
+            <app-icon name="check" [size]="16" />
+          </button>
+          <button type="button" class="ui-icon-btn" title="إلغاء" aria-label="إلغاء" (click)="quickId.set(null)">
+            <app-icon name="x" [size]="16" />
+          </button>
+        </form>
+        } @else {
+        <button type="button" class="xr-rate" title="تحديث سريع للسعر" (click)="startQuick(c)">
+          <span class="xr-rate__value ltr">{{ rate(c.rate) }}</span>
+          <span class="xr-rate__unit">ج.م لكل 1 {{ c.code }}</span>
+          <app-icon class="xr-rate__edit" name="edit" [size]="14" />
+        </button>
+        }
+
+        <div class="xr-card__trend" [class.is-up]="c.changePct > 0" [class.is-down]="c.changePct < 0">
+          <app-sparkline [values]="c.history" />
+        </div>
+
+        <div class="xr-card__change">
+          <app-delta [pct]="c.changePct" />
+          <span>السابق <b class="ltr">{{ rate(c.previousRate) }}</b></span>
+        </div>
+
+        <footer class="xr-card__foot">
+          <small [title]="dateTime(c.updatedAt)"><app-icon name="clock" [size]="12" /> {{ relative(c.updatedAt) }} — {{ c.updatedBy }}</small>
+          <span class="xr-card__actions">
+            <button type="button" class="ui-icon-btn" title="تعديل" [attr.aria-label]="'تعديل ' + c.name" (click)="openEdit(c)">
+              <app-icon name="edit" [size]="15" />
+            </button>
+            <button type="button" class="ui-icon-btn ui-icon-btn--danger" title="حذف" [attr.aria-label]="'حذف ' + c.name"
+              (click)="remove(c)">
+              <app-icon name="trash" [size]="15" />
+            </button>
+          </span>
+        </footer>
+      </article>
+      } @empty {
+      <div class="panel page-state xr-empty">
+        <app-icon name="search" [size]="28" />
+        <p>لا توجد عملات مطابقة.</p>
+        <button type="button" class="ui-btn ui-btn--ghost" (click)="term.set(''); status.set('all')">مسح البحث</button>
+      </div>
+      }
+    </div>
+    }
+  </div>
+
+  <!-- Aside: base + converter -->
+  <aside class="xr__aside">
+    <section class="panel xr-base">
+      <span class="xr-base__icon"><app-icon name="lock" [size]="18" /></span>
+      <div>
+        <small>العملة الأساسية</small>
+        <strong>{{ base()?.name ?? 'جنيه مصري' }} <span class="ui-code ltr">{{ baseCode }}</span></strong>
+        <p>كل الأسعار بالجنيه مقابل وحدة واحدة من العملة. سعرها ثابت (1) ولا يمكن إيقافها أو حذفها.</p>
+      </div>
+    </section>
+
+    <section class="panel xr-conv">
+      <header class="panel__head">
+        <div>
+          <h2 class="panel__title">محوّل العملات</h2>
+          <p class="panel__sub">بأسعار اليوم المسجلة</p>
+        </div>
+        <app-icon name="calculator" [size]="18" />
+      </header>
+
+      <label class="ui-field">
+        <span class="ui-label">المبلغ</span>
+        <input class="ui-input ltr" type="number" step="any" [value]="amount()" (input)="setAmount($any($event.target).value)" />
+      </label>
+
+      <div class="xr-conv__pair">
+        <label class="ui-field">
+          <span class="ui-label">من</span>
+          <select class="ui-input" (change)="from.set($any($event.target).value)">
+            @for (c of convertible(); track c.id) {<option [value]="c.code" [selected]="c.code === from()">{{ c.code }} — {{ c.name }}</option>}
+          </select>
+        </label>
+        <button type="button" class="ui-icon-btn xr-conv__swap" title="تبديل" aria-label="تبديل العملتين" (click)="swap()">
+          <app-icon name="swap" [size]="16" />
+        </button>
+        <label class="ui-field">
+          <span class="ui-label">إلى</span>
+          <select class="ui-input" (change)="to.set($any($event.target).value)">
+            @for (c of convertible(); track c.id) {<option [value]="c.code" [selected]="c.code === to()">{{ c.code }} — {{ c.name }}</option>}
+          </select>
+        </label>
+      </div>
+
+      @if (conversion(); as r) {
+      <div class="xr-conv__result" aria-live="polite">
+        <small>{{ formatAmount(amount()) }} {{ r.from.name }} =</small>
+        <strong><span class="ltr">{{ formatAmount(r.result) }}</span> {{ r.to.symbol }}</strong>
+        <span class="ltr">{{ r.unit }}</span>
+        <span class="ltr">{{ r.inverse }}</span>
+      </div>
+      } @else if (list.value()) {
+      <p class="xr-conv__none">اختر عملتين نشطتين للتحويل.</p>
+      }
+    </section>
+  </aside>
+</div>
+
+<app-currency-form-dialog [open]="formOpen()" [currency]="editing()" [takenCodes]="codes()" (closed)="formOpen.set(false)"
+  (saved)="onSaved()" />

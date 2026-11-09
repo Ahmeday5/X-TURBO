@@ -1,0 +1,140 @@
+<app-page-header [navId]="navId()"
+  [subtitle]="current() ? 'آخر تعديل ' + dateTime(current()!.updatedAt) + ' — ' + current()!.updatedBy : ''" />
+
+<form class="fp" [formGroup]="form" (ngSubmit)="submit()" [class.is-loading]="loading()" novalidate>
+  <div class="fp__main">
+    <!-- Till -->
+    <section class="fp__section" style="--i: 0">
+      <header class="fp__section-head">
+        <span class="fp__section-icon"><app-icon name="warehouse" [size]="17" /></span>
+        <div>
+          <h2>المخزن والخزينة</h2>
+          <p>من أين تُصرف البضاعة وأين تُورَّد النقدية</p>
+        </div>
+      </header>
+      <div class="fp__grid">
+        <label class="ui-field">
+          <span class="ui-label">مخزن البيع</span>
+          <select class="ui-input" formControlName="warehouseId">
+            <option value="">المخزن الافتراضي للنظام</option>
+            @for (w of warehouses(); track w.id) {<option [value]="w.id">{{ w.name }}</option>}
+          </select>
+          <span class="ui-hint">الأرصدة المعروضة على شاشة البيع من هذا المخزن.</span>
+        </label>
+        <label class="ui-field">
+          <span class="ui-label is-required">الخزينة</span>
+          <select class="ui-input" formControlName="cashAccountId">
+            @for (a of cashAccounts; track a.id) {<option [value]="a.id">{{ a.label }}</option>}
+          </select>
+        </label>
+      </div>
+    </section>
+
+    <!-- Payment -->
+    <section class="fp__section" style="--i: 1">
+      <header class="fp__section-head">
+        <span class="fp__section-icon"><app-icon name="wallet" [size]="17" /></span>
+        <div>
+          <h2>الدفع والخصم والضريبة</h2>
+          <p>الطرق المتاحة للكاشير وحدود الخصم</p>
+        </div>
+      </header>
+
+      <div class="ui-field">
+        <span class="ui-label is-required">طرق الدفع المتاحة</span>
+        <div class="ps-methods" role="group" aria-label="طرق الدفع">
+          @for (m of methods; track m) {
+          <button type="button" class="ps-method" [attr.aria-pressed]="hasMethod(m)" (click)="toggleMethod(m)">
+            <app-icon [name]="hasMethod(m) ? 'check' : 'plus'" [size]="14" /> {{ methodLabel[m] }}
+          </button>
+          }
+        </div>
+        <span class="ui-hint">البيع الآجل يتطلب اختيار عميل مسجل.</span>
+      </div>
+
+      <div class="fp__grid fp__grid--3 ps-gap">
+        <label class="ui-field">
+          <span class="ui-label is-required">ضريبة القيمة المضافة الافتراضية</span>
+          <div class="ui-affix">
+            <input class="ui-input" type="number" min="0" max="100" step="0.5" formControlName="defaultTaxPct" />
+            <span class="ui-affix__text">%</span>
+          </div>
+          <app-form-error [control]="form.controls.defaultTaxPct" label="الضريبة" />
+        </label>
+
+        <div class="ui-field fp__switch">
+          <span class="ui-label">الخصم</span>
+          <label class="ui-switch">
+            <input type="checkbox" formControlName="allowDiscount" />
+            <span class="ui-switch__track"></span>
+            {{ form.controls.allowDiscount.value ? 'مسموح للكاشير' : 'غير مسموح' }}
+          </label>
+        </div>
+
+        <label class="ui-field">
+          <span class="ui-label is-required">أقصى خصم</span>
+          <div class="ui-affix">
+            <input class="ui-input" type="number" min="0" max="100" formControlName="maxDiscountPct"
+              [attr.disabled]="form.controls.allowDiscount.value ? null : true" />
+            <span class="ui-affix__text">%</span>
+          </div>
+          <app-form-error [control]="form.controls.maxDiscountPct" label="أقصى خصم" />
+        </label>
+      </div>
+    </section>
+
+    <!-- Receipt -->
+    <section class="fp__section" style="--i: 2">
+      <header class="fp__section-head">
+        <span class="fp__section-icon"><app-icon name="receipt" [size]="17" /></span>
+        <div>
+          <h2>الإيصال والطباعة</h2>
+          <p>النص المطبوع أعلى وأسفل الإيصال</p>
+        </div>
+      </header>
+      <div class="fp__grid">
+        <label class="ui-field fp__span-2">
+          <span class="ui-label">رأس الإيصال</span>
+          <textarea class="ui-input" rows="2" formControlName="receiptHeader" placeholder="اسم المتجر، العنوان، الهاتف…"></textarea>
+        </label>
+        <label class="ui-field fp__span-2">
+          <span class="ui-label">تذييل الإيصال</span>
+          <textarea class="ui-input" rows="2" formControlName="receiptFooter" placeholder="سياسة الاستبدال، رسالة شكر…"></textarea>
+        </label>
+
+        <div class="ui-field">
+          <span class="ui-label">عرض ورق الطابعة</span>
+          <div class="seg" role="group" aria-label="عرض الورق">
+            <button type="button" class="seg__btn" [attr.aria-pressed]="form.controls.paperWidth.value === 80"
+              (click)="form.controls.paperWidth.setValue(80); form.markAsDirty()"><span class="ltr">80mm</span></button>
+            <button type="button" class="seg__btn" [attr.aria-pressed]="form.controls.paperWidth.value === 58"
+              (click)="form.controls.paperWidth.setValue(58); form.markAsDirty()"><span class="ltr">58mm</span></button>
+          </div>
+        </div>
+
+        <div class="ui-field fp__switch">
+          <span class="ui-label">الطباعة التلقائية</span>
+          <label class="ui-switch">
+            <input type="checkbox" formControlName="autoPrint" />
+            <span class="ui-switch__track"></span>
+            {{ form.controls.autoPrint.value ? 'يُطبع الإيصال فور إتمام البيع' : 'يدويًا من نافذة الإيصال' }}
+          </label>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <aside class="fp__aside">
+    <div class="fp__preview">
+      <span class="fp__preview-label"><app-icon name="eye" [size]="14" /> معاينة الإيصال</span>
+      <div class="ps-paper"><app-pos-receipt [data]="preview()" /></div>
+    </div>
+  </aside>
+
+  <footer class="fp__actions">
+    <button type="button" class="ui-btn ui-btn--ghost" [disabled]="!form.dirty || saving()" (click)="reset()">تراجع عن التغييرات</button>
+    <button type="submit" class="ui-btn ui-btn--primary" [class.is-loading]="saving()" [disabled]="saving()">
+      <app-icon name="check" [size]="16" /> حفظ الإعدادات
+    </button>
+  </footer>
+</form>

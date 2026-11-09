@@ -1,0 +1,205 @@
+<app-page-header [navId]="navId()" [title]="isEdit() ? 'تعديل بيانات حساب' : ''"
+  [subtitle]="isEdit() ? (current()?.name ?? '') : ''">
+  @if (current(); as c) {
+  <a class="ui-btn ui-btn--ghost" routerLink="/customers/statement" [queryParams]="{ partyId: c.id }">
+    <app-icon name="file-lines" [size]="16" /> كشف الحساب
+  </a>
+  }
+  <a class="ui-btn ui-btn--ghost" routerLink="/customers/list"><app-icon name="list" [size]="16" /> القائمة</a>
+</app-page-header>
+
+<form class="fp" [formGroup]="form" (ngSubmit)="submit('save')" [class.is-loading]="loadingParty()" novalidate>
+  <div class="fp__main">
+    <!-- Kind -->
+    <section class="fp__section" style="--i: 0">
+      <header class="fp__section-head">
+        <span class="fp__section-icon"><app-icon name="users" [size]="17" /></span>
+        <div>
+          <h2>نوع الحساب</h2>
+          <p>يحدد ظهور الحساب في فواتير البيع أو الشراء</p>
+        </div>
+      </header>
+      <div class="pf-kinds" role="radiogroup" aria-label="نوع الحساب">
+        @for (k of kinds; track k.value) {
+        <button type="button" class="pf-kind" role="radio" [attr.aria-checked]="form.controls.kind.value === k.value"
+          (click)="setKind(k.value)">
+          <span class="pf-kind__icon"><app-icon [name]="k.icon" [size]="20" /></span>
+          <strong>{{ k.label }}</strong>
+          <small>{{ k.hint }}</small>
+          <span class="pf-kind__check"><app-icon name="check" [size]="13" /></span>
+        </button>
+        }
+      </div>
+    </section>
+
+    <!-- Contact -->
+    <section class="fp__section" style="--i: 1">
+      <header class="fp__section-head">
+        <span class="fp__section-icon"><app-icon name="id-card" [size]="17" /></span>
+        <div>
+          <h2>البيانات الأساسية</h2>
+          <p>الاسم ووسائل التواصل والعنوان</p>
+        </div>
+      </header>
+
+      <div class="fp__grid">
+        <label class="ui-field fp__span-2">
+          <span class="ui-label is-required">الاسم</span>
+          <input class="ui-input" formControlName="name" placeholder="مثال: مركز الأمل لصيانة السيارات" />
+          <app-form-error [control]="form.controls.name" label="الاسم" />
+        </label>
+
+        <label class="ui-field">
+          <span class="ui-label">الموبايل</span>
+          <input class="ui-input ltr" formControlName="phone" inputmode="tel" placeholder="01012345678" />
+          <app-form-error [control]="form.controls.phone" label="الموبايل" />
+        </label>
+
+        <label class="ui-field">
+          <span class="ui-label">هاتف آخر</span>
+          <input class="ui-input ltr" formControlName="phone2" inputmode="tel" placeholder="01112345678" />
+          <app-form-error [control]="form.controls.phone2" label="الهاتف" />
+        </label>
+
+        <label class="ui-field">
+          <span class="ui-label">البريد الإلكتروني</span>
+          <input class="ui-input ltr" type="email" formControlName="email" placeholder="name@company.com" />
+          <app-form-error [control]="form.controls.email" label="البريد الإلكتروني" />
+        </label>
+
+        <label class="ui-field">
+          <span class="ui-label">المدينة</span>
+          <input class="ui-input" formControlName="city" placeholder="القاهرة" />
+        </label>
+
+        <label class="ui-field fp__span-2">
+          <span class="ui-label">العنوان</span>
+          <input class="ui-input" formControlName="address" placeholder="الشارع، المنطقة" />
+        </label>
+
+        <label class="ui-field">
+          <span class="ui-label">الرقم الضريبي</span>
+          <input class="ui-input ltr" formControlName="taxNumber" inputmode="numeric" placeholder="123456789" />
+          <app-form-error [control]="form.controls.taxNumber" label="الرقم الضريبي" />
+        </label>
+
+        <label class="ui-field">
+          <span class="ui-label">السجل التجاري</span>
+          <input class="ui-input ltr" formControlName="commercialRegister" placeholder="12345" />
+        </label>
+      </div>
+    </section>
+
+    <!-- Terms -->
+    <section class="fp__section" style="--i: 2">
+      <header class="fp__section-head">
+        <span class="fp__section-icon"><app-icon name="wallet" [size]="17" /></span>
+        <div>
+          <h2>شروط التعامل والرصيد</h2>
+          <p>قائمة الأسعار وحد الائتمان والرصيد الافتتاحي</p>
+        </div>
+      </header>
+
+      <div class="fp__grid fp__grid--3">
+        <label class="ui-field">
+          <span class="ui-label">قائمة الأسعار</span>
+          <select class="ui-input" formControlName="priceList">
+            @for (p of priceLists; track p[0]) {<option [value]="p[0]">{{ p[1] }}</option>}
+          </select>
+        </label>
+
+        <label class="ui-field">
+          <span class="ui-label">حد الائتمان</span>
+          <div class="ui-affix">
+            <input class="ui-input" type="number" min="0" step="100" formControlName="creditLimit" />
+            <span class="ui-affix__text">ج.م</span>
+          </div>
+          <span class="ui-hint">0 = بدون حد. يمنع النظام البيع الآجل فوقه.</span>
+          <app-form-error [control]="form.controls.creditLimit" label="حد الائتمان" />
+        </label>
+
+        <label class="ui-field">
+          <span class="ui-label">مدة السداد</span>
+          <div class="ui-affix">
+            <input class="ui-input" type="number" min="0" max="365" formControlName="paymentTermDays" />
+            <span class="ui-affix__text">يوم</span>
+          </div>
+          <app-form-error [control]="form.controls.paymentTermDays" label="مدة السداد" />
+        </label>
+
+        <div class="ui-field fp__span-2">
+          <span class="ui-label">الرصيد الافتتاحي</span>
+          <div class="pf-opening" [class.is-locked]="openingLocked()">
+            <div class="ui-affix">
+              <input class="ui-input" type="number" min="0" step="0.01" formControlName="openingAmount"
+                [readonly]="openingLocked()" />
+              <span class="ui-affix__text">ج.م</span>
+            </div>
+            <div class="seg" role="radiogroup" aria-label="طبيعة الرصيد">
+              <button type="button" class="seg__btn" [attr.aria-pressed]="form.controls.openingSide.value === 'debit'"
+                [disabled]="openingLocked()" (click)="form.controls.openingSide.setValue('debit')">مدين (عليه للمتجر)</button>
+              <button type="button" class="seg__btn" [attr.aria-pressed]="form.controls.openingSide.value === 'credit'"
+                [disabled]="openingLocked()" (click)="form.controls.openingSide.setValue('credit')">دائن (له على المتجر)</button>
+            </div>
+          </div>
+          <span class="ui-hint">
+            @if (openingLocked()) {
+            <app-icon name="lock" [size]="12" /> الحساب عليه حركات — للتسوية استخدم سند قيد.
+            } @else {
+            مدين = مستحق للمتجر على الحساب، دائن = مستحق للحساب على المتجر.
+            }
+          </span>
+        </div>
+
+        <div class="ui-field fp__switch">
+          <span class="ui-label">الحالة</span>
+          <label class="ui-switch">
+            <input type="checkbox" formControlName="isActive" />
+            <span class="ui-switch__track"></span>
+            {{ form.controls.isActive.value ? 'نشط' : 'موقوف' }}
+          </label>
+        </div>
+
+        <label class="ui-field fp__span-2">
+          <span class="ui-label">ملاحظات</span>
+          <textarea class="ui-input" formControlName="notes" rows="3" placeholder="أي معلومات تفيد في التعامل…"></textarea>
+        </label>
+
+        <div class="ui-field fp__switch">
+          <span class="ui-label">مصدر التسجيل</span>
+          <label class="ui-switch">
+            <input type="checkbox" formControlName="isExternal" />
+            <span class="ui-switch__track"></span>
+            عميل خارجي (نقطة البيع)
+          </label>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <aside class="fp__aside">
+    <div class="fp__preview">
+      <span class="fp__preview-label"><app-icon name="eye" [size]="14" /> معاينة مباشرة</span>
+      <app-party-card [party]="preview()" />
+      @if (current()) {
+      <p class="pf-note">
+        <app-icon name="clock" [size]="13" />
+        {{ lastMovement() ? 'آخر حركة: ' + lastMovement() : 'لا توجد حركات بعد' }}
+      </p>
+      }
+    </div>
+  </aside>
+
+  <footer class="fp__actions">
+    <a class="ui-btn ui-btn--ghost" routerLink="/customers/list">إلغاء</a>
+    @if (!isEdit()) {
+    <button type="button" class="ui-btn ui-btn--ghost" [class.is-loading]="saving() === 'saveNew'" [disabled]="!!saving()"
+      (click)="submit('saveNew')">
+      <app-icon name="plus" [size]="16" /> حفظ وإضافة آخر
+    </button>
+    }
+    <button type="submit" class="ui-btn ui-btn--primary" [class.is-loading]="saving() === 'save'" [disabled]="!!saving()">
+      <app-icon name="check" [size]="16" /> {{ isEdit() ? 'حفظ التعديلات' : 'حفظ الحساب' }}
+    </button>
+  </footer>
+</form>

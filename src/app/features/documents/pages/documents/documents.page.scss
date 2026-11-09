@@ -1,0 +1,131 @@
+:host {
+  display: block;
+}
+
+.dp-range {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.dp-overdue {
+  font-size: 12.5px;
+}
+
+/* ── cells ── */
+.dp-number {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+
+  small {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    color: var(--txt3);
+  }
+}
+
+.dp-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+
+  &--start {
+    align-items: flex-start;
+  }
+  strong {
+    font-weight: 600;
+    color: var(--txt);
+  }
+  small {
+    font-size: 11px;
+    color: var(--txt3);
+  }
+}
+
+.dp-route {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+
+  app-icon {
+    color: var(--primary);
+  }
+}
+
+.dp-total {
+  font-variant-numeric: tabular-nums;
+}
+
+.dp-red {
+  color: var(--re) !important;
+  font-weight: 600;
+}
+
+/* ── card ── */
+.dp-card {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+
+  &__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  &__title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--txt);
+  }
+  &__meta {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
+    font-size: 11.5px;
+    color: var(--txt3);
+  }
+  &__foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: auto;
+    padding-top: 10px;
+    border-top: 1px dashed var(--brd);
+
+    strong {
+      font-size: 16px;
+      font-weight: 800;
+      color: var(--txt);
+      font-variant-numeric: tabular-nums;
+    }
+    small {
+      font-size: 11.5px;
+      color: var(--txt3);
+    }
+  }
+}
+
+.dp-pager {
+  display: block;
+  margin-top: 14px;
+}

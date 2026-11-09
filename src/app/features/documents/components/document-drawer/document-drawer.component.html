@@ -1,0 +1,181 @@
+<app-drawer [open]="!!docId()" label="تفاصيل المستند" (closed)="closed.emit()">
+  <div drawer-title class="dd-title">
+    @if (current(); as d) {
+    <span class="dd-title__kind"><app-icon [name]="cfg()!.icon" [size]="13" /> {{ cfg()!.singular }}</span>
+    <div class="dd-title__row">
+      <h2 class="ltr">{{ d.number }}</h2>
+      <app-status-pill [view]="statusView(d.kind, d.status)" />
+      @if (d.channel === 'pos') {<span class="status-pill status-pill--neutral">نقطة البيع</span>}
+    </div>
+    <p>{{ dayMonth(d.date) }} · أنشأه {{ d.createdBy }}</p>
+    } @else if (doc.error()) {
+    <h2>تعذّر تحميل المستند</h2>
+    } @else {
+    <span class="skeleton" style="width: 140px; height: 20px"></span>
+    <span class="skeleton" style="width: 200px; height: 12px; margin-top: 8px"></span>
+    }
+  </div>
+
+  @if (current(); as d) {
+  <div class="dd" [class.is-refreshing]="doc.loading()">
+    <!-- Key figures -->
+    <section class="dd-stats" style="--i: 0">
+      @if (cfg()!.financial) {
+      <div><small>الصافي</small><strong>{{ money(d.total) }}</strong></div>
+      @if (tracksPayment(cfg()!)) {
+      <div><small>المتبقي</small><strong [class.dd-amber]="d.remaining > 0">{{ money(d.remaining) }}</strong></div>
+      <div>
+        <small>{{ d.paymentMethod ? paymentLabel[d.paymentMethod] : 'الدفع' }}</small>
+        <app-status-pill [view]="paymentView(d)" />
+      </div>
+      } @else if (d.kind === 'reservation') {
+      <div><small>العربون</small><strong>{{ money(d.paid) }}</strong></div>
+      <div><small>المتبقي عند التسليم</small><strong>{{ money(d.remaining) }}</strong></div>
+      } @else {
+      <div><small>الأصناف</small><strong>{{ linesLabel(d.lines.length) }}</strong></div>
+      }
+      } @else {
+      <div><small>الأصناف</small><strong>{{ linesLabel(d.lines.length) }}</strong></div>
+      <div><small>إجمالي الكمية</small><strong>{{ int(totalQty(d)) }}</strong></div>
+      <div><small>القيمة بالتكلفة</small><strong>{{ money(d.subtotal) }}</strong></div>
+      }
+    </section>
+
+    <!-- Header info -->
+    <section class="dd-block" style="--i: 1">
+      <dl class="dd-meta">
+        @if (cfg()!.party) {
+        <div class="dd-meta__wide"><dt>{{ partyLabel(cfg()!) }}</dt><dd>{{ d.partyName ?? 'عميل نقدي' }}</dd></div>
+        }
+        @if (cfg()!.transfer) {
+        <div class="dd-meta__wide">
+          <dt>التحويل</dt>
+          <dd class="dd-route">
+            <span>{{ d.warehouseName }}</span>
+            <app-icon name="arrow-right" [size]="14" />
+            <span>{{ d.toWarehouseName }}</span>
+          </dd>
+        </div>
+        } @else {
+        <div><dt>المخزن</dt><dd>{{ d.warehouseName }}</dd></div>
+        }
+        @if (d.reason) {<div><dt>السبب</dt><dd>{{ reasonLabel[d.reason] }}</dd></div>}
+        @if (cfg()!.dueDateLabel && d.dueDate) {
+        <div><dt>{{ cfg()!.dueDateLabel }}</dt><dd [class.dd-red]="overdue(d)">{{ dayMonth(d.dueDate) }}@if (overdue(d)) { · متأخر}</dd></div>
+        }
+        @if (d.reference) {<div><dt>المرجع</dt><dd>{{ d.reference }}</dd></div>}
+        @if (d.postedAt) {<div><dt>تاريخ الترحيل</dt><dd>{{ dateTime(d.postedAt) }}</dd></div>}
+        @if (d.sourceId) {
+        <div><dt>من مستند</dt><dd><button type="button" class="dd-link ltr" (click)="openLinked(d.sourceId)">{{ d.sourceNumber }}</button></dd></div>
+        }
+        @if (d.targetId) {
+        <div><dt>نتج عنه</dt><dd><button type="button" class="dd-link ltr" (click)="openLinked(d.targetId)">{{ d.targetNumber }}</button></dd></div>
+        }
+      </dl>
+    </section>
+
+    @if (d.status === 'posted' && cfg()!.completeAction; as action) {
+    <p class="dd-note dd-note--info" style="--i: 2"><app-icon name="clock" [size]="14" /> {{ action.hint }}</p>
+    }
+
+    <!-- Lines -->
+    <section class="dd-block" style="--i: 2">
+      <h3 class="dd-h">الأصناف <span>{{ d.lines.length }}</span></h3>
+      <ul class="dd-lines">
+        @for (l of d.lines; track l.itemId; let i = $index) {
+        <li [style.--i]="i">
+          <span class="dd-lines__qty">×{{ int(l.qty) }}</span>
+          <div class="dd-lines__name">
+            <strong>{{ l.name }}</strong>
+            <span><span class="ui-code ltr">{{ l.code }}</span> · {{ money(l.price) }} / {{ l.unit }}@if (l.discountPct) { · خصم {{ l.discountPct }}%}</span>
+          </div>
+          <strong class="dd-lines__total">{{ money(l.total) }}</strong>
+        </li>
+        }
+      </ul>
+
+      @if (cfg()!.financial) {
+      <dl class="dd-totals">
+        <div><dt>الإجمالي</dt><dd>{{ money(d.subtotal) }}</dd></div>
+        @if (d.discount) {<div><dt>الخصم</dt><dd>− {{ money(d.discount) }}</dd></div>}
+        @if (d.tax) {<div><dt>الضريبة ({{ d.taxPct }}%)</dt><dd>{{ money(d.tax) }}</dd></div>}
+        <div class="dd-totals__grand"><dt>الصافي</dt><dd>{{ money(d.total) }}</dd></div>
+        @if (d.paid) {<div><dt>{{ d.kind === 'reservation' ? 'العربون' : 'المدفوع' }}</dt><dd>{{ money(d.paid) }}</dd></div>}
+      </dl>
+      }
+    </section>
+
+    @if (d.notes) {
+    <p class="dd-note" style="--i: 3"><app-icon name="file-lines" [size]="14" /> {{ d.notes }}</p>
+    }
+  </div>
+  }
+
+  <div drawer-footer class="dd-actions">
+    @if (current(); as d) {
+    @switch (d.status) {
+    @case ('draft') {
+    <button type="button" class="ui-btn ui-btn--primary" [class.is-loading]="busy() === 'post'" [disabled]="!!busy()"
+      (click)="post(d)">
+      <app-icon name="check" [size]="16" /> {{ d.kind === 'quotation' ? 'اعتماد' : 'ترحيل' }}
+    </button>
+    <button type="button" class="ui-btn ui-btn--ghost" [disabled]="!!busy()" (click)="edit.emit(d.id)">
+      <app-icon name="edit" [size]="16" /> تعديل
+    </button>
+    <button type="button" class="ui-btn ui-btn--danger" [class.is-loading]="busy() === 'delete'" [disabled]="!!busy()"
+      (click)="remove(d)">
+      <app-icon name="trash" [size]="16" /> حذف
+    </button>
+    }
+    @case ('posted') {
+    @if (cfg()!.completeAction; as action) {
+    <button type="button" class="ui-btn ui-btn--primary" [class.is-loading]="busy() === 'complete'" [disabled]="!!busy()"
+      (click)="complete(d)">
+      <app-icon [name]="action.icon" [size]="16" /> {{ action.label }}
+    </button>
+    }
+    @for (to of cfg()!.convertTo ?? []; track to) {
+    <button type="button" class="ui-btn" [class.ui-btn--primary]="d.kind === 'quotation'" [class.ui-btn--ghost]="d.kind !== 'quotation'"
+      [class.is-loading]="busy() === 'convert'" [disabled]="!!busy()" (click)="convert(d, to)">
+      <app-icon [name]="kindConfig(to).icon" [size]="16" /> {{ d.kind === 'quotation' ? 'تحويل إلى فاتورة بيع' : 'إنشاء ' + kindConfig(to).singular }}
+    </button>
+    }
+    <button type="button" class="ui-btn ui-btn--danger" [class.is-loading]="busy() === 'cancel'" [disabled]="!!busy()"
+      (click)="openCancel()">
+      <app-icon name="x" [size]="16" /> إلغاء المستند
+    </button>
+    }
+    @case ('completed') {
+    @for (to of d.kind === 'quotation' ? [] : (cfg()!.convertTo ?? []); track to) {
+    <button type="button" class="ui-btn ui-btn--ghost" [disabled]="!!busy()" (click)="convert(d, to)">
+      <app-icon [name]="kindConfig(to).icon" [size]="16" /> إنشاء {{ kindConfig(to).singular }}
+    </button>
+    }
+    }
+    }
+    <button type="button" class="ui-btn ui-btn--ghost dd-actions__print" (click)="print(d)">
+      <app-icon name="file-lines" [size]="16" /> طباعة
+    </button>
+    }
+  </div>
+</app-drawer>
+
+<app-modal [open]="cancelOpen()" title="إلغاء المستند" size="sm" (closed)="cancelOpen.set(false)">
+  <p class="dd-cancel-text">
+    @if (current()?.status === 'posted') {سيتم عكس أثر المستند على المخزون والأرصدة.} @else {ستُلغى المسودة.}
+    يبقى المستند في السجل بحالة «ملغي».
+  </p>
+  <label class="ui-field">
+    <span class="ui-label">سبب الإلغاء</span>
+    <textarea class="ui-input" rows="3" [value]="cancelReason()" (input)="cancelReason.set($any($event.target).value)"
+      placeholder="مثال: خطأ في الكميات"></textarea>
+  </label>
+  <div modal-footer class="dd-modal-actions">
+    <button type="button" class="ui-btn ui-btn--ghost" (click)="cancelOpen.set(false)">تراجع</button>
+    @if (current(); as d) {
+    <button type="button" class="ui-btn ui-btn--danger" (click)="confirmCancel(d)">
+      <app-icon name="x" [size]="16" /> تأكيد الإلغاء
+    </button>
+    }
+  </div>
+</app-modal>

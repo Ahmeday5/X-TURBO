@@ -2,20 +2,37 @@ import { HttpErrorResponse, HttpInterceptorFn } from '@angular/common/http';
 import { of, throwError, timer } from 'rxjs';
 import { switchMap } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
+import { ACCOUNTS_MOCK_ROUTES } from './handlers/accounts.handlers';
+import { ADMIN_MOCK_ROUTES } from './handlers/admin.handlers';
 import { AUTH_MOCK_ROUTES } from './handlers/auth.handlers';
 import { DASHBOARD_MOCK_ROUTES } from './handlers/dashboard.handlers';
+import { DOCUMENTS_MOCK_ROUTES } from './handlers/documents.handlers';
 import { ITEMS_MOCK_ROUTES } from './handlers/items.handlers';
 import { ORDERS_MOCK_ROUTES } from './handlers/orders.handlers';
+import { PARTIES_MOCK_ROUTES } from './handlers/parties.handlers';
+import { PAYMENTS_MOCK_ROUTES } from './handlers/payments.handlers';
+import { POS_MOCK_ROUTES } from './handlers/pos.handlers';
 import { REPORTS_MOCK_ROUTES } from './handlers/reports.handlers';
+import { VOUCHERS_MOCK_ROUTES } from './handlers/vouchers.handlers';
+import { WAREHOUSES_MOCK_ROUTES } from './handlers/warehouses.handlers';
 import { fail, latencyMs, MockRoute } from './mock-http';
 import { verifyAccessToken } from './mock-tokens';
 
+/** First match wins — literal paths (`items/lookup`) must come before `items/:id`. */
 const ROUTES: readonly MockRoute[] = [
   ...AUTH_MOCK_ROUTES,
   ...DASHBOARD_MOCK_ROUTES,
+  ...WAREHOUSES_MOCK_ROUTES,
   ...ITEMS_MOCK_ROUTES,
   ...ORDERS_MOCK_ROUTES,
+  ...PAYMENTS_MOCK_ROUTES,
   ...REPORTS_MOCK_ROUTES,
+  ...DOCUMENTS_MOCK_ROUTES,
+  ...POS_MOCK_ROUTES,
+  ...PARTIES_MOCK_ROUTES,
+  ...VOUCHERS_MOCK_ROUTES,
+  ...ACCOUNTS_MOCK_ROUTES,
+  ...ADMIN_MOCK_ROUTES,
 ];
 
 /** Matches `items/:id` against `items/42` → `{ id: '42' }`; `null` when it doesn't match. */

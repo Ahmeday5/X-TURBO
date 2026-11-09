@@ -1,0 +1,153 @@
+<app-page-header [navId]="navId()" [title]="isEdit() ? 'تعديل مخزن' : ''" [subtitle]="isEdit() ? (current()?.name ?? '') : ''">
+  <a class="ui-btn ui-btn--ghost" routerLink="/warehouses"><app-icon name="list" [size]="16" /> دليل المخازن</a>
+</app-page-header>
+
+<form class="fp" [formGroup]="form" (ngSubmit)="submit('save')" [class.is-loading]="loading()" novalidate>
+  <div class="fp__main">
+    <!-- Identity -->
+    <section class="fp__section" style="--i: 0">
+      <header class="fp__section-head">
+        <span class="fp__section-icon"><app-icon name="warehouse" [size]="17" /></span>
+        <div>
+          <h2>بيانات المخزن</h2>
+          <p>الاسم والنوع والمسؤول عن المخزن</p>
+        </div>
+      </header>
+
+      <div class="fp__grid">
+        <label class="ui-field fp__span-2">
+          <span class="ui-label is-required">اسم المخزن</span>
+          <input class="ui-input" formControlName="name" placeholder="مثال: مخزن المنصورة" />
+          <app-form-error [control]="form.controls.name" label="اسم المخزن" />
+        </label>
+
+        <div class="ui-field fp__span-2">
+          <span class="ui-label is-required">نوع المخزن</span>
+          <div class="wf-types" role="radiogroup" aria-label="نوع المخزن">
+            @for (t of types; track t) {
+            <button type="button" class="wf-type" role="radio" [style.--tone]="typeView[t].color"
+              [attr.aria-checked]="form.controls.type.value === t" (click)="form.controls.type.setValue(t)">
+              <span class="wf-type__dot"><app-icon name="check" [size]="12" /></span>
+              <strong>{{ typeView[t].label }}</strong>
+              <small>{{ typeView[t].hint }}</small>
+            </button>
+            }
+          </div>
+        </div>
+
+        <label class="ui-field">
+          <span class="ui-label">أمين المخزن</span>
+          <input class="ui-input" formControlName="manager" placeholder="اسم المسؤول" />
+        </label>
+
+        <label class="ui-field">
+          <span class="ui-label">رقم الهاتف</span>
+          <input class="ui-input ltr" formControlName="phone" inputmode="tel" placeholder="01000000000" />
+          <app-form-error [control]="form.controls.phone" label="رقم الهاتف" />
+        </label>
+      </div>
+    </section>
+
+    <!-- Location -->
+    <section class="fp__section" style="--i: 1">
+      <header class="fp__section-head">
+        <span class="fp__section-icon"><app-icon name="target" [size]="17" /></span>
+        <div>
+          <h2>الموقع</h2>
+          <p>يظهر في سندات التحويل والاستلام</p>
+        </div>
+      </header>
+
+      <div class="fp__grid">
+        <label class="ui-field">
+          <span class="ui-label is-required">المدينة</span>
+          <input class="ui-input" formControlName="city" placeholder="القاهرة" />
+          <app-form-error [control]="form.controls.city" label="المدينة" />
+        </label>
+
+        <label class="ui-field">
+          <span class="ui-label">العنوان</span>
+          <input class="ui-input" formControlName="address" placeholder="الحي، الشارع، رقم المبنى" />
+        </label>
+      </div>
+    </section>
+
+    <!-- Settings -->
+    <section class="fp__section" style="--i: 2">
+      <header class="fp__section-head">
+        <span class="fp__section-icon"><app-icon name="sliders" [size]="17" /></span>
+        <div>
+          <h2>الإعدادات</h2>
+          <p>السعة وقواعد الصرف وحالة المخزن</p>
+        </div>
+      </header>
+
+      <div class="fp__grid">
+        <label class="ui-field">
+          <span class="ui-label is-required">السعة التخزينية</span>
+          <div class="ui-affix">
+            <input class="ui-input" type="number" min="0" step="100" formControlName="capacity" />
+            <span class="ui-affix__text">وحدة</span>
+          </div>
+          <span class="ui-hint">تُستخدم لحساب نسبة الإشغال — اتركها 0 إن لم تكن محددة.</span>
+          <app-form-error [control]="form.controls.capacity" label="السعة" />
+        </label>
+
+        <div class="wf-switches">
+          <label class="ui-switch">
+            <input type="checkbox" formControlName="isDefault" />
+            <span class="ui-switch__track"></span>
+            المخزن الافتراضي للمستندات ونقطة البيع
+          </label>
+          @if (lockedDefault()) {
+          <span class="ui-hint">لتغييره اجعل مخزنًا آخر هو الافتراضي.</span>
+          }
+          <label class="ui-switch">
+            <input type="checkbox" formControlName="allowNegative" />
+            <span class="ui-switch__track"></span>
+            السماح بالصرف بالسالب
+          </label>
+          <label class="ui-switch">
+            <input type="checkbox" formControlName="isActive" />
+            <span class="ui-switch__track"></span>
+            {{ form.controls.isActive.value ? 'مخزن نشط' : 'موقوف — لا يظهر في المستندات' }}
+          </label>
+        </div>
+
+        @if (form.controls.allowNegative.value) {
+        <p class="fp__warn fp__span-2"><app-icon name="alert" [size]="15" /> سيسمح النظام بصرف كميات أكبر من الرصيد المتاح في هذا المخزن.</p>
+        }
+
+        <label class="ui-field fp__span-2">
+          <span class="ui-label">ملاحظات</span>
+          <textarea class="ui-input" formControlName="notes" rows="3" placeholder="مواعيد العمل، تعليمات الاستلام…"></textarea>
+        </label>
+      </div>
+    </section>
+  </div>
+
+  <aside class="fp__aside">
+    <div class="fp__preview">
+      <span class="fp__preview-label"><app-icon name="eye" [size]="14" /> معاينة مباشرة</span>
+      <app-warehouse-card [warehouse]="preview()" />
+      @if (current(); as w) {
+      <a class="ui-btn ui-btn--ghost ui-btn--sm wf-stock-link" routerLink="/stock" [queryParams]="{ warehouseId: w.id }">
+        <app-icon name="layers" [size]="14" /> أرصدة هذا المخزن
+      </a>
+      }
+    </div>
+  </aside>
+
+  <footer class="fp__actions">
+    <a class="ui-btn ui-btn--ghost" routerLink="/warehouses">إلغاء</a>
+    @if (!isEdit()) {
+    <button type="button" class="ui-btn ui-btn--ghost" [class.is-loading]="saving() === 'saveNew'" [disabled]="!!saving()"
+      (click)="submit('saveNew')">
+      <app-icon name="plus" [size]="16" /> حفظ وإضافة آخر
+    </button>
+    }
+    <button type="submit" class="ui-btn ui-btn--primary" [class.is-loading]="saving() === 'save'" [disabled]="!!saving()">
+      <app-icon name="check" [size]="16" /> {{ isEdit() ? 'حفظ التعديلات' : 'حفظ المخزن' }}
+    </button>
+  </footer>
+</form>

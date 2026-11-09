@@ -1,0 +1,111 @@
+<ng-template #nameCell [appRowOf]="list.items()" let-p>
+  <div class="xc-name">
+    <app-avatar [name]="p.name" [size]="32" />
+    <div>
+      <strong>{{ p.name }}</strong>
+      <small class="ui-code ltr">{{ p.code }}</small>
+    </div>
+  </div>
+</ng-template>
+
+<ng-template #phoneCell [appRowOf]="list.items()" let-p><span class="ltr">{{ p.phone || '—' }}</span></ng-template>
+
+<ng-template #balanceCell [appRowOf]="list.items()" let-p>
+  <strong class="xc-balance" [class.is-due]="p.balance > 0">{{ money(p.balance) }}</strong>
+</ng-template>
+
+<ng-template #dateCell [appRowOf]="list.items()" let-p><small class="xc-muted">{{ relative(p.createdAt) }}</small></ng-template>
+
+<ng-template #actions [appRowOf]="list.items()" let-p>
+  <button type="button" class="ui-icon-btn" title="تعديل" [attr.aria-label]="'تعديل ' + p.name" (click)="edit(p)">
+    <app-icon name="edit" [size]="16" />
+  </button>
+  <button type="button" class="ui-icon-btn" title="تحويل إلى عميل دائم" [attr.aria-label]="'تحويل ' + p.name + ' إلى عميل دائم'"
+    (click)="promote(p)">
+    <app-icon name="user-plus" [size]="16" />
+  </button>
+  <button type="button" class="ui-icon-btn ui-icon-btn--danger" title="حذف" [attr.aria-label]="'حذف ' + p.name" (click)="remove(p)">
+    <app-icon name="trash" [size]="16" />
+  </button>
+</ng-template>
+
+<ng-template #card [appRowOf]="list.items()" let-p>
+  <div class="xc-card" [class.is-editing]="editing()?.id === p.id">
+    <div class="xc-name">
+      <app-avatar [name]="p.name" [size]="38" />
+      <div>
+        <strong>{{ p.name }}</strong>
+        <small class="ltr">{{ p.phone || '—' }}</small>
+      </div>
+    </div>
+    <div class="xc-card__meta">
+      <span>{{ p.city || 'بدون مدينة' }}</span>
+      <strong class="xc-balance" [class.is-due]="p.balance > 0">{{ money(p.balance) }}</strong>
+    </div>
+    <small class="xc-muted">سُجّل {{ relative(p.createdAt) }}</small>
+  </div>
+</ng-template>
+
+<app-page-header [navId]="navId()" />
+
+<div class="xc">
+  <!-- Quick form -->
+  <form class="panel xc-form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+    <header class="panel__head">
+      <div>
+        <h2 class="panel__title">{{ editing() ? 'تعديل بيانات العميل' : 'تسجيل عميل سريع' }}</h2>
+        <p class="panel__sub">{{ editing() ? editing()!.code : 'الاسم والموبايل يكفيان لبدء البيع' }}</p>
+      </div>
+      <span class="xc-form__icon"><app-icon [name]="editing() ? 'edit' : 'user-plus'" [size]="18" /></span>
+    </header>
+
+    <label class="ui-field">
+      <span class="ui-label is-required">الاسم</span>
+      <input class="ui-input" formControlName="name" placeholder="مثال: محمد أحمد" />
+      <app-form-error [control]="form.controls.name" label="الاسم" />
+    </label>
+
+    <label class="ui-field">
+      <span class="ui-label is-required">الموبايل</span>
+      <input class="ui-input ltr" formControlName="phone" inputmode="tel" placeholder="01xxxxxxxxx" />
+      <app-form-error [control]="form.controls.phone" label="الموبايل" />
+    </label>
+
+    <label class="ui-field">
+      <span class="ui-label">المدينة</span>
+      <input class="ui-input" formControlName="city" placeholder="القاهرة، الجيزة…" />
+    </label>
+
+    <label class="ui-field">
+      <span class="ui-label">ملاحظات</span>
+      <textarea class="ui-input" rows="2" formControlName="notes" placeholder="موديل السيارة، طلب خاص…"></textarea>
+    </label>
+
+    <div class="xc-form__actions">
+      @if (editing()) {
+      <button type="button" class="ui-btn ui-btn--ghost" (click)="cancelEdit()">إلغاء</button>
+      }
+      <button type="submit" class="ui-btn ui-btn--primary" [class.is-loading]="saving()" [disabled]="saving()">
+        <app-icon name="check" [size]="16" /> {{ editing() ? 'حفظ التعديلات' : 'تسجيل العميل' }}
+      </button>
+    </div>
+  </form>
+
+  <!-- List -->
+  <div class="xc-list">
+    <app-list-toolbar placeholder="ابحث بالاسم أو الموبايل أو المدينة…" [search]="state.query().search" [view]="state.view()"
+      [sort]="state.query().sort" [sortOptions]="sortOptions" [count]="list.count()" [activeFilters]="state.activeFilters()"
+      (searchChange)="state.setSearch($event)" (sortChange)="state.setSort($event)" (viewChange)="state.setView($event)"
+      (clearFilters)="state.clearFilters()" />
+
+    <app-data-table [columns]="columns()" [data]="list.items()" [view]="state.view()" [sort]="state.query().sort"
+      [loading]="list.loading()" [initialLoading]="list.initialLoading()" [error]="list.error()"
+      [skeletonCount]="state.query().pageSize" [cardTemplate]="card" [actionsTemplate]="actions" emptyIcon="users"
+      emptyTitle="لا يوجد عملاء خارجيون" emptyText="سجّل أول عميل من النموذج المجاور أو من شاشة البيع."
+      (sortChange)="state.toggleSort($event)" (retry)="list.reload()" />
+
+    <app-pagination [pageIndex]="state.query().pageIndex" [pageSize]="state.query().pageSize" [count]="list.count()"
+      [totalPages]="list.totalPages()" [pageSizeOptions]="[10, 25, 50]" [disabled]="list.loading()"
+      (pageChange)="state.setPage($event)" (pageSizeChange)="state.setPageSize($event)" />
+  </div>
+</div>

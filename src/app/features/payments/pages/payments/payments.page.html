@@ -1,0 +1,138 @@
+<!-- Cell / card templates -->
+<ng-template #numberCell [appRowOf]="list.items()" let-p>
+  <div class="pp-number">
+    <span class="ui-code ltr">{{ p.number }}</span>
+    <small><app-icon name="clock" [size]="11" /> {{ relative(p.createdAt) }}</small>
+  </div>
+</ng-template>
+
+<ng-template #customerCell [appRowOf]="list.items()" let-p>
+  <div class="pp-customer">
+    <app-avatar [name]="p.customerName" [size]="32" />
+    <div>
+      <strong>{{ p.customerName }}</strong>
+      <small><span class="ltr">{{ p.orderNumber }}</span> · {{ p.city }}</small>
+    </div>
+  </div>
+</ng-template>
+
+<ng-template #methodCell [appRowOf]="list.items()" let-p>
+  <div class="pp-method" [style.--c]="methodView[p.method].color">
+    <span class="pp-method__icon"><app-icon [name]="methodView[p.method].icon" [size]="14" /></span>
+    <div>
+      <span>{{ methodView[p.method].label }}</span>
+      <small>{{ p.provider }}@if (p.cardLast4) { · <span class="ltr">•••• {{ p.cardLast4 }}</span>}</small>
+    </div>
+  </div>
+</ng-template>
+
+<ng-template #amountCell [appRowOf]="list.items()" let-p>
+  <div class="pp-amount">
+    <strong>{{ money(p.amount) }}</strong>
+    @if (p.refunded) {<small class="pp-red">مسترد {{ money(p.refunded) }}</small>}
+    @else if (p.fee) {<small>رسوم {{ money(p.fee) }}</small>}
+  </div>
+</ng-template>
+
+<ng-template #statusCell [appRowOf]="list.items()" let-p>
+  <div class="pp-stack">
+    <app-status-pill [view]="statusView[p.status]" />
+    @if (p.status === 'failed' && p.failureReason) {<small class="pp-clip" [title]="p.failureReason">{{ p.failureReason }}</small>}
+    @else if (p.attempt > 1) {<small>المحاولة {{ p.attempt }}</small>}
+  </div>
+</ng-template>
+
+<ng-template #settlementCell [appRowOf]="list.items()" let-p>
+  @if (p.settlementStatus; as st) {
+  <div class="pp-stack">
+    <app-status-pill [view]="settlementView[st]" />
+    @if (st === 'settled' && p.settledAt) {<small>{{ day(p.settledAt) }}</small>}
+    @else if (p.expectedSettlementDate) {<small [class.pp-red]="overdue(p)">@if (overdue(p)) {متأخرة · }متوقعة {{ day(p.expectedSettlementDate) }}</small>}
+  </div>
+  } @else {
+  <span class="pp-muted">—</span>
+  }
+</ng-template>
+
+<ng-template #actions [appRowOf]="list.items()" let-p>
+  <button type="button" class="ui-icon-btn" title="التفاصيل" [attr.aria-label]="'تفاصيل ' + p.number" (click)="open(p)">
+    <app-icon name="eye" [size]="16" />
+  </button>
+</ng-template>
+
+<ng-template #card [appRowOf]="list.items()" let-p>
+  <button type="button" class="pp-card" (click)="open(p)">
+    <header class="pp-card__head">
+      <span class="ui-code ltr">{{ p.number }}</span>
+      <app-status-pill [view]="statusView[p.status]" />
+    </header>
+    <div class="pp-customer">
+      <app-avatar [name]="p.customerName" [size]="34" />
+      <div>
+        <strong>{{ p.customerName }}</strong>
+        <small><span class="ltr">{{ p.orderNumber }}</span> · {{ relative(p.createdAt) }}</small>
+      </div>
+    </div>
+    <span class="pp-card__meta" [style.--c]="methodView[p.method].color">
+      <app-icon [name]="methodView[p.method].icon" [size]="13" /> {{ methodView[p.method].label }} · {{ p.provider }}
+    </span>
+    <footer class="pp-card__foot">
+      <strong>{{ money(p.amount) }}</strong>
+      @if (p.settlementStatus; as st) {<app-status-pill [view]="settlementView[st]" />}
+      @else if (p.failureReason) {<small class="pp-red">{{ p.failureReason }}</small>}
+    </footer>
+  </button>
+</ng-template>
+
+<!-- Page -->
+<app-page-header [navId]="navId()" subtitle="مدفوعات المتجر الإلكتروني: التحصيل والاسترداد والتسوية مع بوابات الدفع">
+  <button type="button" class="refresh-btn" [class.is-spinning]="list.loading()" [disabled]="list.loading()"
+    title="تحديث" aria-label="تحديث المدفوعات" (click)="refresh()">
+    <app-icon name="refresh" [size]="16" />
+  </button>
+  <button type="button" class="ui-btn ui-btn--ghost" [class.is-loading]="exporting()"
+    [disabled]="exporting() || !list.count()" (click)="export()">
+    <app-icon name="file-lines" [size]="16" /> تصدير CSV
+  </button>
+</app-page-header>
+
+<app-summary-tiles [tiles]="tiles()" [refreshing]="stats.loading() && !!stats.value()" />
+
+<app-status-tabs label="تصفية حسب حالة الدفع" [tabs]="tabs()" [active]="state.query().filters['status']"
+  (activeChange)="state.setFilter('status', $event)" />
+
+<app-list-toolbar placeholder="ابحث برقم العملية أو الطلب أو العميل أو الهاتف أو المرجع…"
+  [search]="state.query().search" [view]="state.view()" [sort]="state.query().sort" [sortOptions]="sortOptions"
+  [count]="list.count()" [activeFilters]="state.activeFilters()" (searchChange)="state.setSearch($event)"
+  (sortChange)="state.setSort($event)" (viewChange)="state.setView($event)" (clearFilters)="state.clearFilters()">
+  <app-filter-select filters label="طريقة الدفع" allLabel="كل طرق الدفع" [options]="methodOptions"
+    [value]="state.query().filters['method']" (valueChange)="state.setFilter('method', $event)" />
+  <app-filter-select filters label="التسوية" allLabel="كل حالات التسوية" [options]="settlementOptions"
+    [value]="state.query().filters['settlement']" (valueChange)="state.setFilter('settlement', $event)" />
+</app-list-toolbar>
+
+<div class="pp-range">
+  <app-date-range [from]="state.query().filters['from'] || null" [to]="state.query().filters['to'] || null"
+    (rangeChange)="setRange($event)" />
+  @if (state.query().filters['orderId']) {
+  <button type="button" class="ui-chip" (click)="state.setFilter('orderId', null)">
+    مدفوعات طلب واحد <app-icon name="x" [size]="12" />
+  </button>
+  }
+</div>
+
+<app-data-table [columns]="columns()" [data]="list.items()" [view]="state.view()" [sort]="state.query().sort"
+  [loading]="list.loading()" [initialLoading]="list.initialLoading()" [error]="list.error()"
+  [skeletonCount]="state.query().pageSize" [cardTemplate]="card" [actionsTemplate]="actions" [rowClickable]="true"
+  emptyIcon="wallet" emptyTitle="لا توجد مدفوعات مطابقة" emptyText="جرّب تعديل البحث أو الفلاتر أو الفترة الزمنية."
+  (rowClick)="open($event)" (sortChange)="state.toggleSort($event)" (retry)="list.reload()">
+  <button empty-actions type="button" class="ui-btn ui-btn--ghost" (click)="state.clearFilters()">
+    <app-icon name="x" [size]="15" /> مسح الفلاتر
+  </button>
+</app-data-table>
+
+<app-pagination class="pp-pager" [pageIndex]="state.query().pageIndex" [pageSize]="state.query().pageSize"
+  [count]="list.count()" [totalPages]="list.totalPages()" [pageSizeOptions]="[12, 24, 48, 96]"
+  [disabled]="list.loading()" (pageChange)="state.setPage($event)" (pageSizeChange)="state.setPageSize($event)" />
+
+<app-payment-drawer [paymentId]="viewing() || null" (closed)="state.setParam('view', null)" (changed)="refresh()" />

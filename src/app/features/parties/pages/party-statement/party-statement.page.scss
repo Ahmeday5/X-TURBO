@@ -1,0 +1,280 @@
+:host {
+  display: block;
+}
+
+.ps-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 16px;
+  height: auto;
+  margin-bottom: 16px;
+
+  &__party {
+    flex: 1 1 300px;
+    max-width: 440px;
+  }
+}
+
+.ps-empty {
+  height: auto;
+  text-align: center;
+  color: var(--txt3);
+
+  h3 {
+    margin: 10px 0 4px;
+    font-size: 15px;
+    color: var(--txt);
+  }
+  p {
+    margin: 0;
+    font-size: 12.5px;
+  }
+}
+
+.ps-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  height: auto;
+
+  .skeleton {
+    display: block;
+    width: 100%;
+  }
+}
+
+.ps {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  transition: opacity var(--dur);
+
+  &.is-refreshing {
+    opacity: 0.6;
+  }
+}
+
+/* ── Header card ── */
+.ps-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  height: auto;
+
+  &__party {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    min-width: 0;
+
+    h2 {
+      margin: 2px 0 6px;
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--txt);
+    }
+  }
+
+  &__icon {
+    flex-shrink: 0;
+    width: 48px;
+    height: 48px;
+    display: grid;
+    place-items: center;
+    border-radius: 15px;
+    background: var(--primary-soft);
+    color: var(--primary);
+  }
+
+  &__meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    font-size: 12px;
+    color: var(--txt3);
+  }
+
+  &__totals {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(120px, auto));
+    gap: 10px;
+    margin: 0;
+
+    @media (max-width: 767.98px) {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      width: 100%;
+    }
+
+    > div {
+      padding: 10px 14px;
+      border-radius: 12px;
+      background: var(--bg3);
+    }
+    dt {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--txt3);
+    }
+    dd {
+      margin: 3px 0 0;
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--txt);
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+    .is-closing {
+      background: var(--primary-soft);
+
+      dd {
+        color: var(--primary-strong);
+      }
+    }
+  }
+}
+
+.is-debit {
+  color: var(--bl) !important;
+}
+.is-credit {
+  color: var(--am) !important;
+}
+
+/* ── Table ── */
+.ps-body {
+  height: auto;
+}
+
+.ps-table {
+  margin-bottom: 0;
+
+  table {
+    font-size: 12px;
+  }
+  thead th {
+    font-size: 11px;
+  }
+  tfoot td {
+    padding: 10px;
+    border-top: 2px solid var(--brd2);
+    background: var(--bg3);
+    font-weight: 700;
+    text-align: center;
+  }
+}
+
+.ps-start {
+  text-align: start !important;
+  white-space: normal;
+}
+
+.ps-num {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+
+  small {
+    margin-inline-start: 5px;
+    font-size: 10.5px;
+    font-weight: 600;
+    color: var(--txt3);
+  }
+}
+
+.ps-opening td {
+  background: color-mix(in srgb, var(--bg3) 60%, transparent);
+  font-weight: 600;
+}
+
+.ps-doc {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  text-decoration: none;
+
+  small {
+    font-size: 10.5px;
+    color: var(--txt3);
+  }
+  &:hover .ui-code {
+    color: var(--primary);
+  }
+}
+
+.ps-expand {
+  width: 22px;
+  height: 22px;
+  display: inline-grid;
+  place-items: center;
+  margin-inline-end: 6px;
+  padding: 0;
+  border: 1px solid var(--brd2);
+  border-radius: 7px;
+  background: var(--bg2);
+  color: var(--txt2);
+  vertical-align: middle;
+  cursor: pointer;
+  transition: transform var(--dur) var(--ease-out), background var(--dur-fast);
+
+  &[aria-expanded='true'] {
+    transform: rotate(180deg);
+    background: var(--primary-soft);
+    color: var(--primary);
+  }
+}
+
+.is-up {
+  transform: rotate(180deg);
+}
+
+tr.is-open > td {
+  background: var(--bg3);
+}
+
+.ps-lines > td {
+  padding: 4px 10px 12px !important;
+  background: var(--bg3) !important;
+
+  table {
+    width: 100%;
+    border-radius: 10px;
+    overflow: hidden;
+    background: var(--bg2);
+    animation: ps-open 0.3s var(--ease-out);
+  }
+  th {
+    background: transparent !important;
+  }
+}
+
+.ps-none {
+  padding: 28px !important;
+  color: var(--txt3);
+}
+
+.ps-print-head {
+  margin-bottom: 12px;
+
+  h1 {
+    margin: 0;
+    font-size: 20px;
+  }
+  p {
+    margin: 4px 0 0;
+    font-size: 12px;
+  }
+}
+
+@keyframes ps-open {
+  from { opacity: 0; transform: translateY(-4px); }
+}
+
+@media print {
+  .ps-head__totals > div {
+    border: 1px solid #ddd;
+  }
+}

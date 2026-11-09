@@ -1,0 +1,91 @@
+<ng-template #codeCell [appRowOf]="list.items()" let-p><span class="ui-code ltr">{{ p.code }}</span></ng-template>
+
+<ng-template #nameCell [appRowOf]="list.items()" let-p>
+  <div class="pl-name">
+    <app-avatar [name]="p.name" [size]="32" />
+    <div>
+      <strong>{{ p.name }}</strong>
+      <small class="ltr">{{ p.phone || '—' }}</small>
+    </div>
+  </div>
+</ng-template>
+
+<ng-template #kindCell [appRowOf]="list.items()" let-p>
+  <div class="pl-stack">
+    <app-status-pill [view]="kindView[p.kind]" />
+    @if (p.isExternal) {<small>عميل خارجي</small>}
+  </div>
+</ng-template>
+
+<ng-template #balanceCell [appRowOf]="list.items()" let-p>
+  <div [class]="'pl-balance pl-balance--' + tone(p.balance)">
+    <strong>{{ balanceText(p.balance) }}</strong>
+    <small>{{ p.lastMovementAt ? 'آخر حركة ' + relative(p.lastMovementAt) : 'بدون حركات' }}</small>
+  </div>
+</ng-template>
+
+<ng-template #statusCell [appRowOf]="list.items()" let-p>
+  <span class="status-pill" [class.status-pill--good]="p.isActive" [class.status-pill--neutral]="!p.isActive">
+    {{ p.isActive ? 'نشط' : 'موقوف' }}
+  </span>
+</ng-template>
+
+<ng-template #actions [appRowOf]="list.items()" let-p>
+  <button type="button" class="ui-icon-btn" title="كشف الحساب" [attr.aria-label]="'كشف حساب ' + p.name"
+    (click)="statement(p)">
+    <app-icon name="file-lines" [size]="16" />
+  </button>
+  <button type="button" class="ui-icon-btn" title="تعديل" [attr.aria-label]="'تعديل ' + p.name" (click)="edit(p)">
+    <app-icon name="edit" [size]="16" />
+  </button>
+  <button type="button" class="ui-icon-btn ui-icon-btn--danger" title="حذف" [attr.aria-label]="'حذف ' + p.name"
+    (click)="remove(p)">
+    <app-icon name="trash" [size]="16" />
+  </button>
+</ng-template>
+
+<ng-template #card [appRowOf]="list.items()" let-p><app-party-card [party]="p" /></ng-template>
+
+<!-- Page -->
+<app-page-header [navId]="navId()">
+  <button type="button" class="refresh-btn" [class.is-spinning]="list.loading()" [disabled]="list.loading()"
+    title="تحديث" aria-label="تحديث القائمة" (click)="refresh()">
+    <app-icon name="refresh" [size]="16" />
+  </button>
+  <button type="button" class="ui-btn ui-btn--ghost" [class.is-loading]="exporting()"
+    [disabled]="exporting() || !list.count()" (click)="export()">
+    <app-icon name="file-lines" [size]="16" /> تصدير CSV
+  </button>
+  <a class="ui-btn ui-btn--primary" routerLink="/customers/card"><app-icon name="plus" [size]="16" /> حساب جديد</a>
+</app-page-header>
+
+<app-summary-tiles [tiles]="tiles()" [refreshing]="summary.loading() && !!summary.value()" />
+
+<app-status-tabs label="تصفية حسب النوع" [tabs]="kindTabs" [active]="state.query().filters['kind']"
+  (activeChange)="state.setFilter('kind', $event)" />
+
+<app-list-toolbar placeholder="ابحث بالاسم أو الكود أو الموبايل أو المدينة…" [search]="state.query().search"
+  [view]="state.view()" [sort]="state.query().sort" [sortOptions]="sortOptions" [count]="list.count()"
+  [activeFilters]="state.activeFilters()" (searchChange)="state.setSearch($event)" (sortChange)="state.setSort($event)"
+  (viewChange)="state.setView($event)" (clearFilters)="state.clearFilters()">
+  <app-filter-select filters label="الحالة" allLabel="كل الحالات" [options]="statusOptions"
+    [value]="state.query().filters['status']" (valueChange)="state.setFilter('status', $event)" />
+  <app-filter-select filters label="الرصيد" allLabel="كل الأرصدة" [options]="balanceOptions"
+    [value]="state.query().filters['balance']" (valueChange)="state.setFilter('balance', $event)" />
+  <app-filter-select filters label="المصدر" allLabel="كل المصادر" [options]="externalOptions"
+    [value]="state.query().filters['external']" (valueChange)="state.setFilter('external', $event)" />
+</app-list-toolbar>
+
+<app-data-table [columns]="columns()" [data]="list.items()" [view]="state.view()" [sort]="state.query().sort"
+  [loading]="list.loading()" [initialLoading]="list.initialLoading()" [error]="list.error()"
+  [skeletonCount]="state.query().pageSize" [cardTemplate]="card" [actionsTemplate]="actions" emptyIcon="users"
+  emptyTitle="لا توجد حسابات مطابقة" emptyText="جرّب تعديل البحث أو الفلاتر، أو أضف عميلًا أو موردًا جديدًا."
+  (sortChange)="state.toggleSort($event)" (retry)="list.reload()">
+  <a empty-actions class="ui-btn ui-btn--primary" routerLink="/customers/card">
+    <app-icon name="plus" [size]="16" /> حساب جديد
+  </a>
+</app-data-table>
+
+<app-pagination class="pl-pager" [pageIndex]="state.query().pageIndex" [pageSize]="state.query().pageSize"
+  [count]="list.count()" [totalPages]="list.totalPages()" [pageSizeOptions]="[12, 24, 48, 96]"
+  [disabled]="list.loading()" (pageChange)="state.setPage($event)" (pageSizeChange)="state.setPageSize($event)" />

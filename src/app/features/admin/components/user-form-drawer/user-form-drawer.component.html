@@ -1,0 +1,127 @@
+<app-drawer [open]="open()" [label]="isNew() ? 'مستخدم جديد' : 'تعديل مستخدم'" (closed)="close()">
+  <div drawer-title class="uf-title">
+    <app-avatar [name]="v().name.trim() || '؟'" [size]="40" />
+    <div>
+      <h2>{{ isNew() ? 'مستخدم جديد' : 'تعديل مستخدم' }}</h2>
+      <p>
+        @if (current(); as u) {
+        <span class="ltr">{{ u.email }}</span>
+        @if (isSelf()) {<span class="ui-chip uf-chip" style="--chip: var(--primary)">حسابك</span>}
+        } @else if (loading()) {
+        جارٍ التحميل…
+        } @else {
+        أنشئ حسابًا وحدد دوره وصلاحياته
+        }
+      </p>
+    </div>
+  </div>
+
+  <form id="user-form" class="uf" [formGroup]="form" (ngSubmit)="submit()" [class.is-loading]="loading()" novalidate>
+    <!-- Identity -->
+    <section class="uf-section">
+      <h3><app-icon name="id-card" [size]="15" /> بيانات الحساب</h3>
+      <div class="uf-grid">
+        <label class="ui-field uf-span">
+          <span class="ui-label is-required">الاسم</span>
+          <input class="ui-input" formControlName="name" placeholder="الاسم الكامل" autocomplete="off" />
+          <app-form-error [control]="form.controls.name" label="الاسم" />
+        </label>
+        <label class="ui-field">
+          <span class="ui-label is-required">البريد الإلكتروني</span>
+          <input class="ui-input ltr" type="email" formControlName="email" placeholder="name@xturbo.com" autocomplete="off" />
+          <app-form-error [control]="form.controls.email" label="البريد الإلكتروني" />
+        </label>
+        <label class="ui-field">
+          <span class="ui-label">الموبايل</span>
+          <input class="ui-input ltr" formControlName="phone" inputmode="tel" placeholder="01000000000" />
+          <app-form-error [control]="form.controls.phone" label="الموبايل" />
+        </label>
+      </div>
+    </section>
+
+    <!-- Password (create only) -->
+    @if (isNew()) {
+    <section class="uf-section">
+      <h3>
+        <app-icon name="lock" [size]="15" /> كلمة المرور
+        <button type="button" class="ui-btn ui-btn--ghost ui-btn--sm uf-gen" (click)="generate()">
+          <app-icon name="bolt" [size]="14" /> توليد كلمة مرور
+        </button>
+      </h3>
+      <div class="uf-grid">
+        <div class="ui-field">
+          <span class="ui-label is-required">كلمة المرور</span>
+          <app-password-input formControlName="password" autocomplete="new-password" placeholder="••••••••" />
+          <app-form-error [control]="form.controls.password" label="كلمة المرور" />
+        </div>
+        <div class="ui-field">
+          <span class="ui-label is-required">تأكيد كلمة المرور</span>
+          <app-password-input formControlName="confirm" autocomplete="new-password" placeholder="••••••••" />
+          <app-form-error [control]="form.controls.confirm" label="تأكيد كلمة المرور" />
+        </div>
+      </div>
+      <app-password-strength [value]="v().password" />
+    </section>
+    }
+
+    <!-- Role -->
+    <section class="uf-section">
+      <h3><app-icon name="shield" [size]="15" /> الدور</h3>
+      <div class="uf-roles" role="radiogroup" aria-label="الدور">
+        @for (r of roles; track r) {
+        <button type="button" class="uf-role" role="radio" [style.--tone]="roleView[r].color"
+          [attr.aria-checked]="v().role === r" [disabled]="lockRoleAndStatus() && v().role !== r" (click)="pickRole(r)">
+          <span class="uf-role__icon"><app-icon [name]="roleView[r].icon" [size]="16" /></span>
+          <strong>{{ roleView[r].label }}</strong>
+          <small>{{ roleView[r].hint }}</small>
+        </button>
+        }
+      </div>
+      @if (isSelf()) {
+      <p class="ui-hint uf-note"><app-icon name="alert" [size]="13" /> لا يمكنك تغيير دورك أو إيقاف حسابك بنفسك.</p>
+      } @else if (isLastAdmin()) {
+      <p class="ui-hint uf-note"><app-icon name="alert" [size]="13" /> هذا آخر مدير نظام نشط — لا يمكن تغيير دوره أو إيقافه.</p>
+      } @else {
+      <p class="ui-hint uf-note">اختيار الدور يملأ الصلاحيات الافتراضية له، ويمكنك تعديلها بعد ذلك.</p>
+      }
+    </section>
+
+    <!-- Permissions -->
+    <section class="uf-section">
+      <h3>
+        <app-icon name="sliders" [size]="15" /> الصلاحيات
+        <span class="uf-count">{{ v().permissions.length }}</span>
+        @if (isCustom()) {
+        <span class="ui-chip uf-chip" style="--chip: var(--am)">مخصصة</span>
+        <button type="button" class="ui-btn ui-btn--ghost ui-btn--sm uf-gen" (click)="restoreDefaults()">
+          <app-icon name="refresh" [size]="14" /> صلاحيات الدور
+        </button>
+        }
+      </h3>
+      <app-permission-picker [value]="v().permissions" [locked]="lockedPermissions()"
+        (valueChange)="setPermissions($event)" />
+    </section>
+
+    <!-- Status -->
+    <section class="uf-section">
+      <label class="ui-switch">
+        <input type="checkbox" formControlName="isActive" />
+        <span class="ui-switch__track"></span>
+        {{ v().isActive ? 'حساب نشط — يمكنه تسجيل الدخول' : 'موقوف — لا يمكنه تسجيل الدخول' }}
+      </label>
+      @if (current(); as u) {
+      <p class="ui-hint uf-meta">
+        أُنشئ {{ dateTime(u.createdAt) }} · آخر دخول {{ u.lastLoginAt ? dateTime(u.lastLoginAt) : 'لم يسجل الدخول بعد' }}
+      </p>
+      }
+    </section>
+  </form>
+
+  <div drawer-footer class="uf-foot">
+    <button type="button" class="ui-btn ui-btn--ghost" [disabled]="saving()" (click)="close()">إلغاء</button>
+    <button type="submit" form="user-form" class="ui-btn ui-btn--primary" [class.is-loading]="saving()"
+      [disabled]="saving() || loading()">
+      <app-icon name="check" [size]="16" /> {{ isNew() ? 'إضافة المستخدم' : 'حفظ التعديلات' }}
+    </button>
+  </div>
+</app-drawer>

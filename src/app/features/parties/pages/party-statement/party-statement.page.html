@@ -1,0 +1,195 @@
+<app-print-styles />
+
+<app-page-header class="no-print" [navId]="navId()">
+  @if (statement.value(); as s) {
+  <a class="ui-btn ui-btn--ghost" [routerLink]="otherRoute()"
+    [queryParams]="{ partyId: partyId(), from: from() || null, to: to() || null }">
+    <app-icon [name]="detailed() ? 'file-lines' : 'file-search'" [size]="16" />
+    {{ detailed() ? 'الكشف المختصر' : 'الكشف التفصيلي' }}
+  </a>
+  <button type="button" class="ui-btn ui-btn--ghost" [disabled]="!s.entries.length" (click)="export()">
+    <app-icon name="file-lines" [size]="16" /> تصدير CSV
+  </button>
+  <button type="button" class="ui-btn ui-btn--primary" (click)="print()">
+    <app-icon name="receipt" [size]="16" /> طباعة
+  </button>
+  }
+</app-page-header>
+
+<!-- Filters -->
+<section class="panel ps-filters no-print">
+  <div class="ui-field ps-filters__party">
+    <span class="ui-label">العميل / المورد</span>
+    <app-searchable-select [formControl]="partyControl" [options]="partyOptions()" placeholder="اختر الحساب"
+      searchPlaceholder="ابحث بالاسم أو الكود أو الهاتف…" />
+  </div>
+  <div class="ui-field">
+    <span class="ui-label">الفترة</span>
+    <app-date-range [from]="from() || null" [to]="to() || null" (rangeChange)="setRange($event)" />
+  </div>
+</section>
+
+@if (!partyId()) {
+<div class="panel page-state ps-empty">
+  <app-icon name="file-search" [size]="34" />
+  <h3>اختر حسابًا لعرض كشفه</h3>
+  <p>ابحث عن العميل أو المورد من القائمة بالأعلى، ثم حدد الفترة إن أردت.</p>
+</div>
+} @else if (statement.error() && !statement.value()) {
+<div class="panel page-state ps-empty">
+  <app-icon name="alert" [size]="34" />
+  <h3>{{ statement.error() }}</h3>
+  <button type="button" class="ui-btn ui-btn--ghost" (click)="statement.reload()">
+    <app-icon name="refresh" [size]="16" /> إعادة المحاولة
+  </button>
+</div>
+} @else if (statement.value()) {
+@let s = statement.value()!;
+<div class="ps" [class.is-refreshing]="statement.loading()">
+  <!-- Print heading -->
+  <header class="print-only ps-print-head">
+    <h1>{{ detailed() ? 'كشف حساب تفصيلي' : 'كشف حساب' }}</h1>
+    <p>{{ s.party.name }} — {{ s.party.code }} · الفترة: {{ s.from || 'من البداية' }} إلى {{ s.to }} · طُبع {{ printedAt }}</p>
+  </header>
+
+  <!-- Party + totals -->
+  <section class="panel ps-head reveal">
+    <div class="ps-head__party">
+      <span class="ps-head__icon"><app-icon name="id-card" [size]="22" /></span>
+      <div>
+        <span class="ui-code ltr">{{ s.party.code }}</span>
+        <h2>{{ s.party.name }}</h2>
+        <div class="ps-head__meta">
+          <app-status-pill [view]="kindView[s.party.kind]" />
+          @if (s.party.phone) {<span class="ltr">{{ s.party.phone }}</span>}
+          @if (s.party.creditLimit) {<span>حد الائتمان {{ money(s.party.creditLimit) }}</span>}
+        </div>
+      </div>
+    </div>
+    <dl class="ps-head__totals">
+      <div><dt>رصيد أول المدة</dt><dd>{{ balance(s.openingBalance) }}</dd></div>
+      <div><dt>إجمالي المدين</dt><dd class="is-debit">{{ money(s.totalDebit) }}</dd></div>
+      <div><dt>إجمالي الدائن</dt><dd class="is-credit">{{ money(s.totalCredit) }}</dd></div>
+      <div class="is-closing"><dt>الرصيد الختامي</dt><dd>{{ balance(s.closingBalance) }}</dd></div>
+    </dl>
+  </section>
+
+  <!-- Entries -->
+  <section class="panel ps-body reveal" style="--i: 1">
+    <header class="panel__head">
+      <div>
+        <h2 class="panel__title">الحركات</h2>
+        <p class="panel__sub">{{ entriesLabel() }} · من {{ s.from ? day(s.from) : 'البداية' }} إلى {{ day(s.to) }}</p>
+      </div>
+      @if (detailed() && withLines().length) {
+      <button type="button" class="ui-btn ui-btn--ghost ui-btn--sm no-print" (click)="toggleAll()">
+        <app-icon name="chevron-down" [size]="14" [class.is-up]="allExpanded()" />
+        {{ allExpanded() ? 'طي الكل' : 'توسيع الكل' }}
+      </button>
+      }
+    </header>
+
+    <div class="tw ps-table">
+      <table>
+        <thead>
+          <tr>
+            <th>التاريخ</th>
+            <th>المستند</th>
+            <th class="ps-start">البيان</th>
+            <th>مدين</th>
+            <th>دائن</th>
+            <th>الرصيد</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="ps-opening">
+            <td>{{ s.from ? day(s.from) : '—' }}</td>
+            <td>—</td>
+            <td class="ps-start">رصيد أول المدة</td>
+            <td></td>
+            <td></td>
+            <td class="ps-num"><strong>{{ money(s.openingBalance < 0 ? -s.openingBalance : s.openingBalance) }}</strong>
+              <small>{{ sideLabel(s.openingBalance) }}</small></td>
+          </tr>
+          @for (e of s.entries; track key(e)) {
+          @let lines = linesOf(e);
+          @let open = expanded().has(key(e));
+          <tr [class.is-open]="open">
+            <td>{{ day(e.date) }}</td>
+            <td>
+              @if (sourceLink(e); as link) {
+              <a class="ps-doc" [routerLink]="link.route" [queryParams]="link.queryParams">
+                <span class="ui-code ltr">{{ e.number }}</span>
+                <small>{{ sourceLabel(e) }}</small>
+              </a>
+              } @else {
+              <span class="ui-code ltr">{{ e.number }}</span>
+              }
+            </td>
+            <td class="ps-start">
+              @if (lines.length) {
+              <button type="button" class="ps-expand no-print" [attr.aria-expanded]="open"
+                [attr.aria-label]="(open ? 'طي أصناف ' : 'عرض أصناف ') + e.number" (click)="toggle(e)">
+                <app-icon name="chevron-down" [size]="13" />
+              </button>
+              }
+              {{ e.description }}
+            </td>
+            <td class="ps-num is-debit">{{ e.debit ? money(e.debit) : '' }}</td>
+            <td class="ps-num is-credit">{{ e.credit ? money(e.credit) : '' }}</td>
+            <td class="ps-num"><strong>{{ money(e.balance < 0 ? -e.balance : e.balance) }}</strong>
+              <small>{{ sideLabel(e.balance) }}</small></td>
+          </tr>
+          @if (open && lines.length) {
+          <tr class="ps-lines">
+            <td colspan="6">
+              <table>
+                <thead>
+                  <tr>
+                    <th>الكود</th>
+                    <th class="ps-start">الصنف</th>
+                    <th>الكمية</th>
+                    <th>السعر</th>
+                    <th>الإجمالي</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (l of lines; track $index) {
+                  <tr>
+                    <td><span class="ui-code ltr">{{ l.code }}</span></td>
+                    <td class="ps-start">{{ l.name }}</td>
+                    <td>{{ integer(l.qty) }} {{ l.unit }}</td>
+                    <td class="ps-num">{{ money(l.price) }}</td>
+                    <td class="ps-num">{{ money(l.total) }}</td>
+                  </tr>
+                  }
+                </tbody>
+              </table>
+            </td>
+          </tr>
+          }
+          } @empty {
+          <tr>
+            <td colspan="6" class="ps-none">لا توجد حركات خلال هذه الفترة.</td>
+          </tr>
+          }
+        </tbody>
+        <tfoot>
+          <tr>
+            <td colspan="3" class="ps-start">الإجمالي</td>
+            <td class="ps-num is-debit">{{ money(s.totalDebit) }}</td>
+            <td class="ps-num is-credit">{{ money(s.totalCredit) }}</td>
+            <td class="ps-num"><strong>{{ money(s.closingBalance < 0 ? -s.closingBalance : s.closingBalance) }}</strong>
+              <small>{{ sideLabel(s.closingBalance) }}</small></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </section>
+</div>
+} @else {
+<div class="panel ps-skeleton">
+  <span class="skeleton" style="height: 90px"></span>
+  <span class="skeleton" style="height: 260px"></span>
+</div>
+}

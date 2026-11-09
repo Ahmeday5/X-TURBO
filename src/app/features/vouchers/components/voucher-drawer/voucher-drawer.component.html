@@ -1,0 +1,148 @@
+<app-drawer [open]="!!voucherId()" label="تفاصيل السند" (closed)="closed.emit()">
+  <div drawer-title class="vd-title">
+    @if (current(); as v) {
+    <span class="vd-title__kind"><app-icon [name]="icon()" [size]="13" /> {{ cfg()!.singular }}</span>
+    <div class="vd-title__row">
+      <h2 class="ltr">{{ v.number }}</h2>
+      <app-status-pill [view]="statusView[v.status]" />
+    </div>
+    <p>{{ dayMonth(v.date) }} · أنشأه {{ v.createdBy }}</p>
+    } @else if (voucher.error()) {
+    <h2>تعذّر تحميل السند</h2>
+    } @else {
+    <span class="skeleton" style="width: 140px; height: 20px"></span>
+    <span class="skeleton" style="width: 200px; height: 12px; margin-top: 8px"></span>
+    }
+  </div>
+
+  @if (current(); as v) {
+  <div class="vd" [class.is-refreshing]="voucher.loading()">
+    <!-- Key figures -->
+    <section class="vd-stats" style="--i: 0">
+      @if (v.kind === 'journal') {
+      <div><small>إجمالي المدين</small><strong>{{ money(v.totalDebit) }}</strong></div>
+      <div><small>إجمالي الدائن</small><strong>{{ money(v.totalCredit) }}</strong></div>
+      <div><small>الأسطر</small><strong>{{ linesLabel(v.lines.length) }}</strong></div>
+      } @else {
+      <div class="vd-stats__main"><small>المبلغ</small><strong>{{ money(v.amount) }}</strong></div>
+      <div><small>طريقة {{ v.kind === 'receipt' ? 'القبض' : 'الصرف' }}</small><strong>{{ v.method ? methodLabel[v.method] : '—' }}</strong></div>
+      }
+    </section>
+
+    <!-- Header info -->
+    <section class="vd-block" style="--i: 1">
+      <dl class="vd-meta">
+        @if (v.kind !== 'journal') {
+        <div class="vd-meta__wide">
+          <dt>{{ cfg()!.partyLabel }}</dt>
+          <dd>{{ counterparty(v) }} <small>({{ v.counterpartyType === 'party' ? 'عميل / مورد' : 'حساب' }})</small></dd>
+        </div>
+        <div><dt>{{ cashSide(v.kind) }}</dt><dd>{{ v.cashAccountName ?? '—' }}</dd></div>
+        @if (v.costCenterName) {<div><dt>مركز التكلفة</dt><dd>{{ v.costCenterName }}</dd></div>}
+        }
+        @if (v.reference) {<div><dt>المرجع</dt><dd>{{ v.reference }}</dd></div>}
+        <div><dt>تاريخ الإنشاء</dt><dd>{{ dateTime(v.createdAt) }}</dd></div>
+        @if (v.postedAt) {<div><dt>تاريخ الترحيل</dt><dd>{{ dateTime(v.postedAt) }}</dd></div>}
+      </dl>
+    </section>
+
+    @if (v.description) {
+    <p class="vd-note" style="--i: 2"><app-icon name="file-lines" [size]="14" /> {{ v.description }}</p>
+    }
+
+    <!-- Accounting entry -->
+    <section class="vd-block" style="--i: 3">
+      <h3 class="vd-h">القيد المحاسبي @if (v.kind === 'journal') {<span>{{ v.lines.length }}</span>}</h3>
+      <div class="vd-entry">
+        <div class="vd-entry__head"><span>الحساب</span><span>مدين</span><span>دائن</span></div>
+        @if (v.kind === 'journal') {
+        @for (l of v.lines; track $index; let i = $index) {
+        <div class="vd-entry__row" [style.--i]="i">
+          <div class="vd-entry__acc">
+            <strong><span class="ui-code ltr">{{ l.accountCode }}</span> {{ l.accountName }}</strong>
+            @if (l.costCenterName || l.note) {
+            <small>{{ l.costCenterName ?? '' }}{{ l.costCenterName && l.note ? ' · ' : '' }}{{ l.note }}</small>
+            }
+          </div>
+          <span class="vd-entry__num">{{ l.debit ? money(l.debit) : '' }}</span>
+          <span class="vd-entry__num">{{ l.credit ? money(l.credit) : '' }}</span>
+        </div>
+        }
+        } @else {
+        @if (entry(); as e) {
+        <div class="vd-entry__row">
+          <div class="vd-entry__acc"><strong>{{ e.debit }}</strong></div>
+          <span class="vd-entry__num">{{ money(v.amount) }}</span>
+          <span class="vd-entry__num"></span>
+        </div>
+        <div class="vd-entry__row">
+          <div class="vd-entry__acc vd-entry__acc--cr"><strong>{{ e.credit }}</strong></div>
+          <span class="vd-entry__num"></span>
+          <span class="vd-entry__num">{{ money(v.amount) }}</span>
+        </div>
+        }
+        }
+        <div class="vd-entry__total">
+          <span>الإجمالي</span>
+          <span class="vd-entry__num">{{ money(v.totalDebit) }}</span>
+          <span class="vd-entry__num">{{ money(v.totalCredit) }}</span>
+        </div>
+      </div>
+    </section>
+
+    @if (v.status === 'draft') {
+    <p class="vd-note vd-note--info" style="--i: 4"><app-icon name="clock" [size]="14" /> مسودة — لا تؤثر على الأرصدة حتى يتم ترحيلها.</p>
+    } @else if (v.status === 'cancelled') {
+    <p class="vd-note vd-note--danger" style="--i: 4"><app-icon name="x" [size]="14" /> سند ملغي — تم عكس أثره على الحسابات.</p>
+    }
+  </div>
+  }
+
+  <div drawer-footer class="vd-actions">
+    @if (current(); as v) {
+    @switch (v.status) {
+    @case ('draft') {
+    <button type="button" class="ui-btn ui-btn--primary" [class.is-loading]="busy() === 'post'" [disabled]="!!busy()"
+      (click)="post(v)">
+      <app-icon name="check" [size]="16" /> ترحيل
+    </button>
+    <button type="button" class="ui-btn ui-btn--ghost" [disabled]="!!busy()" (click)="edit.emit(v.id)">
+      <app-icon name="edit" [size]="16" /> تعديل
+    </button>
+    <button type="button" class="ui-btn ui-btn--danger" [class.is-loading]="busy() === 'delete'" [disabled]="!!busy()"
+      (click)="remove(v)">
+      <app-icon name="trash" [size]="16" /> حذف
+    </button>
+    }
+    @case ('posted') {
+    <button type="button" class="ui-btn ui-btn--danger" [class.is-loading]="busy() === 'cancel'" [disabled]="!!busy()"
+      (click)="openCancel()">
+      <app-icon name="x" [size]="16" /> إلغاء السند
+    </button>
+    }
+    }
+    <button type="button" class="ui-btn ui-btn--ghost vd-actions__print" (click)="print.emit(v)">
+      <app-icon name="file-lines" [size]="16" /> طباعة
+    </button>
+    }
+  </div>
+</app-drawer>
+
+<app-modal [open]="cancelOpen()" title="إلغاء السند" size="sm" (closed)="cancelOpen.set(false)">
+  <p class="vd-cancel-text">
+    سيتم عكس أثر السند على الحسابات والأرصدة، ويبقى في السجل بحالة «ملغي».
+  </p>
+  <label class="ui-field">
+    <span class="ui-label is-required">سبب الإلغاء</span>
+    <textarea class="ui-input" rows="3" [value]="cancelReason()" (input)="cancelReason.set($any($event.target).value)"
+      placeholder="مثال: تم تسجيل المبلغ مرتين"></textarea>
+  </label>
+  <div modal-footer class="vd-modal-actions">
+    <button type="button" class="ui-btn ui-btn--ghost" (click)="cancelOpen.set(false)">تراجع</button>
+    @if (current(); as v) {
+    <button type="button" class="ui-btn ui-btn--danger" [disabled]="!cancelReason().trim()" (click)="confirmCancel(v)">
+      <app-icon name="x" [size]="16" /> تأكيد الإلغاء
+    </button>
+    }
+  </div>
+</app-modal>

@@ -1,0 +1,138 @@
+<app-page-header [navId]="navId()">
+  <button type="button" class="refresh-btn" [class.is-spinning]="chart.loading()" [disabled]="chart.loading()"
+    title="تحديث" aria-label="تحديث الدليل" (click)="chart.reload()">
+    <app-icon name="refresh" [size]="16" />
+  </button>
+  <button type="button" class="ui-btn ui-btn--ghost" [disabled]="!accounts().length" (click)="export()">
+    <app-icon name="file-lines" [size]="16" /> تصدير CSV
+  </button>
+  <a class="ui-btn ui-btn--primary" routerLink="/accounts/card"><app-icon name="plus" [size]="16" /> حساب جديد</a>
+</app-page-header>
+
+<app-summary-tiles [tiles]="tiles()" [refreshing]="chart.loading() && !!chart.value()" />
+
+<!-- Trial balance check -->
+@if (chart.value()) {
+<section class="panel ac-trial reveal" [class.is-off]="!trial().balanced" style="--i: 1">
+  <span class="ac-trial__icon"><app-icon [name]="trial().balanced ? 'check' : 'alert'" [size]="20" /></span>
+  <div class="ac-trial__text">
+    <strong>{{ trial().balanced ? 'ميزان المراجعة متزن' : 'ميزان المراجعة غير متزن' }}</strong>
+    <small>
+      @if (trial().balanced) {
+      مجموع الأرصدة المدينة يساوي مجموع الأرصدة الدائنة.
+      } @else {
+      الفرق {{ money(trial().diff < 0 ? -trial().diff : trial().diff) }} — راجع القيود الأخيرة.
+      }
+    </small>
+  </div>
+  <dl class="ac-trial__sums">
+    <div><dt>أرصدة مدينة</dt><dd>{{ money(trial().debit) }}</dd></div>
+    <div><dt>أرصدة دائنة</dt><dd>{{ money(trial().credit) }}</dd></div>
+    <div [class.is-loss]="trial().profit < 0">
+      <dt>{{ trial().profit >= 0 ? 'صافي الربح' : 'صافي الخسارة' }}</dt>
+      <dd>{{ money(trial().profit < 0 ? -trial().profit : trial().profit) }}</dd>
+    </div>
+  </dl>
+</section>
+}
+
+<app-status-tabs [tabs]="tabs()" [active]="typeFilter()" label="تصفية حسب نوع الحساب" (activeChange)="setType($event)" />
+
+<!-- Toolbar -->
+<div class="ac-bar">
+  <div class="ac-search">
+    <app-icon class="ac-search__glyph" name="search" [size]="16" />
+    <input type="search" class="ui-input" placeholder="ابحث باسم الحساب أو الكود…" aria-label="بحث في الحسابات"
+      [value]="term()" (input)="onSearch($any($event.target).value)" (keydown.escape)="onSearch('')" />
+  </div>
+  <span class="ac-count">{{ countLabel() }}</span>
+  <div class="seg" role="group" aria-label="عرض الشجرة">
+    <button type="button" class="seg__btn" (click)="expandAll()"><app-icon name="chevron-down" [size]="13" /> توسيع الكل</button>
+    <button type="button" class="seg__btn" (click)="collapseAll()"><app-icon name="chevron-left" [size]="13" /> طي الكل</button>
+  </div>
+</div>
+
+<!-- Tree -->
+<section class="panel ac-tree" [class.is-refreshing]="chart.loading() && !!chart.value()" role="treegrid"
+  aria-label="شجرة الحسابات">
+  <div class="ac-row ac-row--head" role="row">
+    <span role="columnheader">الحساب</span>
+    <span role="columnheader" class="ac-col-type">النوع</span>
+    <span role="columnheader" class="ac-col-num">مدين</span>
+    <span role="columnheader" class="ac-col-num">دائن</span>
+    <span role="columnheader" class="ac-col-bal">الرصيد</span>
+    <span role="columnheader" class="ac-col-act"><span class="visually-hidden">إجراءات</span></span>
+  </div>
+
+  @if (chart.error() && !chart.value()) {
+  <div class="page-state">
+    <app-icon name="alert" [size]="28" />
+    <p>{{ chart.error() }}</p>
+    <button type="button" class="ui-btn ui-btn--ghost" (click)="chart.reload()">إعادة المحاولة</button>
+  </div>
+  } @else if (!chart.value()) {
+  @for (i of [0, 1, 2, 3, 4, 5, 6, 7]; track i) {
+  <div class="ac-row"><span class="skeleton" [style.width.%]="70 - i * 5" style="height: 16px"></span></div>
+  }
+  } @else {
+  @for (r of rows(); track r.account.id) {
+  @let a = r.account;
+  @let b = balance(a);
+  <div class="ac-row" role="row" [class.is-group]="a.isGroup" [class.is-root]="r.depth === 0" [class.is-hit]="r.hit"
+    [class.is-inactive]="!a.isActive" [attr.aria-level]="r.depth + 1"
+    [attr.aria-expanded]="r.hasChildren ? r.expanded : null" [style.--tone]="typeView[a.type].color">
+    <div class="ac-name" role="gridcell">
+      @for (g of depthGuides(r.depth); track g) {<span class="ac-guide" aria-hidden="true"></span>}
+      @if (r.hasChildren) {
+      <button type="button" class="ac-toggle" [class.is-open]="r.expanded"
+        [attr.aria-label]="(r.expanded ? 'طي ' : 'توسيع ') + a.name" (click)="toggle(r)">
+        <app-icon name="chevron-left" [size]="14" />
+      </button>
+      } @else {
+      <span class="ac-toggle ac-toggle--leaf" aria-hidden="true"></span>
+      }
+      <span class="ac-glyph"><app-icon [name]="a.isGroup ? 'folder' : 'file'" [size]="15" /></span>
+      <span class="ui-code ltr">{{ a.code }}</span>
+      <span class="ac-label">
+        <app-highlight [text]="a.name" [query]="term()" />
+        @if (a.isSystem) {<small class="ac-tag" title="حساب نظامي">نظامي</small>}
+        @if (a.costCenterRequired) {<small class="ac-tag" title="يتطلب مركز تكلفة"><app-icon name="target" [size]="11" /></small>}
+        @if (!a.isActive) {<small class="ac-tag">موقوف</small>}
+      </span>
+    </div>
+    <span class="ac-col-type" role="gridcell">
+      <app-status-pill [view]="typeView[a.type]" />
+    </span>
+    <span class="ac-col-num" role="gridcell">{{ a.totalDebit ? money(a.totalDebit) : '—' }}</span>
+    <span class="ac-col-num" role="gridcell">{{ a.totalCredit ? money(a.totalCredit) : '—' }}</span>
+    <span class="ac-col-bal" role="gridcell">
+      <strong>{{ b.amount }}</strong>
+      <small [class.is-opposite]="a.balance < 0">{{ b.side }}</small>
+    </span>
+    <span class="ac-col-act" role="gridcell">
+      @if (a.isGroup) {
+      <button type="button" class="ui-icon-btn" title="إضافة حساب فرعي" [attr.aria-label]="'إضافة حساب تحت ' + a.name"
+        (click)="addChild(a)">
+        <app-icon name="plus" [size]="15" />
+      </button>
+      }
+      <button type="button" class="ui-icon-btn" title="تعديل" [attr.aria-label]="'تعديل ' + a.name" (click)="edit(a)">
+        <app-icon name="edit" [size]="15" />
+      </button>
+      @if (!a.isSystem) {
+      <button type="button" class="ui-icon-btn ui-icon-btn--danger" title="حذف" [attr.aria-label]="'حذف ' + a.name"
+        (click)="remove(a)">
+        <app-icon name="trash" [size]="15" />
+      </button>
+      }
+    </span>
+  </div>
+  } @empty {
+  <div class="page-state">
+    <app-icon name="search" [size]="28" />
+    <p>لا توجد حسابات مطابقة للبحث.</p>
+    <button type="button" class="ui-btn ui-btn--ghost" (click)="onSearch(''); setType(null)">مسح البحث</button>
+  </div>
+  }
+  }
+</section>

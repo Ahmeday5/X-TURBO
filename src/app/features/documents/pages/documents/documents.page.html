@@ -1,0 +1,174 @@
+<!-- Cell / card templates -->
+<ng-template #numberCell [appRowOf]="list.items()" let-d>
+  <div class="dp-number">
+    <span class="ui-code ltr">{{ d.number }}</span>
+    <small><app-icon name="calendar" [size]="11" /> {{ day(d.date) }}@if (d.channel === 'pos') { · نقطة البيع}</small>
+  </div>
+</ng-template>
+
+<ng-template #partyCell [appRowOf]="list.items()" let-d>
+  <div class="dp-stack dp-stack--start">
+    <strong>{{ d.partyName ?? 'عميل نقدي' }}</strong>
+    @if (d.reference) {<small>{{ d.reference }}</small>}
+  </div>
+</ng-template>
+
+<ng-template #placeCell [appRowOf]="list.items()" let-d>
+  @if (cfg().transfer) {
+  <div class="dp-route">
+    <span>{{ d.warehouseName }}</span>
+    <app-icon name="arrow-right" [size]="13" />
+    <span>{{ d.toWarehouseName }}</span>
+  </div>
+  } @else {
+  <div class="dp-stack dp-stack--start">
+    <span>{{ d.warehouseName }}</span>
+    @if (d.reason) {<small>{{ reasonLabel[d.reason] }}</small>}
+  </div>
+  }
+</ng-template>
+
+<ng-template #qtyCell [appRowOf]="list.items()" let-d>
+  <div class="dp-stack">
+    <span>{{ linesLabel(d.linesCount) }}</span>
+    <small>كمية {{ int(d.totalQty) }}</small>
+  </div>
+</ng-template>
+
+<ng-template #totalCell [appRowOf]="list.items()" let-d>
+  <strong class="dp-total">{{ money(d.total) }}</strong>
+</ng-template>
+
+<ng-template #paymentCell [appRowOf]="list.items()" let-d>
+  @if (d.kind === 'reservation') {
+  <div class="dp-stack">
+    <span>{{ money(d.paid) }}</span>
+    @if (d.dueDate) {<small [class.dp-red]="overdue(d)">استلام {{ day(d.dueDate) }}</small>}
+  </div>
+  } @else {
+  <div class="dp-stack">
+    <app-status-pill [view]="paymentView(d)" />
+    @if (d.remaining > 0) {<small [class.dp-red]="overdue(d)">متبقي {{ money(d.remaining) }}</small>}
+    @else if (d.paymentMethod) {<small>{{ paymentLabel[d.paymentMethod] }}</small>}
+  </div>
+  }
+</ng-template>
+
+<ng-template #statusCell [appRowOf]="list.items()" let-d><app-status-pill [view]="statusView(d.kind, d.status)" /></ng-template>
+
+<ng-template #actions [appRowOf]="list.items()" let-d>
+  <button type="button" class="ui-icon-btn" title="عرض" [attr.aria-label]="'عرض ' + d.number" (click)="open(d)">
+    <app-icon name="eye" [size]="16" />
+  </button>
+  @if (d.status === 'draft') {
+  <button type="button" class="ui-icon-btn" title="تعديل" [attr.aria-label]="'تعديل ' + d.number" (click)="edit(d.id)">
+    <app-icon name="edit" [size]="16" />
+  </button>
+  }
+</ng-template>
+
+<ng-template #card [appRowOf]="list.items()" let-d>
+  <button type="button" class="dp-card" (click)="open(d)">
+    <header class="dp-card__head">
+      <span class="ui-code ltr">{{ d.number }}</span>
+      <app-status-pill [view]="statusView(d.kind, d.status)" />
+    </header>
+    <strong class="dp-card__title">
+      @if (cfg().party) {{{ d.partyName ?? 'عميل نقدي' }}}
+      @else if (cfg().transfer) {{{ d.warehouseName }} ← {{ d.toWarehouseName }}}
+      @else {{{ d.warehouseName }}}
+    </strong>
+    <span class="dp-card__meta">
+      <app-icon name="calendar" [size]="12" /> {{ day(d.date) }} · {{ linesLabel(d.linesCount) }}
+      @if (d.reason) { · {{ reasonLabel[d.reason] }}}
+    </span>
+    <footer class="dp-card__foot">
+      <strong>{{ money(d.total) }}</strong>
+      @if (withPayment()) {<app-status-pill [view]="paymentView(d)" />}
+      @else {<small>كمية {{ int(d.totalQty) }}</small>}
+    </footer>
+  </button>
+</ng-template>
+
+<!-- Page -->
+@if (editing()) {
+<app-page-header [navId]="navId()" [title]="editing() === 'new' ? newLabel() : 'تعديل ' + cfg().singular"
+  [subtitle]="cfg().title" [icon]="cfg().icon">
+  <button type="button" class="ui-btn ui-btn--ghost" (click)="closeEditor()">
+    <app-icon name="list" [size]="16" /> العودة للقائمة
+  </button>
+</app-page-header>
+
+<app-document-editor [kind]="kind()" [docId]="editing()" (closed)="closeEditor()" (saved)="onSaved($event)"
+  (locked)="onLocked($event)" />
+} @else {
+<app-page-header [navId]="navId()">
+  <button type="button" class="refresh-btn" [class.is-spinning]="list.loading()" [disabled]="list.loading()"
+    title="تحديث" aria-label="تحديث القائمة" (click)="refresh()">
+    <app-icon name="refresh" [size]="16" />
+  </button>
+  <button type="button" class="ui-btn ui-btn--ghost" [class.is-loading]="exporting()"
+    [disabled]="exporting() || !list.count()" (click)="export()">
+    <app-icon name="file-lines" [size]="16" /> تصدير CSV
+  </button>
+  <button type="button" class="ui-btn ui-btn--primary" (click)="openNew()">
+    <app-icon name="plus" [size]="16" /> {{ newLabel() }}
+  </button>
+</app-page-header>
+
+<app-summary-tiles [tiles]="tiles()" [refreshing]="stats.loading() && !!stats.value()" />
+
+<app-status-tabs [tabs]="tabs()" [active]="state.query().filters['status']"
+  (activeChange)="state.setFilter('status', $event)" />
+
+<app-list-toolbar [placeholder]="'ابحث بالرقم' + (cfg().party ? ' أو ' + partyLabel() : '') + ' أو المرجع…'"
+  [search]="state.query().search" [view]="state.view()" [sort]="state.query().sort" [sortOptions]="sortOptions()"
+  [count]="list.count()" [activeFilters]="state.activeFilters()" (searchChange)="state.setSearch($event)"
+  (sortChange)="state.setSort($event)" (viewChange)="state.setView($event)" (clearFilters)="state.clearFilters()">
+  <app-filter-select filters label="المخزن" allLabel="كل المخازن" [options]="warehouseOptions()"
+    [value]="state.query().filters['warehouseId']" (valueChange)="state.setFilter('warehouseId', $event)" />
+  @if (cfg().party) {
+  <app-filter-select filters [label]="partyLabel()" [allLabel]="cfg().party === 'supplier' ? 'كل الموردين' : 'كل العملاء'"
+    [options]="partyOptions()" [value]="state.query().filters['partyId']"
+    (valueChange)="state.setFilter('partyId', $event)" />
+  }
+  @if (withPayment()) {
+  <app-filter-select filters label="السداد" allLabel="كل حالات السداد" [options]="paymentOptions"
+    [value]="state.query().filters['payment']" (valueChange)="state.setFilter('payment', $event)" />
+  }
+  @if (kind() === 'sale') {
+  <app-filter-select filters label="المصدر" allLabel="كل المصادر" [options]="channelOptions"
+    [value]="state.query().filters['channel']" (valueChange)="state.setFilter('channel', $event)" />
+  }
+</app-list-toolbar>
+
+<div class="dp-range">
+  <app-date-range [from]="state.query().filters['from'] || null" [to]="state.query().filters['to'] || null"
+    (rangeChange)="setRange($event)" />
+  @if (withPayment()) {
+  <label class="ui-switch dp-overdue">
+    <input type="checkbox" [checked]="state.query().filters['overdue'] === '1'"
+      (change)="state.setFilter('overdue', $any($event.target).checked ? '1' : null)" />
+    <span class="ui-switch__track"></span>
+    المتأخرة عن الاستحقاق فقط
+  </label>
+  }
+</div>
+
+<app-data-table [columns]="columns()" [data]="list.items()" [view]="state.view()" [sort]="state.query().sort"
+  [loading]="list.loading()" [initialLoading]="list.initialLoading()" [error]="list.error()"
+  [skeletonCount]="state.query().pageSize" [cardTemplate]="card" [actionsTemplate]="actions" [emptyIcon]="cfg().icon"
+  [emptyTitle]="'لا توجد ' + cfg().title + ' مطابقة'" emptyText="جرّب تعديل البحث أو الفترة أو الفلاتر."
+  (sortChange)="state.toggleSort($event)" (retry)="list.reload()">
+  <button empty-actions type="button" class="ui-btn ui-btn--primary" (click)="openNew()">
+    <app-icon name="plus" [size]="16" /> {{ newLabel() }}
+  </button>
+</app-data-table>
+
+<app-pagination class="dp-pager" [pageIndex]="state.query().pageIndex" [pageSize]="state.query().pageSize"
+  [count]="list.count()" [totalPages]="list.totalPages()" [pageSizeOptions]="[12, 24, 48, 96]"
+  [disabled]="list.loading()" (pageChange)="state.setPage($event)" (pageSizeChange)="state.setPageSize($event)" />
+}
+
+<app-document-drawer [docId]="viewing() || null" (closed)="state.setParam('view', null)" (changed)="refresh()"
+  (edit)="edit($event)" />

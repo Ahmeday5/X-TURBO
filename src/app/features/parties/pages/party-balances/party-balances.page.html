@@ -1,0 +1,124 @@
+<ng-template #nameCell [appRowOf]="list.items()" let-r>
+  <div class="pb-name">
+    <a [routerLink]="'/customers/statement'" [queryParams]="{ partyId: r.id, to: asOf() || null }"
+      [attr.aria-label]="'كشف حساب ' + r.name">
+      <strong>{{ r.name }}</strong>
+    </a>
+    <div>
+      <span class="ui-code ltr">{{ r.code }}</span>
+      <app-status-pill [view]="kindView[r.kind]" />
+    </div>
+  </div>
+</ng-template>
+
+<ng-template #debitCell [appRowOf]="list.items()" let-r><span class="pb-num">{{ money(r.totalDebit) }}</span></ng-template>
+<ng-template #creditCell [appRowOf]="list.items()" let-r><span class="pb-num">{{ money(r.totalCredit) }}</span></ng-template>
+
+<ng-template #balanceCell [appRowOf]="list.items()" let-r>
+  <div class="pb-balance">
+    <strong class="pb-num" [class]="'pb-num pb-num--' + tone(r.balance)">{{ money(abs(r.balance)) }}</strong>
+    <span [class]="'status-pill status-pill--' + tone(r.balance)">{{ sideLabel(r.balance) }}</span>
+  </div>
+</ng-template>
+
+<ng-template #limitCell [appRowOf]="list.items()" let-r>
+  @if (r.creditLimit > 0) {
+  <div class="pb-limit" [class.is-over]="r.overLimit">
+    <div class="pb-limit__bar"><i [style.width.%]="usage(r) > 100 ? 100 : usage(r)"></i></div>
+    <small>{{ usage(r) }}% من {{ money(r.creditLimit) }}</small>
+  </div>
+  } @else {
+  <small class="pb-muted">بدون حد</small>
+  }
+</ng-template>
+
+<ng-template #lastCell [appRowOf]="list.items()" let-r>
+  <small class="pb-muted">{{ r.lastMovementAt ? day(r.lastMovementAt) : '—' }}</small>
+</ng-template>
+
+<ng-template #actions [appRowOf]="list.items()" let-r>
+  <a class="ui-icon-btn" title="كشف الحساب" [attr.aria-label]="'كشف حساب ' + r.name" routerLink="/customers/statement"
+    [queryParams]="{ partyId: r.id, to: asOf() || null }">
+    <app-icon name="file-lines" [size]="16" />
+  </a>
+</ng-template>
+
+<ng-template #card [appRowOf]="list.items()" let-r>
+  <div class="pb-card">
+    <header>
+      <div>
+        <span class="ui-code ltr">{{ r.code }}</span>
+        <h3>{{ r.name }}</h3>
+      </div>
+      <app-status-pill [view]="kindView[r.kind]" />
+    </header>
+    <dl>
+      <div><dt>مدين</dt><dd>{{ money(r.totalDebit) }}</dd></div>
+      <div><dt>دائن</dt><dd>{{ money(r.totalCredit) }}</dd></div>
+    </dl>
+    <footer [class]="'pb-card__balance pb-card__balance--' + tone(r.balance)">
+      <span>الرصيد</span>
+      <strong>{{ money(abs(r.balance)) }} {{ sideLabel(r.balance) }}</strong>
+    </footer>
+    @if (r.creditLimit > 0) {
+    <div class="pb-limit" [class.is-over]="r.overLimit">
+      <div class="pb-limit__bar"><i [style.width.%]="usage(r) > 100 ? 100 : usage(r)"></i></div>
+      <small>{{ usage(r) }}% من حد {{ money(r.creditLimit) }}</small>
+    </div>
+    }
+  </div>
+</ng-template>
+
+<!-- Page -->
+<app-page-header [navId]="navId()">
+  <button type="button" class="refresh-btn" [class.is-spinning]="list.loading()" [disabled]="list.loading()"
+    title="تحديث" aria-label="تحديث الأرصدة" (click)="refresh()">
+    <app-icon name="refresh" [size]="16" />
+  </button>
+  <button type="button" class="ui-btn ui-btn--ghost" [class.is-loading]="exporting()"
+    [disabled]="exporting() || !list.count()" (click)="export()">
+    <app-icon name="file-lines" [size]="16" /> تصدير CSV
+  </button>
+</app-page-header>
+
+<div class="pb-asof panel">
+  <label class="ui-field">
+    <span class="ui-label">الأرصدة في تاريخ</span>
+    <input type="date" class="ui-input" [value]="asOf() || today" [max]="today"
+      (change)="setAsOf($any($event.target).value)" />
+  </label>
+  <p>
+    <app-icon name="clock" [size]="13" />
+    {{ asOf() && asOf() !== today ? 'الأرصدة كما كانت في نهاية ' + day(asOf()) : 'الأرصدة حتى اليوم' }}
+  </p>
+</div>
+
+<app-summary-tiles [tiles]="tiles()" [refreshing]="summary.loading() && !!summary.value()" />
+
+<app-list-toolbar placeholder="ابحث بالاسم أو الكود أو الهاتف…" [search]="state.query().search" [view]="state.view()"
+  [sort]="state.query().sort" [sortOptions]="sortOptions" [count]="list.count()" [activeFilters]="state.activeFilters()"
+  (searchChange)="state.setSearch($event)" (sortChange)="state.setSort($event)" (viewChange)="state.setView($event)"
+  (clearFilters)="state.clearFilters()">
+  <app-filter-select filters label="النوع" allLabel="كل الأنواع" [options]="kindOptions"
+    [value]="state.query().filters['kind']" (valueChange)="state.setFilter('kind', $event)" />
+  <app-filter-select filters label="طبيعة الرصيد" allLabel="مدين ودائن" [options]="sideOptions"
+    [value]="state.query().filters['side']" (valueChange)="state.setFilter('side', $event)" />
+  <label filters class="ui-switch pb-switch">
+    <input type="checkbox" [checked]="!!state.query().filters['hideZero']" (change)="toggle('hideZero')" />
+    <span class="ui-switch__track"></span> إخفاء الأرصدة الصفرية
+  </label>
+  <label filters class="ui-switch pb-switch">
+    <input type="checkbox" [checked]="!!state.query().filters['overLimit']" (change)="toggle('overLimit')" />
+    <span class="ui-switch__track"></span> تجاوز الحد فقط
+  </label>
+</app-list-toolbar>
+
+<app-data-table [columns]="columns()" [data]="list.items()" [view]="state.view()" [sort]="state.query().sort"
+  [loading]="list.loading()" [initialLoading]="list.initialLoading()" [error]="list.error()"
+  [skeletonCount]="10" [cardTemplate]="card" [actionsTemplate]="actions" emptyIcon="scale"
+  emptyTitle="لا توجد أرصدة مطابقة" emptyText="جرّب تغيير التاريخ أو الفلاتر." (sortChange)="state.toggleSort($event)"
+  (retry)="list.reload()" />
+
+<app-pagination class="pb-pager" [pageIndex]="state.query().pageIndex" [pageSize]="state.query().pageSize"
+  [count]="list.count()" [totalPages]="list.totalPages()" [pageSizeOptions]="[25, 50, 100]"
+  [disabled]="list.loading()" (pageChange)="state.setPage($event)" (pageSizeChange)="state.setPageSize($event)" />

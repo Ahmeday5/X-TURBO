@@ -37,11 +37,21 @@ export const DEMO_USERS: readonly MockUser[] = [
   },
 ];
 
+/**
+ * Live login directory. Defaults to DEMO_USERS; the admin users store
+ * (`db/users.db.ts`) replaces it so created / edited / suspended users apply.
+ */
+let directory: () => readonly MockUser[] = () => DEMO_USERS;
+
+export function setMockUserDirectory(source: () => readonly MockUser[]): void {
+  directory = source;
+}
+
 export function findUserByEmail(email: string): MockUser | undefined {
   const needle = email.trim().toLowerCase();
-  return DEMO_USERS.find((u) => u.email.toLowerCase() === needle);
+  return directory().find((u) => u.email.toLowerCase() === needle);
 }
 
 export function findUserById(id: string): MockUser | undefined {
-  return DEMO_USERS.find((u) => u.id === id);
+  return directory().find((u) => u.id === id);
 }

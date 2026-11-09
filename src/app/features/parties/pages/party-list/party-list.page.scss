@@ -1,0 +1,65 @@
+:host {
+  display: block;
+}
+
+.pl-name {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  white-space: normal;
+  text-align: start;
+
+  div {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+  strong {
+    font-weight: 600;
+    color: var(--txt);
+  }
+  small {
+    font-size: 11px;
+    color: var(--txt3);
+  }
+}
+
+.pl-stack {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+
+  small {
+    font-size: 10.5px;
+    color: var(--txt3);
+  }
+}
+
+.pl-balance {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+
+  strong {
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+  small {
+    font-size: 10.5px;
+    color: var(--txt3);
+  }
+  &--info strong {
+    color: var(--bl);
+  }
+  &--warning strong {
+    color: var(--am);
+  }
+}
+
+.pl-pager {
+  display: block;
+  margin-top: 14px;
+}

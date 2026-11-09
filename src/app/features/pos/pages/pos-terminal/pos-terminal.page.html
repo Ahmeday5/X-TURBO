@@ -1,0 +1,256 @@
+<app-page-header [navId]="navId()"
+  [subtitle]="warehouse() ? 'البيع من ' + warehouse()!.name + ' — F2 للبحث، F9 لإتمام البيع' : ''">
+  <button type="button" class="ui-btn ui-btn--ghost" [disabled]="!held.list().length" (click)="heldOpen.set(true)">
+    <app-icon name="clock" [size]="16" /> المعلّقة
+    @if (held.list().length) {<span class="pt-badge">{{ held.list().length }}</span>}
+  </button>
+</app-page-header>
+
+<div class="pt">
+  <!-- ═══ Catalogue ═══ -->
+  <section class="pt-cat panel">
+    <div class="pt-search">
+      <app-icon name="barcode" [size]="18" />
+      <input #search class="ui-input" type="search" [ngModel]="term()" (ngModelChange)="term.set($event)"
+        (keydown)="onSearchKey($event)" placeholder="امسح الباركود أو ابحث بالاسم أو الكود…" aria-label="بحث الأصناف"
+        autocomplete="off" />
+      <kbd class="pt-kbd ltr">F2</kbd>
+    </div>
+
+    <div class="pt-chips" role="group" aria-label="المجموعات">
+      <button type="button" class="pt-chip" [attr.aria-pressed]="!groupId()" (click)="groupId.set(null)">الكل</button>
+      @for (g of groups(); track g.id) {
+      <button type="button" class="pt-chip" [style.--chip]="g.color" [attr.aria-pressed]="groupId() === g.id"
+        (click)="groupId.set(groupId() === g.id ? null : g.id)">
+        <span class="pt-chip__dot"></span>{{ g.name }}
+      </button>
+      }
+    </div>
+
+    @if (items.error()) {
+    <div class="page-state">
+      <app-icon name="alert" [size]="22" />
+      <p>{{ items.error() }}</p>
+      <button type="button" class="ui-btn ui-btn--ghost" (click)="items.reload()">إعادة المحاولة</button>
+    </div>
+    } @else if (!items.value()) {
+    <div class="pt-grid">
+      @for (s of [1, 2, 3, 4, 5, 6, 7, 8]; track s) {<div class="skeleton pt-skel"></div>}
+    </div>
+    } @else if (!visibleItems().length) {
+    <div class="page-state">
+      <app-icon name="search" [size]="22" />
+      <p>لا توجد أصناف مطابقة</p>
+    </div>
+    } @else {
+    <div class="pt-grid" [class.is-refreshing]="items.loading()">
+      @for (i of visibleItems(); track i.id) {
+      <button type="button" class="pt-item" [style.--chip]="i.groupColor" [disabled]="i.available <= 0"
+        [class.is-low]="i.available > 0 && i.available <= i.minStock / 5" (click)="add(i)"
+        [attr.aria-label]="'إضافة ' + i.name">
+        @if (inCart(i.id)) {<span class="pt-item__qty">{{ inCart(i.id) }}</span>}
+        <span class="pt-item__group">{{ i.groupName }}</span>
+        <span class="pt-item__name">{{ i.name }}</span>
+        <span class="pt-item__code ltr">{{ i.code }}</span>
+        <span class="pt-item__foot">
+          <strong>{{ money(i.salePrice) }}</strong>
+          <small>{{ i.available > 0 ? 'متاح ' + i.available : 'نفد' }}</small>
+        </span>
+      </button>
+      }
+    </div>
+    }
+  </section>
+
+  <!-- ═══ Cart ═══ -->
+  <aside class="pt-cart panel">
+    <header class="pt-cart__head">
+      <div>
+        <h2 class="panel__title">الفاتورة الحالية</h2>
+        <p class="panel__sub">{{ cart().length ? itemsLabel(cart().length) + ' — ' + itemCount() + ' قطعة' : 'أضف أصنافًا من القائمة' }}</p>
+      </div>
+      <div class="pt-cart__tools">
+        <button type="button" class="ui-icon-btn" title="تعليق الفاتورة" aria-label="تعليق الفاتورة" [disabled]="!cart().length"
+          (click)="holdCart()"><app-icon name="clock" [size]="16" /></button>
+        <button type="button" class="ui-icon-btn ui-icon-btn--danger" title="تفريغ السلة" aria-label="تفريغ السلة"
+          [disabled]="!cart().length" (click)="clearCart()"><app-icon name="trash" [size]="16" /></button>
+      </div>
+    </header>
+
+    <!-- Customer -->
+    <div class="pt-customer">
+      <app-searchable-select class="pt-customer__select" [options]="customerOptions()" placeholder="عميل نقدي"
+        searchPlaceholder="ابحث بالاسم أو الموبايل…" [ngModel]="customerId()" (ngModelChange)="customerId.set($event ?? '')" />
+      <button type="button" class="ui-icon-btn" title="عميل جديد" aria-label="عميل جديد" (click)="openQuick()">
+        <app-icon name="user-plus" [size]="16" />
+      </button>
+    </div>
+    @if (customer(); as c) {
+    <p class="pt-customer__info">
+      <span class="ltr">{{ c.phone }}</span>
+      @if (c.balance > 0) {<span class="pt-due">مديونية {{ money(c.balance) }}</span>}
+    </p>
+    }
+
+    <!-- Lines -->
+    <div class="pt-lines">
+      @for (l of cart(); track l.itemId) {
+      <div class="pt-line" [class.is-over]="l.qty > l.available">
+        <div class="pt-line__top">
+          <span class="pt-line__name">{{ l.name }}</span>
+          <button type="button" class="pt-line__x" [attr.aria-label]="'حذف ' + l.name" (click)="removeLine(l)">
+            <app-icon name="x" [size]="14" />
+          </button>
+        </div>
+        <div class="pt-line__row">
+          <div class="pt-step">
+            <button type="button" aria-label="تقليل" (click)="setQty(l, l.qty - 1)">−</button>
+            <input type="number" min="1" [max]="l.available" [ngModel]="l.qty" (ngModelChange)="setQty(l, $event)"
+              aria-label="الكمية" />
+            <button type="button" aria-label="زيادة" [disabled]="l.qty >= l.available" (click)="setQty(l, l.qty + 1)">+</button>
+          </div>
+          <span class="pt-line__price">× {{ money(l.price) }}</span>
+          @if (allowDiscount()) {
+          <label class="pt-line__disc" title="خصم السطر">
+            <input type="number" min="0" [max]="maxDiscount()" [ngModel]="l.discountPct"
+              (ngModelChange)="setLineDiscount(l, $event)" aria-label="نسبة خصم السطر" />%
+          </label>
+          }
+          <strong class="pt-line__total">{{ money(lineTotal(l.qty, l.price, l.discountPct)) }}</strong>
+        </div>
+      </div>
+      } @empty {
+      <div class="pt-empty">
+        <app-icon name="cart" [size]="28" />
+        <span>السلة فارغة — امسح باركود أو اختر صنفًا</span>
+      </div>
+      }
+    </div>
+
+    <!-- Totals -->
+    <div class="pt-totals">
+      <div><span>الإجمالي</span><span>{{ money(totals().subtotal) }}</span></div>
+      @if (allowDiscount()) {
+      <div class="pt-totals__input">
+        <span>خصم الفاتورة</span>
+        <div class="ui-affix">
+          <input class="ui-input" type="number" min="0" [ngModel]="discount()" (ngModelChange)="setDiscount($event)"
+            aria-label="خصم الفاتورة" />
+          <span class="ui-affix__text">ج.م</span>
+        </div>
+      </div>
+      }
+      <div class="pt-totals__input">
+        <span>ضريبة القيمة المضافة</span>
+        <div class="ui-affix">
+          <input class="ui-input" type="number" min="0" max="100" [ngModel]="effectiveTax()"
+            (ngModelChange)="taxPct.set($event === null || $event === '' ? null : +$event)" aria-label="نسبة الضريبة" />
+          <span class="ui-affix__text">%</span>
+        </div>
+      </div>
+      @if (totals().tax) {<div><span>قيمة الضريبة</span><span>{{ money(totals().tax) }}</span></div>}
+      <div class="pt-grand"><span>الصافي</span><strong>{{ money(totals().total) }}</strong></div>
+    </div>
+
+    <!-- Payment -->
+    <div class="pt-pay">
+      <div class="pt-methods" role="radiogroup" aria-label="طريقة الدفع">
+        @for (m of methods(); track m) {
+        <button type="button" role="radio" class="pt-method" [attr.aria-checked]="method() === m" (click)="selectMethod(m)">
+          {{ methodLabel[m] }}
+        </button>
+        }
+      </div>
+
+      @if (method() === 'cash' || method() === 'credit') {
+      <div class="pt-tender">
+        <label class="ui-field">
+          <span class="ui-label">{{ method() === 'cash' ? 'المبلغ المستلم' : 'دفعة مقدمة (اختياري)' }}</span>
+          <div class="ui-affix">
+            <input class="ui-input" type="number" min="0" [value]="tendered() ?? ''"
+              (input)="setTendered($any($event.target).value)" [placeholder]="method() === 'cash' ? money(totals().total) : '0'" />
+            <span class="ui-affix__text">ج.م</span>
+          </div>
+        </label>
+        @if (method() === 'cash') {
+        <div class="pt-notes">
+          @for (n of quickTender(); track n) {
+          <button type="button" class="ui-btn ui-btn--ghost ui-btn--sm" (click)="tendered.set(n)">{{ money(n) }}</button>
+          }
+        </div>
+        }
+        @if (change()) {<div class="pt-change"><span>الباقي للعميل</span><strong>{{ money(change()) }}</strong></div>}
+        @if (method() === 'credit' && cart().length) {
+        <div class="pt-change pt-change--due"><span>يُسجَّل آجلًا</span><strong>{{ money(shortfall()) }}</strong></div>
+        }
+      </div>
+      }
+
+      @if (problems().length) {
+      <p class="pt-warn"><app-icon name="alert" [size]="14" /> {{ problems()[0] }}</p>
+      }
+
+      <button type="button" class="ui-btn ui-btn--primary pt-checkout" [class.is-loading]="checkingOut()"
+        [disabled]="!canCheckout()" (click)="checkout()">
+        <app-icon name="check" [size]="18" /> إتمام البيع {{ cart().length ? '— ' + money(totals().total) : '' }}
+        <kbd class="pt-kbd pt-kbd--on ltr">F9</kbd>
+      </button>
+    </div>
+  </aside>
+</div>
+
+<!-- Quick customer -->
+<app-modal [open]="quickOpen()" title="تسجيل عميل جديد" size="sm" (closed)="quickOpen.set(false)">
+  <form id="quick-customer" class="pt-quick" (ngSubmit)="saveQuick()">
+    <label class="ui-field">
+      <span class="ui-label is-required">الاسم</span>
+      <input class="ui-input" name="name" [ngModel]="quickName()" (ngModelChange)="quickName.set($event)" />
+    </label>
+    <label class="ui-field">
+      <span class="ui-label is-required">الموبايل</span>
+      <input class="ui-input ltr" name="phone" inputmode="tel" placeholder="01xxxxxxxxx" [ngModel]="quickPhone()"
+        (ngModelChange)="quickPhone.set($event)" />
+      @if (quickPhone() && !quickPhoneValid()) {<span class="pt-err">رقم موبايل مصري غير صحيح</span>}
+    </label>
+    <p class="ui-hint">يُسجَّل كعميل خارجي ويمكن استكمال بياناته لاحقًا.</p>
+  </form>
+  <div modal-footer>
+    <button type="button" class="ui-btn ui-btn--ghost" (click)="quickOpen.set(false)">إلغاء</button>
+    <button type="submit" form="quick-customer" class="ui-btn ui-btn--primary" [class.is-loading]="quickSaving()"
+      [disabled]="quickSaving() || quickName().trim().length < 2 || !quickPhoneValid()">
+      <app-icon name="check" [size]="16" /> تسجيل واختيار
+    </button>
+  </div>
+</app-modal>
+
+<!-- Held carts -->
+<app-modal [open]="heldOpen()" title="الفواتير المعلّقة" size="md" (closed)="heldOpen.set(false)">
+  <div class="pt-held">
+    @for (h of held.list(); track h.id) {
+    <div class="pt-held__row">
+      <div>
+        <strong>{{ h.customer?.name ?? 'عميل نقدي' }}</strong>
+        <small>{{ itemsLabel(h.lines.length) }} — {{ relative(h.at) }}</small>
+      </div>
+      <strong class="pt-held__total">{{ money(heldTotal(h.lines, h.discount)) }}</strong>
+      <button type="button" class="ui-btn ui-btn--primary ui-btn--sm" (click)="resume(h.id)">استئناف</button>
+      <button type="button" class="ui-icon-btn ui-icon-btn--danger" aria-label="حذف" (click)="held.remove(h.id)">
+        <app-icon name="trash" [size]="15" />
+      </button>
+    </div>
+    } @empty {
+    <p class="ui-hint">لا توجد فواتير معلّقة.</p>
+    }
+  </div>
+</app-modal>
+
+<!-- Receipt -->
+<app-modal [open]="!!receipt()" title="تم البيع بنجاح" titleColorClass="pt-ok" size="sm" (closed)="closeReceipt()">
+  @if (receipt(); as r) {
+  <div class="pt-receipt"><app-pos-receipt #receiptView [data]="r" /></div>
+  }
+  <div modal-footer>
+    <button type="button" class="ui-btn ui-btn--ghost" (click)="printReceipt()"><app-icon name="receipt" [size]="16" /> طباعة</button>
+    <button type="button" class="ui-btn ui-btn--primary" (click)="closeReceipt()"><app-icon name="plus" [size]="16" /> بيع جديد</button>
+  </div>
+</app-modal>

@@ -1,0 +1,96 @@
+<!-- Cell / card templates -->
+<ng-template #itemCell [appRowOf]="list.items()" let-r>
+  <button type="button" class="sp-item" (click)="open(r)" [attr.aria-label]="'أرصدة ' + r.itemName">
+    <span class="ui-code ltr">{{ r.itemCode }}</span>
+    <strong>{{ r.itemName }}</strong>
+    <span class="ui-chip" [style.--chip]="r.groupColor">{{ r.groupName }}</span>
+  </button>
+</ng-template>
+
+<ng-template #qtyCell [appRowOf]="list.items()" let-r>
+  <app-stock-meter [stock]="r.qty" [minStock]="r.minStock" />
+</ng-template>
+
+<ng-template #availCell [appRowOf]="list.items()" let-r>
+  <div class="sp-avail">
+    <strong>{{ qty(r.available) }}</strong>
+    @if (r.reserved) {<small>محجوز {{ qty(r.reserved) }}</small>}
+  </div>
+</ng-template>
+
+<ng-template #valueCell [appRowOf]="list.items()" let-r>
+  <div class="sp-value">
+    <strong>{{ money(r.value) }}</strong>
+    <small>{{ money(r.cost) }} / {{ r.unit }}</small>
+  </div>
+</ng-template>
+
+<ng-template #moveCell [appRowOf]="list.items()" let-r>
+  <span class="sp-move">{{ r.lastMovementAt ? relative(r.lastMovementAt) : '—' }}</span>
+</ng-template>
+
+<ng-template #actions [appRowOf]="list.items()" let-r>
+  <button type="button" class="ui-icon-btn" title="التفاصيل" [attr.aria-label]="'تفاصيل ' + r.itemName" (click)="open(r)">
+    <app-icon name="eye" [size]="16" />
+  </button>
+</ng-template>
+
+<ng-template #card [appRowOf]="list.items()" let-r>
+  <button type="button" class="sp-card" (click)="open(r)">
+    <header>
+      <span class="ui-code ltr">{{ r.itemCode }}</span>
+      <span class="ui-chip" [style.--chip]="r.groupColor">{{ r.groupName }}</span>
+    </header>
+    <strong class="sp-card__name">{{ r.itemName }}</strong>
+    <small class="sp-card__wh"><app-icon name="warehouse" [size]="12" /> {{ r.warehouseName }}</small>
+    <div class="sp-card__stats">
+      <div><small>الرصيد · {{ r.unit }}</small><app-stock-meter [stock]="r.qty" [minStock]="r.minStock" /></div>
+      <div><small>المتاح</small><strong>{{ qty(r.available) }}</strong></div>
+      <div><small>القيمة</small><strong>{{ money(r.value) }}</strong></div>
+    </div>
+  </button>
+</ng-template>
+
+<!-- Page -->
+<app-page-header [navId]="navId()">
+  <button type="button" class="refresh-btn" [class.is-spinning]="list.loading()" [disabled]="list.loading()" title="تحديث"
+    aria-label="تحديث الأرصدة" (click)="reload()">
+    <app-icon name="refresh" [size]="16" />
+  </button>
+  <button type="button" class="ui-btn ui-btn--ghost" [class.is-loading]="exporting()" [disabled]="exporting() || !list.count()"
+    (click)="export()">
+    <app-icon name="file-lines" [size]="16" /> تصدير CSV
+  </button>
+  <a class="ui-btn ui-btn--primary" routerLink="/invoices/transfers" [queryParams]="{ doc: 'new' }">
+    <app-icon name="swap" [size]="16" /> تحويل مخزني
+  </a>
+</app-page-header>
+
+<app-summary-tiles [tiles]="tiles()" [refreshing]="summary.loading() && !!summary.value()" />
+
+<app-status-tabs label="تصفية حسب المخزن" [tabs]="warehouseTabs()" [active]="state.query().filters['warehouseId']"
+  (activeChange)="state.setFilter('warehouseId', $event)" />
+
+<app-list-toolbar placeholder="ابحث باسم الصنف أو الكود أو المجموعة…" [search]="state.query().search" [view]="state.view()"
+  [sort]="state.query().sort" [sortOptions]="sortOptions" [count]="list.count()" [activeFilters]="state.activeFilters()"
+  (searchChange)="state.setSearch($event)" (sortChange)="state.setSort($event)" (viewChange)="state.setView($event)"
+  (clearFilters)="state.clearFilters()">
+  <app-filter-select filters label="المجموعة" allLabel="كل المجموعات" [options]="groupOptions()"
+    [value]="state.query().filters['groupId']" (valueChange)="state.setFilter('groupId', $event)" />
+  <app-filter-select filters label="مستوى الرصيد" allLabel="كل المستويات" [options]="levelOptions"
+    [value]="state.query().filters['level']" (valueChange)="state.setFilter('level', $event)" />
+  <app-filter-select filters label="الحجوزات" allLabel="كل الأصناف" [options]="reservedOptions"
+    [value]="state.query().filters['reserved']" (valueChange)="state.setFilter('reserved', $event)" />
+</app-list-toolbar>
+
+<app-data-table [columns]="columns()" [data]="list.items()" [view]="state.view()" [sort]="state.query().sort"
+  [loading]="list.loading()" [initialLoading]="list.initialLoading()" [error]="list.error()"
+  [skeletonCount]="state.query().pageSize" [cardTemplate]="card" [actionsTemplate]="actions" emptyIcon="layers"
+  emptyTitle="لا توجد أرصدة مطابقة" emptyText="جرّب تعديل البحث أو الفلاتر."
+  (sortChange)="state.toggleSort($event)" (retry)="list.reload()" />
+
+<app-pagination class="sp-pager" [pageIndex]="state.query().pageIndex" [pageSize]="state.query().pageSize"
+  [count]="list.count()" [totalPages]="list.totalPages()" [pageSizeOptions]="[20, 50, 100]" [disabled]="list.loading()"
+  (pageChange)="state.setPage($event)" (pageSizeChange)="state.setPageSize($event)" />
+
+<app-item-stock-drawer [itemId]="openItem() || null" (closed)="closeDrawer()" />

@@ -1,0 +1,249 @@
+<form class="fp fp--aside-last ve" [formGroup]="form" (ngSubmit)="submit(true)" [class.is-loading]="loading()" novalidate>
+  <div class="fp__main">
+    <!-- Header -->
+    <section class="fp__section" style="--i: 0">
+      <header class="fp__section-head">
+        <span class="fp__section-icon"><app-icon [name]="icon()" [size]="17" /></span>
+        <div>
+          <h2>{{ title() }}</h2>
+          <p>
+            @if (current(); as v) {<span class="ltr">{{ v.number }}</span> · مسودة}
+            @else {يُرقَّم تلقائيًا عند الحفظ}
+          </p>
+        </div>
+      </header>
+
+      <div class="fp__grid fp__grid--4">
+        <label class="ui-field">
+          <span class="ui-label is-required">التاريخ</span>
+          <input class="ui-input" type="date" formControlName="date" />
+          <app-form-error [control]="form.controls.date" label="التاريخ" />
+        </label>
+
+        <label class="ui-field">
+          <span class="ui-label">المرجع</span>
+          <input class="ui-input" formControlName="reference"
+            [placeholder]="isJournal() ? 'رقم المستند الأصلي…' : 'رقم الشيك أو التحويل…'" />
+        </label>
+
+        <label class="ui-field fp__span-2">
+          <span class="ui-label" [class.is-required]="isJournal()">البيان</span>
+          <input class="ui-input" formControlName="description"
+            [placeholder]="isJournal() ? 'مثال: إثبات فاتورة الكهرباء لشهر أكتوبر' : (kind() === 'receipt' ? 'مثال: تحصيل دفعة من حساب العميل' : 'مثال: سداد إيجار الفرع')" />
+          @if (submitted() && isJournal() && !form.controls.description.value.trim()) {
+          <span class="ve__err">بيان القيد مطلوب</span>
+          }
+        </label>
+      </div>
+    </section>
+
+    @if (!isJournal()) {
+    <!-- Receipt / payment -->
+    <section class="fp__section" style="--i: 1">
+      <header class="fp__section-head">
+        <span class="fp__section-icon"><app-icon name="users" [size]="17" /></span>
+        <div>
+          <h2>{{ cfg().partyLabel }}</h2>
+          <p>{{ kind() === 'receipt' ? 'الجهة التي استلمنا منها المبلغ' : 'الجهة التي صُرف إليها المبلغ' }}</p>
+        </div>
+      </header>
+
+      <div class="seg ve__seg" role="radiogroup" aria-label="نوع الجهة">
+        <button type="button" class="seg__btn" role="radio" [attr.aria-pressed]="form.controls.counterpartyType.value === 'party'"
+          [attr.aria-checked]="form.controls.counterpartyType.value === 'party'" (click)="setCounterpartyType('party')">
+          <app-icon name="users" [size]="14" /> عميل / مورد
+        </button>
+        <button type="button" class="seg__btn" role="radio" [attr.aria-pressed]="form.controls.counterpartyType.value === 'account'"
+          [attr.aria-checked]="form.controls.counterpartyType.value === 'account'" (click)="setCounterpartyType('account')">
+          <app-icon name="sitemap" [size]="14" /> حساب ({{ kind() === 'receipt' ? 'إيراد، سلفة…' : 'مصروف، سلفة…' }})
+        </button>
+      </div>
+
+      <div class="fp__grid">
+        @if (form.controls.counterpartyType.value === 'party') {
+        <div class="ui-field fp__span-2">
+          <span class="ui-label is-required">الجهة</span>
+          <app-searchable-select formControlName="partyId" [options]="lookups.partyOptions()" placeholder="اختر العميل أو المورد"
+            searchPlaceholder="ابحث بالاسم أو الكود…" />
+          @if (submitted() && !form.controls.partyId.value) {<span class="ve__err">حدد الجهة</span>}
+          @if (party(); as p) {
+          <span class="ui-hint">الرصيد الحالي:
+            <strong [class.ve__debit]="p.balance > 0" [class.ve__credit]="p.balance < 0">{{ money(abs(p.balance)) }}</strong>
+            {{ p.balance > 0 ? 'مدين — مستحق لنا' : p.balance < 0 ? 'دائن — مستحق له' : '' }}
+          </span>
+          }
+        </div>
+        } @else {
+        <div class="ui-field fp__span-2">
+          <span class="ui-label is-required">الحساب المقابل</span>
+          <app-searchable-select formControlName="accountId" [options]="lookups.accountOptions()" placeholder="اختر الحساب"
+            searchPlaceholder="ابحث بالكود أو الاسم…" />
+          @if (submitted() && !form.controls.accountId.value) {<span class="ve__err">الحساب المقابل مطلوب</span>}
+        </div>
+        }
+      </div>
+    </section>
+
+    <section class="fp__section" style="--i: 2">
+      <header class="fp__section-head">
+        <span class="fp__section-icon"><app-icon name="wallet" [size]="17" /></span>
+        <div>
+          <h2>المبلغ والسداد</h2>
+          <p>الخزينة أو الحساب البنكي الذي {{ kind() === 'receipt' ? 'يدخل إليه' : 'يخرج منه' }} المبلغ</p>
+        </div>
+      </header>
+
+      <div class="fp__grid fp__grid--4">
+        <label class="ui-field">
+          <span class="ui-label is-required">المبلغ</span>
+          <div class="ui-affix">
+            <input class="ui-input ve__amount" type="number" min="0" step="0.01" formControlName="amount" placeholder="0.00" />
+            <span class="ui-affix__text">ج.م</span>
+          </div>
+          @if (submitted() && !(amount() > 0)) {<span class="ve__err">أدخل مبلغًا أكبر من صفر</span>}
+        </label>
+
+        <div class="ui-field">
+          <span class="ui-label is-required">{{ cashLabel() }}</span>
+          <app-searchable-select formControlName="cashAccountId" [options]="cashOptions()" placeholder="اختر الخزينة"
+            searchPlaceholder="بحث…" />
+          @if (submitted() && !form.controls.cashAccountId.value) {<span class="ve__err">الخزينة مطلوبة</span>}
+        </div>
+
+        <label class="ui-field">
+          <span class="ui-label">طريقة {{ kind() === 'receipt' ? 'القبض' : 'الصرف' }}</span>
+          <select class="ui-input" formControlName="method">
+            @for (m of methods; track m) {<option [value]="m">{{ methodLabel[m] }}</option>}
+          </select>
+        </label>
+
+        <div class="ui-field">
+          <span class="ui-label" [class.is-required]="counterAccount()?.costCenterRequired">مركز التكلفة</span>
+          <app-searchable-select formControlName="costCenterId" [options]="centerOptions()" placeholder="بدون مركز تكلفة"
+            searchPlaceholder="ابحث في المراكز…" />
+          @if (needsCenter() && submitted()) {<span class="ve__err">هذا الحساب يتطلب مركز تكلفة</span>}
+        </div>
+      </div>
+    </section>
+    } @else {
+    <!-- Journal lines -->
+    <section class="fp__section" style="--i: 1">
+      <header class="fp__section-head">
+        <span class="fp__section-icon"><app-icon name="layers" [size]="17" /></span>
+        <div>
+          <h2>أسطر القيد</h2>
+          <p>{{ linesLabel() }} · سطر لكل حساب، بمبلغ مدين أو دائن</p>
+        </div>
+      </header>
+
+      <div class="ve-lines" formArrayName="lines">
+        <div class="ve-lines__head" aria-hidden="true">
+          <span>#</span><span>الحساب</span><span>مركز التكلفة</span><span>البيان</span><span>مدين</span><span>دائن</span><span></span>
+        </div>
+
+        @for (g of lines.controls; track g; let i = $index) {
+        <div class="ve-line" [formGroupName]="i" [class.is-invalid]="(submitted() || g.dirty) && lineIssues().has(i)">
+          <span class="ve-line__idx">{{ i + 1 }}</span>
+          <div class="ve-line__acc">
+            <app-searchable-select formControlName="accountId" [options]="lookups.allAccountOptions()" placeholder="اختر الحساب"
+              searchPlaceholder="ابحث بالكود أو الاسم…" />
+          </div>
+          <div class="ve-line__cc">
+            <app-searchable-select formControlName="costCenterId" [options]="centerOptions()"
+              [placeholder]="requiresCenter(g.controls.accountId.value) ? 'مطلوب' : '—'" searchPlaceholder="بحث…" />
+          </div>
+          <input class="ui-input ve-line__note" formControlName="note" placeholder="بيان السطر" [attr.aria-label]="'بيان السطر ' + (i + 1)" />
+          <input class="ui-input ve-line__num" type="number" min="0" step="0.01" formControlName="debit" placeholder="مدين"
+            [attr.aria-label]="'مدين السطر ' + (i + 1)" (input)="onAmount(i, 'debit')" />
+          <input class="ui-input ve-line__num" type="number" min="0" step="0.01" formControlName="credit" placeholder="دائن"
+            [attr.aria-label]="'دائن السطر ' + (i + 1)" (input)="onAmount(i, 'credit')" />
+          <div class="ve-line__acts">
+            @if (totals().diff !== 0) {
+            <button type="button" class="ui-icon-btn" title="وازن القيد على هذا السطر" [attr.aria-label]="'موازنة على السطر ' + (i + 1)"
+              (click)="balanceOn(i)">
+              <app-icon name="scale" [size]="15" />
+            </button>
+            }
+            <button type="button" class="ui-icon-btn ui-icon-btn--danger" title="حذف السطر" [attr.aria-label]="'حذف السطر ' + (i + 1)"
+              [disabled]="lines.length <= 2" (click)="removeLine(i)">
+              <app-icon name="trash" [size]="15" />
+            </button>
+          </div>
+          @if ((submitted() || g.dirty) && lineIssues().get(i); as issue) {
+          <span class="ve-line__err"><app-icon name="alert" [size]="12" /> {{ issue }}</span>
+          }
+        </div>
+        }
+
+        <div class="ve-lines__foot">
+          <button type="button" class="ui-btn ui-btn--ghost ui-btn--sm" (click)="addLine()">
+            <app-icon name="plus" [size]="15" /> إضافة سطر
+          </button>
+          <div class="ve-lines__sum">
+            <span>الإجمالي</span>
+            <strong>{{ money(totals().debit) }}</strong>
+            <strong>{{ money(totals().credit) }}</strong>
+          </div>
+        </div>
+      </div>
+    </section>
+    }
+  </div>
+
+  <!-- Summary -->
+  <aside class="fp__aside">
+    <div class="fp__preview ve__sum">
+      <span class="fp__preview-label"><app-icon name="calculator" [size]="14" /> الملخص</span>
+
+      @if (isJournal()) {
+      <dl class="ve__dl">
+        <div><dt>إجمالي المدين</dt><dd>{{ money(totals().debit) }}</dd></div>
+        <div><dt>إجمالي الدائن</dt><dd>{{ money(totals().credit) }}</dd></div>
+        <div class="ve__grand" [class.is-off]="!balanced()">
+          <dt>الفرق</dt>
+          <dd>{{ money(abs(totals().diff)) }}</dd>
+        </div>
+      </dl>
+      @if (balanced() && !journalProblem()) {
+      <p class="ve__ok"><app-icon name="check" [size]="15" /> القيد متزن وجاهز للحفظ</p>
+      } @else {
+      <p class="ve__warn"><app-icon name="alert" [size]="15" /> {{ journalProblem() }}
+        @if (totals().diff > 0) { (المدين أكبر)} @else if (totals().diff < 0) { (الدائن أكبر)}
+      </p>
+      }
+      } @else {
+      <div class="ve__big">
+        <small>{{ cfg().singular }}</small>
+        <strong>{{ money(amount()) }}</strong>
+        <span>{{ methodLabel[form.controls.method.value] }}</span>
+      </div>
+
+      <div class="ve__entry">
+        <span class="ve__entry-h">القيد المحاسبي الناتج</span>
+        <div class="ve__entry-row">
+          <span class="ve__side ve__side--dr">من</span>
+          <span>{{ kind() === 'receipt' ? (cashAccount()?.name ?? 'الخزينة') : (counterpartyLabel() ?? 'الحساب المقابل') }}</span>
+          <strong>{{ money(amount()) }}</strong>
+        </div>
+        <div class="ve__entry-row">
+          <span class="ve__side ve__side--cr">إلى</span>
+          <span>{{ kind() === 'receipt' ? (counterpartyLabel() ?? 'الحساب المقابل') : (cashAccount()?.name ?? 'الخزينة') }}</span>
+          <strong>{{ money(amount()) }}</strong>
+        </div>
+      </div>
+      }
+    </div>
+  </aside>
+
+  <footer class="fp__actions">
+    <button type="button" class="ui-btn ui-btn--ghost" (click)="closed.emit()">إلغاء</button>
+    <button type="button" class="ui-btn ui-btn--ghost" [class.is-loading]="saving() === 'draft'"
+      [disabled]="!!saving() || (isJournal() && !!journalProblem())" (click)="submit(false)" title="Ctrl+S">
+      <app-icon name="file" [size]="16" /> حفظ كمسودة
+    </button>
+    <button type="submit" class="ui-btn ui-btn--primary" [class.is-loading]="saving() === 'post'"
+      [disabled]="!!saving() || (isJournal() && !!journalProblem())">
+      <app-icon name="check" [size]="16" /> حفظ وترحيل
+    </button>
+  </footer>
+</form>

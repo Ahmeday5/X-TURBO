@@ -1,0 +1,151 @@
+<!-- Cell / card templates -->
+<ng-template #numberCell [appRowOf]="list.items()" let-v>
+  <div class="vp-number">
+    <span class="ui-code ltr">{{ v.number }}</span>
+    <small><app-icon name="calendar" [size]="11" /> {{ day(v.date) }}</small>
+  </div>
+</ng-template>
+
+<ng-template #partyCell [appRowOf]="list.items()" let-v>
+  <div class="vp-stack vp-stack--start">
+    <strong>{{ counterparty(v) }}</strong>
+    <small>{{ v.description || (v.counterpartyType === 'account' ? 'حساب' : 'عميل / مورد') }}</small>
+  </div>
+</ng-template>
+
+<ng-template #cashCell [appRowOf]="list.items()" let-v>
+  <div class="vp-stack vp-stack--start">
+    <span>{{ v.cashAccountName ?? '—' }}</span>
+    <small>{{ v.method ? methodLabel[v.method] : '' }}{{ v.reference ? ' · ' + v.reference : '' }}</small>
+  </div>
+</ng-template>
+
+<ng-template #descCell [appRowOf]="list.items()" let-v>
+  <div class="vp-stack vp-stack--start vp-desc">
+    <strong>{{ v.description || '—' }}</strong>
+    @if (v.reference) {<small>{{ v.reference }}</small>}
+  </div>
+</ng-template>
+
+<ng-template #linesCell [appRowOf]="list.items()" let-v>
+  <span>{{ linesLabel(v.linesCount) }}</span>
+</ng-template>
+
+<ng-template #amountCell [appRowOf]="list.items()" let-v>
+  <strong class="vp-amount" [class.vp-amount--in]="cfg().direction === 'in'" [class.vp-amount--out]="cfg().direction === 'out'"
+    [class.is-void]="v.status === 'cancelled'">{{ money(v.amount) }}</strong>
+</ng-template>
+
+<ng-template #statusCell [appRowOf]="list.items()" let-v><app-status-pill [view]="statusView[v.status]" /></ng-template>
+
+<ng-template #actions [appRowOf]="list.items()" let-v>
+  <button type="button" class="ui-icon-btn" title="عرض" [attr.aria-label]="'عرض ' + v.number" (click)="open(v)">
+    <app-icon name="eye" [size]="16" />
+  </button>
+  @if (v.status === 'draft') {
+  <button type="button" class="ui-icon-btn" title="تعديل" [attr.aria-label]="'تعديل ' + v.number" (click)="edit(v.id)">
+    <app-icon name="edit" [size]="16" />
+  </button>
+  }
+</ng-template>
+
+<ng-template #card [appRowOf]="list.items()" let-v>
+  <button type="button" class="vp-card" (click)="open(v)">
+    <header class="vp-card__head">
+      <span class="ui-code ltr">{{ v.number }}</span>
+      <app-status-pill [view]="statusView[v.status]" />
+    </header>
+    <strong class="vp-card__title">{{ isJournal() ? (v.description || '—') : counterparty(v) }}</strong>
+    <span class="vp-card__meta">
+      <app-icon name="calendar" [size]="12" /> {{ day(v.date) }}
+      @if (isJournal()) { · {{ linesLabel(v.linesCount) }}}
+      @else { · {{ v.cashAccountName }}}
+    </span>
+    <footer class="vp-card__foot">
+      <strong [class.is-void]="v.status === 'cancelled'">{{ money(v.amount) }}</strong>
+      @if (!isJournal() && v.method) {<small>{{ methodLabel[v.method] }}</small>}
+    </footer>
+  </button>
+</ng-template>
+
+<!-- Page -->
+<app-print-styles />
+
+<div class="no-print">
+  @if (editing()) {
+  <app-page-header [navId]="navId()" [title]="editing() === 'new' ? newLabel() : 'تعديل ' + cfg().singular"
+    [subtitle]="cfg().title" [icon]="icon()">
+    <button type="button" class="ui-btn ui-btn--ghost" (click)="closeEditor()">
+      <app-icon name="list" [size]="16" /> العودة للقائمة
+    </button>
+  </app-page-header>
+
+  <app-voucher-editor [kind]="kind()" [voucherId]="editing()" (closed)="closeEditor()" (saved)="onSaved($event)"
+    (locked)="onLocked($event)" />
+  } @else {
+  <app-page-header [navId]="navId()">
+    <button type="button" class="refresh-btn" [class.is-spinning]="list.loading()" [disabled]="list.loading()"
+      title="تحديث" aria-label="تحديث القائمة" (click)="refresh()">
+      <app-icon name="refresh" [size]="16" />
+    </button>
+    <button type="button" class="ui-btn ui-btn--ghost" [class.is-loading]="exporting()"
+      [disabled]="exporting() || !list.count()" (click)="export()">
+      <app-icon name="file-lines" [size]="16" /> تصدير CSV
+    </button>
+    <button type="button" class="ui-btn ui-btn--primary" (click)="openNew()">
+      <app-icon name="plus" [size]="16" /> {{ newLabel() }}
+    </button>
+  </app-page-header>
+
+  <app-summary-tiles [tiles]="tiles()" [refreshing]="stats.loading() && !!stats.value()" />
+
+  <app-status-tabs [tabs]="tabs()" [active]="state.query().filters['status']"
+    (activeChange)="state.setFilter('status', $event)" />
+
+  <app-list-toolbar [placeholder]="isJournal() ? 'ابحث بالرقم أو البيان أو المرجع…' : 'ابحث بالرقم أو الجهة أو البيان أو المرجع…'"
+    [search]="state.query().search" [view]="state.view()" [sort]="state.query().sort" [sortOptions]="sortOptions()"
+    [count]="list.count()" [activeFilters]="state.activeFilters()" (searchChange)="state.setSearch($event)"
+    (sortChange)="state.setSort($event)" (viewChange)="state.setView($event)" (clearFilters)="state.clearFilters()">
+    @if (!isJournal()) {
+    <app-filter-select filters label="الطريقة" allLabel="كل الطرق" [options]="methodOptions"
+      [value]="state.query().filters['method']" (valueChange)="state.setFilter('method', $event)" />
+    }
+    @if (!isJournal()) {
+    <app-filter-select filters label="الخزينة" allLabel="كل الخزائن والبنوك" [options]="cashOptions()"
+      [value]="state.query().filters['cashAccountId']" (valueChange)="state.setFilter('cashAccountId', $event)" />
+    }
+    @if (!isJournal()) {
+    <app-filter-select filters label="الجهة" allLabel="كل العملاء والموردين" [options]="partyOptions()"
+      [value]="state.query().filters['partyId']" (valueChange)="state.setFilter('partyId', $event)" />
+    }
+    @if (!isJournal()) {
+    <app-filter-select filters label="مركز التكلفة" allLabel="كل مراكز التكلفة" [options]="centerOptions()"
+      [value]="state.query().filters['costCenterId']" (valueChange)="state.setFilter('costCenterId', $event)" />
+    }
+  </app-list-toolbar>
+
+  <div class="vp-range">
+    <app-date-range [from]="state.query().filters['from'] || null" [to]="state.query().filters['to'] || null"
+      (rangeChange)="setRange($event)" />
+  </div>
+
+  <app-data-table [columns]="columns()" [data]="list.items()" [view]="state.view()" [sort]="state.query().sort"
+    [loading]="list.loading()" [initialLoading]="list.initialLoading()" [error]="list.error()"
+    [skeletonCount]="state.query().pageSize" [cardTemplate]="card" [actionsTemplate]="actions" [emptyIcon]="icon()"
+    [emptyTitle]="'لا توجد ' + cfg().title + ' مطابقة'" emptyText="جرّب تعديل البحث أو الفترة أو الفلاتر."
+    (sortChange)="state.toggleSort($event)" (retry)="list.reload()">
+    <button empty-actions type="button" class="ui-btn ui-btn--primary" (click)="openNew()">
+      <app-icon name="plus" [size]="16" /> {{ newLabel() }}
+    </button>
+  </app-data-table>
+
+  <app-pagination class="vp-pager" [pageIndex]="state.query().pageIndex" [pageSize]="state.query().pageSize"
+    [count]="list.count()" [totalPages]="list.totalPages()" [pageSizeOptions]="[12, 24, 48, 96]"
+    [disabled]="list.loading()" (pageChange)="state.setPage($event)" (pageSizeChange)="state.setPageSize($event)" />
+  }
+</div>
+
+<app-voucher-drawer class="no-print" [voucherId]="viewing() || null" (closed)="state.setParam('view', null)"
+  (changed)="refresh()" (edit)="edit($event)" (print)="print($event)" />
+
+<app-voucher-print [voucher]="printing()" />

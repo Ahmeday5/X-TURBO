@@ -1,0 +1,258 @@
+<form class="fp fp--aside-last de" [formGroup]="form" (ngSubmit)="submit(true)" [class.is-loading]="loading()" novalidate>
+  <div class="fp__main">
+    <!-- Header -->
+    <section class="fp__section" style="--i: 0">
+      <header class="fp__section-head">
+        <span class="fp__section-icon"><app-icon [name]="cfg().icon" [size]="17" /></span>
+        <div>
+          <h2>{{ title() }}</h2>
+          <p>
+            @if (current(); as d) {<span class="ltr">{{ d.number }}</span> · مسودة}
+            @else {يُرقَّم تلقائيًا عند الحفظ}
+            @if (current()?.sourceNumber) { · من <span class="ltr">{{ current()?.sourceNumber }}</span>}
+          </p>
+        </div>
+      </header>
+
+      <div class="fp__grid fp__grid--4">
+        <label class="ui-field">
+          <span class="ui-label is-required">التاريخ</span>
+          <input class="ui-input" type="date" formControlName="date" />
+          <app-form-error [control]="form.controls.date" label="التاريخ" />
+        </label>
+
+        @if (cfg().party) {
+        <div class="ui-field fp__span-2">
+          <span class="ui-label" [class.is-required]="cfg().partyRequired">{{ partyLabel() }}</span>
+          <app-searchable-select formControlName="partyId" [options]="partyOptions()"
+            [placeholder]="cfg().partyRequired ? 'اختر ' + partyLabel() : (cfg().party === 'customer' ? 'عميل نقدي' : 'اختر المورد')"
+            [searchPlaceholder]="'ابحث بالاسم أو الموبايل…'" />
+          @if (submitted() && cfg().partyRequired && !form.controls.partyId.value) {
+          <span class="de__err">{{ partyLabel() }} مطلوب</span>
+          }
+          @if (party(); as p) {
+          <span class="ui-hint">الرصيد الحالي:
+            <strong [class.de__debit]="p.balance > 0" [class.de__credit]="p.balance < 0">{{ money(p.balance) }}</strong>
+            @if (p.creditLimit) { · حد الائتمان {{ money(p.creditLimit) }}}
+          </span>
+          }
+        </div>
+        }
+
+        <div class="ui-field" [class.fp__span-2]="!cfg().party && !cfg().transfer">
+          <span class="ui-label is-required">{{ cfg().transfer ? 'من مخزن' : 'المخزن' }}</span>
+          <app-searchable-select formControlName="warehouseId" [options]="warehouseOptions()" placeholder="اختر المخزن"
+            searchPlaceholder="ابحث في المخازن…" />
+        </div>
+
+        @if (cfg().transfer) {
+        <div class="ui-field">
+          <span class="ui-label is-required">إلى مخزن</span>
+          <app-searchable-select formControlName="toWarehouseId" [options]="toWarehouseOptions()"
+            placeholder="المخزن المستلم" searchPlaceholder="ابحث في المخازن…" />
+          @if (submitted() && !form.controls.toWarehouseId.value) {<span class="de__err">المخزن المستلم مطلوب</span>}
+        </div>
+        }
+
+        @if (cfg().reasons) {
+        <label class="ui-field">
+          <span class="ui-label is-required">السبب</span>
+          <select class="ui-input" formControlName="reason">
+            <option value="">— اختر —</option>
+            @for (r of reasonOptions(); track r.value) {<option [value]="r.value">{{ r.label }}</option>}
+          </select>
+          @if (submitted() && !form.controls.reason.value) {<span class="de__err">السبب مطلوب</span>}
+        </label>
+        }
+
+        @if (cfg().dueDateLabel) {
+        <label class="ui-field">
+          <span class="ui-label">{{ cfg().dueDateLabel }}</span>
+          <input class="ui-input" type="date" formControlName="dueDate" [min]="form.controls.date.value" />
+        </label>
+        }
+
+        <label class="ui-field" [class.fp__span-2]="cfg().transfer">
+          <span class="ui-label">{{ cfg().party === 'supplier' ? 'رقم فاتورة المورد' : 'المرجع' }}</span>
+          <input class="ui-input" formControlName="reference"
+            [placeholder]="cfg().transfer ? 'اسم السائق، رقم السيارة…' : 'رقم أمر الشراء، ملاحظة مرجعية…'" />
+        </label>
+      </div>
+    </section>
+
+    <!-- Lines -->
+    <section class="fp__section" style="--i: 1">
+      <header class="fp__section-head">
+        <span class="fp__section-icon"><app-icon name="box" [size]="17" /></span>
+        <div>
+          <h2>الأصناف</h2>
+          <p>{{ lines().length ? linesLabel() + ' · إجمالي الكمية ' + int(totalQty()) : 'ابحث عن صنف أو امسح الباركود لإضافته' }}</p>
+        </div>
+      </header>
+
+      <app-item-picker [items]="items()" [priceOf]="priceOf" [loading]="itemsLoading()"
+        [disabled]="!form.controls.warehouseId.value" (picked)="addItem($event)" />
+
+      @if (lines().length) {
+      <div class="tw de__table">
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 34px">#</th>
+              <th class="de__name-h">الصنف</th>
+              <th style="width: 100px">الكمية</th>
+              <th style="width: 120px">{{ cfg().financial ? 'السعر' : 'التكلفة' }}</th>
+              @if (cfg().financial) {<th style="width: 84px">خصم %</th>}
+              <th style="width: 120px">الإجمالي</th>
+              <th style="width: 44px"></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (l of lines(); track l.key; let i = $index) {
+            <tr class="de__row" [class.is-short]="shortLines().has(l.key)">
+              <td class="de__idx">{{ i + 1 }}</td>
+              <td class="de__name">
+                <strong>{{ l.name }}</strong>
+                <small>
+                  <span class="ui-code ltr">{{ l.code }}</span>
+                  @if (outgoing() && available(l.itemId) !== null) {
+                  · <span [class.de__short]="shortLines().has(l.key)">متاح {{ int(available(l.itemId)!) }} {{ l.unit }}</span>
+                  }
+                </small>
+              </td>
+              <td>
+                <input class="ui-input de__num" type="number" min="1" step="1" [value]="l.qty"
+                  [attr.aria-label]="'كمية ' + l.name" (input)="setNumber(l.key, 'qty', $any($event.target).value)" />
+              </td>
+              <td>
+                @if (cfg().financial) {
+                <input class="ui-input de__num" type="number" min="0" step="0.01" [value]="l.price"
+                  [attr.aria-label]="'سعر ' + l.name" (input)="setNumber(l.key, 'price', $any($event.target).value)" />
+                } @else {
+                <span class="de__ro">{{ money(l.price) }}</span>
+                }
+              </td>
+              @if (cfg().financial) {
+              <td>
+                <input class="ui-input de__num" type="number" min="0" max="100" step="1" [value]="l.discountPct"
+                  [attr.aria-label]="'خصم ' + l.name" (input)="setNumber(l.key, 'discountPct', $any($event.target).value)" />
+              </td>
+              }
+              <td><strong class="de__total">{{ money(lineTotal(l)) }}</strong></td>
+              <td>
+                <button type="button" class="ui-icon-btn ui-icon-btn--danger" title="حذف السطر"
+                  [attr.aria-label]="'حذف ' + l.name" (click)="removeLine(l.key)">
+                  <app-icon name="trash" [size]="15" />
+                </button>
+              </td>
+            </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      @if (shortLines().size) {
+      <p class="de__warn"><app-icon name="alert" [size]="15" /> بعض الكميات أكبر من المتاح في المخزن — لن يتم الترحيل إلا إذا كان المخزن يسمح بالرصيد السالب.</p>
+      }
+      } @else {
+      <div class="de__empty">
+        <app-icon name="barcode" [size]="28" />
+        <p>لم تتم إضافة أصناف بعد</p>
+      </div>
+      }
+    </section>
+
+    <!-- Notes -->
+    <section class="fp__section" style="--i: 2">
+      <label class="ui-field">
+        <span class="ui-label">ملاحظات</span>
+        <textarea class="ui-input" rows="2" formControlName="notes" placeholder="تظهر على المستند المطبوع"></textarea>
+      </label>
+    </section>
+  </div>
+
+  <!-- Totals -->
+  <aside class="fp__aside">
+    <div class="fp__preview de__sum">
+      <span class="fp__preview-label"><app-icon name="calculator" [size]="14" /> الملخص</span>
+
+      @if (cfg().financial) {
+      <dl class="de__dl">
+        <div><dt>الإجمالي قبل الخصم</dt><dd>{{ money(totals().subtotal) }}</dd></div>
+        <div class="de__inline">
+          <dt><label for="de-discount">خصم إضافي</label></dt>
+          <dd><div class="ui-affix"><input id="de-discount" class="ui-input de__num" type="number" min="0" formControlName="discount" /><span class="ui-affix__text">ج.م</span></div></dd>
+        </div>
+        <div class="de__inline">
+          <dt><label for="de-tax">ضريبة القيمة المضافة</label></dt>
+          <dd><div class="ui-affix"><input id="de-tax" class="ui-input de__num" type="number" min="0" max="100" formControlName="taxPct" /><span class="ui-affix__text">%</span></div></dd>
+        </div>
+        @if (totals().tax) {<div><dt>قيمة الضريبة</dt><dd>{{ money(totals().tax) }}</dd></div>}
+        <div class="de__grand"><dt>الصافي</dt><dd>{{ money(totals().total) }}</dd></div>
+      </dl>
+
+      @if (tracksPayment()) {
+      <div class="de__pay">
+        <label class="ui-switch">
+          <input type="checkbox" [checked]="payFull()" (change)="setPayFull($any($event.target).checked)" />
+          <span class="ui-switch__track"></span>
+          {{ payFull() ? 'سداد كامل الآن' : 'آجل / سداد جزئي' }}
+        </label>
+
+        @if (payFull() || (form.controls.paid.value || 0) > 0) {
+        <label class="ui-field">
+          <span class="ui-label">طريقة الدفع</span>
+          <select class="ui-input" formControlName="paymentMethod">
+            @for (m of methods; track m) {<option [value]="m">{{ methodLabel[m] }}</option>}
+          </select>
+        </label>
+        }
+        @if (!payFull()) {
+        <label class="ui-field">
+          <span class="ui-label">المدفوع الآن</span>
+          <div class="ui-affix"><input class="ui-input" type="number" min="0" formControlName="paid" /><span class="ui-affix__text">ج.م</span></div>
+        </label>
+        }
+        <dl class="de__dl">
+          <div><dt>المدفوع</dt><dd>{{ money(totals().paid) }}</dd></div>
+          <div class="de__remaining" [class.is-zero]="!totals().remaining"><dt>المتبقي</dt><dd>{{ money(totals().remaining) }}</dd></div>
+        </dl>
+      </div>
+      } @else if (kind() === 'reservation') {
+      <div class="de__pay">
+        <label class="ui-field">
+          <span class="ui-label">العربون</span>
+          <div class="ui-affix"><input class="ui-input" type="number" min="0" formControlName="paid" /><span class="ui-affix__text">ج.م</span></div>
+        </label>
+        <dl class="de__dl">
+          <div class="de__remaining"><dt>المتبقي عند التسليم</dt><dd>{{ money(totals().remaining) }}</dd></div>
+        </dl>
+      </div>
+      }
+
+      @if (creditWarning(); as w) {
+      <p class="de__warn"><app-icon name="alert" [size]="15" /> تتجاوز المديونية حد الائتمان ({{ money(w.limit) }}) — ستصبح {{ money(w.after) }}.</p>
+      }
+      } @else {
+      <dl class="de__dl">
+        <div><dt>عدد الأصناف</dt><dd>{{ int(lines().length) }}</dd></div>
+        <div><dt>إجمالي الكمية</dt><dd>{{ int(totalQty()) }}</dd></div>
+        <div class="de__grand"><dt>القيمة بالتكلفة</dt><dd>{{ money(totals().subtotal) }}</dd></div>
+      </dl>
+      @if (cfg().stock === 'ship') {
+      <p class="ui-hint">تُخصم الكميات من المخزن المحوِّل عند الترحيل، وتُضاف للمخزن المستلم عند تأكيد الاستلام.</p>
+      }
+      }
+    </div>
+  </aside>
+
+  <footer class="fp__actions">
+    <button type="button" class="ui-btn ui-btn--ghost" (click)="closed.emit()">إلغاء</button>
+    <button type="button" class="ui-btn ui-btn--ghost" [class.is-loading]="saving() === 'draft'" [disabled]="!!saving()"
+      (click)="submit(false)" title="Ctrl+S">
+      <app-icon name="file" [size]="16" /> حفظ كمسودة
+    </button>
+    <button type="submit" class="ui-btn ui-btn--primary" [class.is-loading]="saving() === 'post'" [disabled]="!!saving()">
+      <app-icon name="check" [size]="16" /> {{ cfg().kind === 'quotation' ? 'حفظ واعتماد' : 'حفظ وترحيل' }}
+    </button>
+  </footer>
+</form>

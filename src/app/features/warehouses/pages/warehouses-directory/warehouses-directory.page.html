@@ -1,0 +1,96 @@
+<!-- Cell / card templates -->
+<ng-template #codeCell [appRowOf]="list.items()" let-w><span class="ui-code ltr">{{ w.code }}</span></ng-template>
+
+<ng-template #nameCell [appRowOf]="list.items()" let-w>
+  <div class="wd-name">
+    <span class="wd-name__icon" [style.--tone]="typeView[w.type].color"><app-icon name="warehouse" [size]="16" /></span>
+    <div>
+      <strong>{{ w.name }} @if (w.isDefault) {<span class="wd-default">الافتراضي</span>}</strong>
+      <small>{{ w.city }}@if (w.manager) { · {{ w.manager }}}</small>
+    </div>
+  </div>
+</ng-template>
+
+<ng-template #typeCell [appRowOf]="list.items()" let-w><app-status-pill [view]="typeView[w.type]" /></ng-template>
+
+<ng-template #usageCell [appRowOf]="list.items()" let-w>
+  <div class="wd-usage" [attr.data-tone]="usageTone(w.usagePct)">
+    <span class="wd-usage__bar"><i [style.width.%]="w.usagePct > 100 ? 100 : w.usagePct"></i></span>
+    <small>{{ w.capacity ? w.usagePct + '%' : '—' }}</small>
+  </div>
+</ng-template>
+
+<ng-template #valueCell [appRowOf]="list.items()" let-w>
+  <div class="wd-value">
+    <strong>{{ money(w.stockValue) }}</strong>
+    <small>{{ qty(w.totalQty) }} وحدة · {{ qty(w.itemsCount) }} صنف</small>
+  </div>
+</ng-template>
+
+<ng-template #lowCell [appRowOf]="list.items()" let-w>
+  <span class="wd-low" [class.is-warn]="w.lowStockCount > 0">{{ qty(w.lowStockCount) }}</span>
+</ng-template>
+
+<ng-template #statusCell [appRowOf]="list.items()" let-w>
+  <span class="status-pill" [class.status-pill--good]="w.isActive" [class.status-pill--neutral]="!w.isActive">
+    {{ w.isActive ? 'نشط' : 'موقوف' }}
+  </span>
+</ng-template>
+
+<ng-template #actions [appRowOf]="list.items()" let-w>
+  <button type="button" class="ui-icon-btn" title="الأرصدة" [attr.aria-label]="'أرصدة ' + w.name" (click)="openStock(w)">
+    <app-icon name="layers" [size]="16" />
+  </button>
+  @if (!w.isDefault && w.isActive) {
+  <button type="button" class="ui-icon-btn" title="تعيين كافتراضي" [attr.aria-label]="'تعيين ' + w.name + ' كافتراضي'"
+    (click)="makeDefault(w)">
+    <app-icon name="check" [size]="16" />
+  </button>
+  }
+  <button type="button" class="ui-icon-btn" title="تعديل" [attr.aria-label]="'تعديل ' + w.name" (click)="edit(w)">
+    <app-icon name="edit" [size]="16" />
+  </button>
+  @if (!w.isDefault) {
+  <button type="button" class="ui-icon-btn ui-icon-btn--danger" title="حذف" [attr.aria-label]="'حذف ' + w.name" (click)="remove(w)">
+    <app-icon name="trash" [size]="16" />
+  </button>
+  }
+</ng-template>
+
+<ng-template #card [appRowOf]="list.items()" let-w><app-warehouse-card [warehouse]="w" /></ng-template>
+
+<!-- Page -->
+<app-page-header [navId]="navId()">
+  <button type="button" class="refresh-btn" [class.is-spinning]="list.loading()" [disabled]="list.loading()" title="تحديث"
+    aria-label="تحديث المخازن" (click)="reload()">
+    <app-icon name="refresh" [size]="16" />
+  </button>
+  <a class="ui-btn ui-btn--ghost" routerLink="/stock"><app-icon name="layers" [size]="16" /> أرصدة المخزون</a>
+  <a class="ui-btn ui-btn--primary" routerLink="/warehouses/define"><app-icon name="plus" [size]="16" /> مخزن جديد</a>
+</app-page-header>
+
+<app-summary-tiles [tiles]="tiles()" [refreshing]="all.loading() && !!all.value()" />
+
+<app-list-toolbar placeholder="ابحث باسم المخزن أو الكود أو المدينة أو المسؤول…" [search]="state.query().search"
+  [view]="state.view()" [sort]="state.query().sort" [sortOptions]="sortOptions" [count]="list.count()"
+  [activeFilters]="state.activeFilters()" (searchChange)="state.setSearch($event)" (sortChange)="state.setSort($event)"
+  (viewChange)="state.setView($event)" (clearFilters)="state.clearFilters()">
+  <app-filter-select filters label="النوع" allLabel="كل الأنواع" [options]="typeOptions"
+    [value]="state.query().filters['type']" (valueChange)="state.setFilter('type', $event)" />
+  <app-filter-select filters label="الحالة" allLabel="كل الحالات" [options]="statusOptions"
+    [value]="state.query().filters['status']" (valueChange)="state.setFilter('status', $event)" />
+</app-list-toolbar>
+
+<app-data-table [columns]="columns()" [data]="list.items()" [view]="state.view()" [sort]="state.query().sort"
+  [loading]="list.loading()" [initialLoading]="list.initialLoading()" [error]="list.error()"
+  [skeletonCount]="state.query().pageSize" [cardTemplate]="card" [actionsTemplate]="actions" emptyIcon="warehouse"
+  emptyTitle="لا توجد مخازن مطابقة" emptyText="جرّب تعديل البحث أو الفلاتر، أو أضف مخزنًا جديدًا."
+  (sortChange)="state.toggleSort($event)" (retry)="list.reload()">
+  <a empty-actions class="ui-btn ui-btn--primary" routerLink="/warehouses/define">
+    <app-icon name="plus" [size]="16" /> مخزن جديد
+  </a>
+</app-data-table>
+
+<app-pagination class="wd-pager" [pageIndex]="state.query().pageIndex" [pageSize]="state.query().pageSize"
+  [count]="list.count()" [totalPages]="list.totalPages()" [pageSizeOptions]="[12, 24, 48]" [disabled]="list.loading()"
+  (pageChange)="state.setPage($event)" (pageSizeChange)="state.setPageSize($event)" />

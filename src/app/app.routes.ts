@@ -4,24 +4,39 @@ import { guestGuard } from './core/auth/guards/guest.guard';
 import { accessGuard } from './core/auth/guards/access.guard';
 import { NAV_LEAVES } from './core/constants/nav.constants';
 import { NavLeaf } from './core/models/nav.model';
+import { LoadComponent, PageRegistry } from './core/models/page-registry.model';
+import { ACCOUNTS_PAGES } from './features/accounts/accounts.pages';
+import { ADMIN_PAGES } from './features/admin/admin.pages';
+import { DOCUMENTS_PAGES } from './features/documents/documents.pages';
+import { PARTIES_PAGES } from './features/parties/parties.pages';
+import { PAYMENTS_PAGES } from './features/payments/payments.pages';
+import { POS_PAGES } from './features/pos/pos.pages';
+import { VOUCHERS_PAGES } from './features/vouchers/vouchers.pages';
+import { WAREHOUSES_PAGES } from './features/warehouses/warehouses.pages';
 import { environment } from '../environments/environment';
 
 /** Browser-tab title: "<page> · X-TURBO". */
 const pageTitle = (page: string): string => `${page} · ${environment.appName}`;
 
-type LoadComponent = NonNullable<Route['loadComponent']>;
-
 /**
  * Nav pages with a real screen. Every other nav page gets the shared module
- * page, so a new screen only needs an entry here.
+ * page. Features register their screens in their own `<feature>.pages.ts`.
  */
-const BUILT_PAGES: Readonly<Record<string, LoadComponent>> = {
+const BUILT_PAGES: PageRegistry = {
   '/orders': () => import('./features/orders/pages/orders/orders.page').then((m) => m.OrdersPage),
   '/reports': () => import('./features/reports/pages/reports/reports.page').then((m) => m.ReportsPage),
   '/items/define': () => import('./features/items/pages/item-form/item-form.page').then((m) => m.ItemFormPage),
   '/items/groups': () => import('./features/items/pages/item-groups/item-groups.page').then((m) => m.ItemGroupsPage),
   '/items/directory': () =>
     import('./features/items/pages/items-directory/items-directory.page').then((m) => m.ItemsDirectoryPage),
+  ...WAREHOUSES_PAGES,
+  ...DOCUMENTS_PAGES,
+  ...POS_PAGES,
+  ...PARTIES_PAGES,
+  ...PAYMENTS_PAGES,
+  ...VOUCHERS_PAGES,
+  ...ACCOUNTS_PAGES,
+  ...ADMIN_PAGES,
 };
 
 const modulePage: LoadComponent = () =>

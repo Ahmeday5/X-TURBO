@@ -1,0 +1,141 @@
+<ng-template #codeCell [appRowOf]="list.items()" let-c><span class="ui-code ltr">{{ c.code }}</span></ng-template>
+
+<ng-template #nameCell [appRowOf]="list.items()" let-c>
+  <div class="cc-name" [style.--cc]="c.color">
+    <span class="cc-name__swatch"><app-icon name="target" [size]="15" /></span>
+    <div>
+      <strong>{{ c.name }}</strong>
+      <small>{{ c.manager ? 'المسؤول: ' + c.manager : 'بدون مسؤول' }}</small>
+    </div>
+  </div>
+</ng-template>
+
+<ng-template #parentCell [appRowOf]="list.items()" let-c>
+  <span [class.cc-muted]="!c.parentName">{{ c.parentName || 'مركز رئيسي' }}</span>
+</ng-template>
+
+<ng-template #budgetCell [appRowOf]="list.items()" let-c>
+  @let u = usage(c);
+  @if (u.pct === null) {
+  <div class="cc-budget cc-budget--none">
+    <span>بدون موازنة</span>
+    <small>مصروف {{ money(c.actualSpend) }}</small>
+  </div>
+  } @else {
+  <div [class]="'cc-budget cc-budget--' + u.tone">
+    <div class="cc-budget__row">
+      <span><b>{{ moneyCompact(c.actualSpend) }}</b> من {{ moneyCompact(c.annualBudget) }}</span>
+      <em>{{ pct(u.pct) }}</em>
+    </div>
+    <div class="cc-bar" role="progressbar" [attr.aria-valuenow]="u.pct" aria-valuemin="0" aria-valuemax="100"
+      [attr.aria-label]="'استهلاك الموازنة ' + pct(u.pct)">
+      <i [style.width.%]="u.width"></i>
+    </div>
+    @if (u.over) {<small class="cc-over"><app-icon name="alert" [size]="12" /> تجاوز بـ{{ money(-u.remaining) }}</small>}
+  </div>
+  }
+</ng-template>
+
+<ng-template #revenueCell [appRowOf]="list.items()" let-c>
+  <strong class="cc-num" [class.cc-muted]="!c.actualRevenue">{{ money(c.actualRevenue) }}</strong>
+</ng-template>
+
+<ng-template #postingsCell [appRowOf]="list.items()" let-c><span class="cc-num">{{ int(c.postingsCount) }}</span></ng-template>
+
+<ng-template #statusCell [appRowOf]="list.items()" let-c>
+  <span class="status-pill" [class.status-pill--good]="c.isActive" [class.status-pill--neutral]="!c.isActive">
+    {{ c.isActive ? 'نشط' : 'موقوف' }}
+  </span>
+</ng-template>
+
+<ng-template #actions [appRowOf]="list.items()" let-c>
+  <button type="button" class="ui-icon-btn" title="تعديل" [attr.aria-label]="'تعديل ' + c.name" (click)="edit(c)">
+    <app-icon name="edit" [size]="16" />
+  </button>
+  <button type="button" class="ui-icon-btn ui-icon-btn--danger" title="حذف" [attr.aria-label]="'حذف ' + c.name"
+    (click)="remove(c)">
+    <app-icon name="trash" [size]="16" />
+  </button>
+</ng-template>
+
+<ng-template #card [appRowOf]="list.items()" let-c>
+  @let u = usage(c);
+  <div class="cc-card" [class.is-over]="u.over" [class.is-off]="!c.isActive" [style.--cc]="c.color">
+    <header class="cc-card__head">
+      <span class="cc-name__swatch cc-card__swatch"><app-icon name="target" [size]="19" /></span>
+      <div>
+        <span class="ui-code ltr">{{ c.code }}</span>
+        <h3>{{ c.name }}</h3>
+        <small>{{ c.parentName ? 'تابع لـ' + c.parentName : 'مركز رئيسي' }}</small>
+      </div>
+      <span class="status-pill" [class.status-pill--good]="c.isActive" [class.status-pill--neutral]="!c.isActive">
+        {{ c.isActive ? 'نشط' : 'موقوف' }}
+      </span>
+    </header>
+
+    <div [class]="'cc-budget cc-budget--' + u.tone">
+      <div class="cc-budget__row">
+        <span>المصروف مقابل الموازنة</span>
+        @if (u.pct !== null) {<em>{{ pct(u.pct) }}</em>}
+      </div>
+      <div class="cc-bar"><i [style.width.%]="u.width"></i></div>
+      <div class="cc-budget__row cc-budget__row--sums">
+        <b>{{ money(c.actualSpend) }}</b>
+        <span>{{ c.annualBudget ? 'من ' + money(c.annualBudget) : 'بدون موازنة' }}</span>
+      </div>
+      @if (u.over) {
+      <small class="cc-over"><app-icon name="alert" [size]="12" /> تجاوز الموازنة بـ{{ money(-u.remaining) }}</small>
+      } @else if (u.pct !== null) {
+      <small>المتبقي {{ money(u.remaining) }}</small>
+      }
+    </div>
+
+    <dl class="cc-card__meta">
+      <div><dt><app-icon name="user" [size]="13" /> المسؤول</dt><dd>{{ c.manager || '—' }}</dd></div>
+      <div><dt><app-icon name="trend-up" [size]="13" /> الإيرادات</dt><dd>{{ money(c.actualRevenue) }}</dd></div>
+      <div><dt><app-icon name="journal" [size]="13" /> القيود</dt><dd>{{ int(c.postingsCount) }}</dd></div>
+    </dl>
+  </div>
+</ng-template>
+
+<!-- Page -->
+<app-page-header [navId]="navId()">
+  <button type="button" class="refresh-btn" [class.is-spinning]="list.loading()" [disabled]="list.loading()"
+    title="تحديث" aria-label="تحديث القائمة" (click)="refresh()">
+    <app-icon name="refresh" [size]="16" />
+  </button>
+  <button type="button" class="ui-btn ui-btn--ghost" [class.is-loading]="exporting()"
+    [disabled]="exporting() || !list.count()" (click)="export()">
+    <app-icon name="file-lines" [size]="16" /> تصدير CSV
+  </button>
+  <button type="button" class="ui-btn ui-btn--primary" (click)="create()">
+    <app-icon name="plus" [size]="16" /> مركز تكلفة جديد
+  </button>
+</app-page-header>
+
+<app-summary-tiles [tiles]="tiles()" [refreshing]="all.loading() && !!all.value()" />
+
+<app-status-tabs label="تصفية حسب الحالة" [tabs]="tabs()" [active]="state.query().filters['status']"
+  (activeChange)="state.setFilter('status', $event)" />
+
+<app-list-toolbar placeholder="ابحث بالاسم أو الكود أو المسؤول…" [search]="state.query().search" [view]="state.view()"
+  [sort]="state.query().sort" [sortOptions]="sortOptions" [count]="list.count()"
+  [activeFilters]="state.activeFilters()" (searchChange)="state.setSearch($event)" (sortChange)="state.setSort($event)"
+  (viewChange)="state.setView($event)" (clearFilters)="state.clearFilters()" />
+
+<app-data-table [columns]="columns()" [data]="list.items()" [view]="state.view()" [sort]="state.query().sort"
+  [loading]="list.loading()" [initialLoading]="list.initialLoading()" [error]="list.error()"
+  [skeletonCount]="state.query().pageSize" [cardTemplate]="card" [actionsTemplate]="actions" emptyIcon="target"
+  emptyTitle="لا توجد مراكز تكلفة مطابقة" emptyText="جرّب تعديل البحث أو الفلاتر، أو أضف مركز تكلفة جديدًا."
+  (sortChange)="state.toggleSort($event)" (retry)="list.reload()">
+  <button empty-actions type="button" class="ui-btn ui-btn--primary" (click)="create()">
+    <app-icon name="plus" [size]="16" /> مركز تكلفة جديد
+  </button>
+</app-data-table>
+
+<app-pagination class="cc-pager" [pageIndex]="state.query().pageIndex" [pageSize]="state.query().pageSize"
+  [count]="list.count()" [totalPages]="list.totalPages()" [pageSizeOptions]="[12, 24, 48, 96]"
+  [disabled]="list.loading()" (pageChange)="state.setPage($event)" (pageSizeChange)="state.setPageSize($event)" />
+
+<app-cost-center-editor [open]="!!editing()" [center]="editingCenter()" [centers]="centers()"
+  (closed)="editing.set(null)" (saved)="onSaved()" />
