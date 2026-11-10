@@ -285,6 +285,16 @@
   color: var(--txt2);
 }
 
+/* "The customer will be notified" line in confirm / refund modals. */
+.pd-modal-notify {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 12px 0 0;
+  font-size: 11.5px;
+  color: var(--txt3);
+}
+
 .pd-form {
   display: flex;
   flex-direction: column;

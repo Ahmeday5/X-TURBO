@@ -11,6 +11,7 @@ import { applyServerErrors } from '../../../../core/utils/api-error.util';
 import { AvatarComponent } from '../../../../shared/components/avatar/avatar.component';
 import { DrawerComponent } from '../../../../shared/components/drawer/drawer.component';
 import { FormErrorComponent } from '../../../../shared/components/form-error/form-error.component';
+import { AppValidators } from '../../../../shared/validators/app-validators';
 import { IconComponent } from '../../../../shared/components/icon/icon.component';
 import { PasswordInputComponent } from '../../../../shared/components/password-input/password-input.component';
 import { formatDateTime } from '../../../../shared/utils/format.util';
@@ -28,7 +29,6 @@ import { passwordPolicyValidator, sameAsPasswordValidator } from '../../utils/pa
 import { PasswordStrengthComponent } from '../password-strength/password-strength.component';
 import { PermissionPickerComponent } from '../permission-picker/permission-picker.component';
 
-const PHONE_PATTERN = /^0\d{8,10}$/;
 
 /**
  * Create / edit a user in a side drawer. `userId` = `'new'` creates, an id
@@ -71,8 +71,8 @@ export class UserFormDrawerComponent {
 
   protected readonly form = this.fb.group({
     name: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(80)]],
-    email: ['', [Validators.required, Validators.email, Validators.maxLength(80)]],
-    phone: ['', Validators.pattern(PHONE_PATTERN)],
+    email: ['', [Validators.required, AppValidators.email(), Validators.maxLength(80)]],
+    phone: ['', AppValidators.mobile()],
     role: [ROLES.cashier as Role, Validators.required],
     permissions: [[...ROLE_DEFAULT_PERMISSIONS[ROLES.cashier]] as Permission[]],
     isActive: [true],

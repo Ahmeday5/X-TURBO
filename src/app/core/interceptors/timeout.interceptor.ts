@@ -1,6 +1,7 @@
 import { HttpErrorResponse, HttpInterceptorFn } from '@angular/common/http';
 import { timeout, catchError, throwError } from 'rxjs';
-import { AUTH_ENDPOINTS } from '../auth/auth.config';
+import { API_ENDPOINTS } from '../constants/api-endpoints.const';
+import { SKIP_TIMEOUT } from '../http/http-context.tokens';
 
 /**
  * Caps how long any request may hang with no response.
@@ -29,12 +30,12 @@ import { AUTH_ENDPOINTS } from '../auth/auth.config';
 const REQUEST_TIMEOUT_MS = 30_000;
 
 const NO_TIMEOUT_URL_FRAGMENTS: readonly string[] = [
-  AUTH_ENDPOINTS.refresh,
-  AUTH_ENDPOINTS.login,
+  API_ENDPOINTS.auth.refresh,
+  API_ENDPOINTS.auth.login,
 ];
 
 export const timeoutInterceptor: HttpInterceptorFn = (req, next) => {
-  if (NO_TIMEOUT_URL_FRAGMENTS.some((fragment) => req.url.includes(fragment))) {
+  if (req.context.get(SKIP_TIMEOUT) || NO_TIMEOUT_URL_FRAGMENTS.some((fragment) => req.url.includes(fragment))) {
     return next(req);
   }
 

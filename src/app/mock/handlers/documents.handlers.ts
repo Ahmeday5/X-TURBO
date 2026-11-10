@@ -1,5 +1,4 @@
 import { DocKind, DocumentPayload, DocumentStats, DocumentSummary } from '../../features/documents/models/document.model';
-import { DOCUMENTS_ENDPOINTS } from '../../features/documents/services/documents.service';
 import { actorName, findOr404, inRange, round2 } from '../db/db-utils';
 import {
   cancelDocument,
@@ -14,6 +13,7 @@ import {
 } from '../db/documents.db';
 import { bodyOf, CollectionOptions, filterCollection, queryCollection } from '../mock-collection';
 import { MockContext, MockRoute, ok } from '../mock-http';
+import { API_ENDPOINTS } from '../../core/constants/api-endpoints.const';
 
 const LIST_OPTIONS: CollectionOptions<DocumentSummary> = {
   searchFields: ['number', 'partyName', 'reference', 'warehouseName', 'toWarehouseName', 'notes', 'createdBy'],
@@ -102,9 +102,9 @@ function convert({ params, req, userId }: MockContext) {
 const BY_ID = 'documents/:id';
 
 export const DOCUMENTS_MOCK_ROUTES: MockRoute[] = [
-  { method: 'GET', path: DOCUMENTS_ENDPOINTS.stats, protected: true, handle: stats },
-  { method: 'GET', path: DOCUMENTS_ENDPOINTS.list, protected: true, handle: list },
-  { method: 'POST', path: DOCUMENTS_ENDPOINTS.list, protected: true, handle: create },
+  { method: 'GET', path: API_ENDPOINTS.documents.stats, protected: true, handle: stats },
+  { method: 'GET', path: API_ENDPOINTS.documents.list, protected: true, handle: list },
+  { method: 'POST', path: API_ENDPOINTS.documents.list, protected: true, handle: create },
   { method: 'GET', path: BY_ID, protected: true, handle: get },
   { method: 'PUT', path: BY_ID, protected: true, handle: update },
   { method: 'DELETE', path: BY_ID, protected: true, handle: remove },

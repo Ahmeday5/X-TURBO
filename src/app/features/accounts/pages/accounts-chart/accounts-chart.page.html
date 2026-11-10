@@ -1,6 +1,6 @@
 <app-page-header [navId]="navId()">
   <button type="button" class="refresh-btn" [class.is-spinning]="chart.loading()" [disabled]="chart.loading()"
-    title="تحديث" aria-label="تحديث الدليل" (click)="chart.reload()">
+    title="تحديث" aria-label="تحديث الدليل" (click)="reloadAll()">
     <app-icon name="refresh" [size]="16" />
   </button>
   <button type="button" class="ui-btn ui-btn--ghost" [disabled]="!accounts().length" (click)="export()">
@@ -68,7 +68,7 @@
   <div class="page-state">
     <app-icon name="alert" [size]="28" />
     <p>{{ chart.error() }}</p>
-    <button type="button" class="ui-btn ui-btn--ghost" (click)="chart.reload()">إعادة المحاولة</button>
+    <button type="button" class="ui-btn ui-btn--ghost" (click)="reloadAll()">إعادة المحاولة</button>
   </div>
   } @else if (!chart.value()) {
   @for (i of [0, 1, 2, 3, 4, 5, 6, 7]; track i) {

@@ -14,7 +14,17 @@ import { matchesAll, tokenize } from '../../../../shared/utils/arabic-search.uti
 import { downloadCsv } from '../../../../shared/utils/csv.util';
 import { formatMoney, formatMoneyCompact } from '../../../../shared/utils/format.util';
 import { pluralAr } from '../../../../shared/utils/plural.util';
-import { Account, ACCOUNT_NATURE_LABEL, ACCOUNT_TYPE_VIEW, ACCOUNT_TYPES, AccountType } from '../../models/account.model';
+import {
+  Account,
+  ACCOUNT_ERROR_CODES,
+  ACCOUNT_NATURE_LABEL,
+  ACCOUNT_TYPE_VIEW,
+  ACCOUNT_TYPES,
+  AccountType,
+  toAccountPayload,
+} from '../../models/account.model';
+import { ApiError } from '../../../../core/models/api-response.model';
+import { hasErrorCode } from '../../../../core/http/api-error-codes';
 import { AccountsService } from '../../services/accounts.service';
 import { balanceText } from '../../utils/account-display.util';
 
@@ -142,13 +152,25 @@ export class AccountsChartPage {
     ];
   });
 
-  /** Σ debit-nature roots vs Σ credit-nature roots — equal when the books balance. */
+  /** The server's trial balance — the authority on whether every posting balances. */
+  private readonly trialBalance = createQueryResource(signal(0), () => this.api.trialBalance());
+
+  /**
+   * Debit vs credit totals. Taken from `accounts/trial-balance` when loaded;
+   * until then (or if it fails) estimated from the chart's root balances
+   * (Σ debit-nature roots vs Σ credit-nature roots).
+   */
   protected readonly trial = computed(() => {
+    const profit = this.rootBalance('revenue') - this.rootBalance('expense');
+    const tb = this.trialBalance.value();
+    if (tb) {
+      const diff = Math.round((tb.totalDebit - tb.totalCredit) * 100) / 100;
+      return { debit: tb.totalDebit, credit: tb.totalCredit, diff, balanced: tb.isBalanced, profit };
+    }
     const roots = this.roots();
     const debit = roots.filter((r) => r.nature === 'debit').reduce((s, r) => s + r.balance, 0);
     const credit = roots.filter((r) => r.nature === 'credit').reduce((s, r) => s + r.balance, 0);
     const diff = Math.round((debit - credit) * 100) / 100;
-    const profit = this.rootBalance('revenue') - this.rootBalance('expense');
     return { debit, credit, diff, balanced: Math.abs(diff) < 0.01, profit };
   });
 
@@ -206,10 +228,41 @@ export class AccountsChartPage {
       type: 'danger',
     });
     if (!confirmed) return;
-    this.api.delete(a.id).subscribe(() => {
-      this.toast.success('تم حذف الحساب');
-      this.chart.reload();
+    this.api.delete(a.id).subscribe({
+      next: () => {
+        this.toast.success('تم حذف الحساب');
+        this.reloadAll();
+      },
+      error: (err: ApiError) => {
+        if (hasErrorCode(err, ACCOUNT_ERROR_CODES.hasPostings)) void this.offerDeactivate(a, err.message);
+        else this.toast.error(err.message);
+      },
     });
+  }
+
+  /** An account with postings can't be deleted — deactivating keeps the ledger intact. */
+  private async offerDeactivate(a: Account, serverMessage: string): Promise<void> {
+    const reason = serverMessage || `الحساب «${a.code} — ${a.name}» عليه قيود ولا يمكن حذفه.`;
+    if (!a.isActive) {
+      this.toast.error(`${reason} الحساب موقوف بالفعل.`);
+      return;
+    }
+    const deactivate = await this.dialog.confirm({
+      title: 'لا يمكن حذف الحساب',
+      message: `${reason}\nهل تريد إيقافه بدلًا من ذلك؟ لن يظهر في القيود والسندات الجديدة، ويبقى رصيده وحركاته كما هي.`,
+      confirmText: 'إيقاف الحساب',
+      type: 'warning',
+    });
+    if (!deactivate) return;
+    this.api.update(a.id, toAccountPayload(a, { isActive: false })).subscribe(() => {
+      this.toast.success(`تم إيقاف «${a.name}»`);
+      this.reloadAll();
+    });
+  }
+
+  protected reloadAll(): void {
+    this.chart.reload();
+    this.trialBalance.reload();
   }
 
   protected export(): void {

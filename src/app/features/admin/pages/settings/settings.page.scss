@@ -1,0 +1,128 @@
+:host {
+  display: block;
+}
+
+.st-initials {
+  max-width: 110px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* ── Numbering ── */
+
+.st-numbering {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  &__group {
+    margin: 10px 0 0;
+    font-size: 11.5px;
+    font-weight: 700;
+    color: var(--txt3);
+
+    &:first-child {
+      margin-top: 0;
+    }
+  }
+
+  &__row {
+    display: grid;
+    grid-template-columns: minmax(120px, 1.3fr) minmax(90px, 1fr) minmax(100px, 1fr) minmax(70px, 0.7fr) minmax(110px, 1fr);
+    align-items: start;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: var(--rl);
+    background: var(--bg3);
+
+    .ui-field {
+      margin: 0;
+    }
+  }
+
+  &__kind {
+    align-self: center;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--txt);
+  }
+
+  &__preview {
+    align-self: center;
+    justify-self: end;
+    font-size: 12.5px;
+  }
+}
+
+.st-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--re) 35%, transparent);
+  border-radius: var(--rl);
+  background: color-mix(in srgb, var(--re) 8%, transparent);
+  color: var(--re);
+  font-size: 12.5px;
+  line-height: 1.6;
+
+  small {
+    color: var(--txt2);
+  }
+}
+
+/* ── Letterhead preview ── */
+
+.st-letterhead {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  border: 1px dashed var(--brd2);
+  border-radius: var(--rl);
+  background: var(--bg2);
+
+  &__logo {
+    display: grid;
+    flex-shrink: 0;
+    place-items: center;
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
+    background: var(--primary);
+    color: #fff;
+    font-size: 17px;
+    font-weight: 800;
+  }
+
+  div {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+  }
+  strong {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--txt);
+  }
+  small {
+    font-size: 11px;
+    line-height: 1.5;
+    color: var(--txt3);
+  }
+}
+
+@media (max-width: 767.98px) {
+  .st-numbering__row {
+    grid-template-columns: 1fr 1fr;
+
+    .st-numbering__kind,
+    .st-numbering__preview {
+      grid-column: 1 / -1;
+      justify-self: start;
+    }
+  }
+}

@@ -13,8 +13,10 @@ import {
   canCancelOrder,
   CHANNEL_LABEL,
   nextOrderStatus,
+  notifiesCustomer,
   Order,
   ORDER_ADVANCE_LABEL,
+  ORDER_ERROR_CODES,
   ORDER_ITEMS_PLURAL,
   ORDER_STATUS_VIEW,
   OrderStatus,
@@ -23,6 +25,8 @@ import {
 } from '../../models/order.model';
 import { OrdersService } from '../../services/orders.service';
 import { OrderProgressComponent } from '../order-progress/order-progress.component';
+import { ApiError } from '../../../../core/models/api-response.model';
+import { hasErrorCode } from '../../../../core/http/api-error-codes';
 
 /** Full order view in a side drawer, with the next fulfilment action and cancel. */
 @Component({
@@ -41,8 +45,8 @@ export class OrderDetailsDrawerComponent {
   /** Open when set — bound to the `order` URL param by the page. */
   readonly orderId = input<string | null>(null);
   readonly closed = output<void>();
-  /** Emitted after a status change so the page can refresh its list. */
-  readonly changed = output<Order>();
+  /** Emitted after a status change (or a stale-status conflict) so the page can refresh its list. */
+  readonly changed = output<void>();
 
   protected readonly order = createQueryResource(this.orderId, (id) => this.orders.get(id!), {
     enabled: (id) => !!id,
@@ -62,6 +66,11 @@ export class OrderDetailsDrawerComponent {
   protected readonly cancellable = computed(() => {
     const o = this.current();
     return !!o && canCancelOrder(o.status);
+  });
+  /** App order with an action left → warn that acting on it notifies the customer. */
+  protected readonly showNotifyHint = computed(() => {
+    const o = this.current();
+    return !!o && notifiesCustomer(o.channel) && (!!this.next() || this.cancellable());
   });
   /** Last real step before a cancellation, so the stepper shows how far it got. */
   protected readonly lastStep = computed(() => {
@@ -84,9 +93,10 @@ export class OrderDetailsDrawerComponent {
   }
 
   protected async cancel(order: Order): Promise<void> {
+    const notice = notifiesCustomer(order.channel) ? '\nسيصل للعميل إشعار بالإلغاء على تطبيق الموبايل.' : '';
     const confirmed = await this.dialog.confirm({
       title: 'إلغاء الطلب',
-      message: `سيتم إلغاء الطلب ${order.number} ولن يمكن التراجع. هل تريد المتابعة؟`,
+      message: `سيتم إلغاء الطلب ${order.number} ولن يمكن التراجع. هل تريد المتابعة؟${notice}`,
       confirmText: 'إلغاء الطلب',
       type: 'danger',
     });
@@ -98,10 +108,20 @@ export class OrderDetailsDrawerComponent {
     this.orders
       .changeStatus(order.id, { status })
       .pipe(finalize(() => this.busy.set(null)))
-      .subscribe((updated) => {
-        this.toast.success(message);
-        this.order.reload();
-        this.changed.emit(updated);
+      .subscribe({
+        next: () => {
+          this.toast.success(notifiesCustomer(order.channel) ? `${message} — وتم إشعار العميل` : message);
+          this.order.reload();
+          this.changed.emit();
+        },
+        error: (err: ApiError) => {
+          this.toast.error(err.message);
+          // Someone else moved the order: show its real status and the actions it allows now.
+          if (hasErrorCode(err, ORDER_ERROR_CODES.invalidTransition) || err.status === 409) {
+            this.order.reload();
+            this.changed.emit();
+          }
+        },
       });
   }
 }

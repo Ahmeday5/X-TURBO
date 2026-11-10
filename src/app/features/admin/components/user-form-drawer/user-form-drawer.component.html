@@ -33,7 +33,7 @@
         </label>
         <label class="ui-field">
           <span class="ui-label">الموبايل</span>
-          <input class="ui-input ltr" formControlName="phone" inputmode="tel" placeholder="01000000000" />
+          <input class="ui-input ltr" formControlName="phone" inputmode="tel" maxlength="11" placeholder="01012345678" />
           <app-form-error [control]="form.controls.phone" label="الموبايل" />
         </label>
       </div>

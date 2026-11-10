@@ -13,14 +13,17 @@ import { pluralAr } from '../../../../shared/utils/plural.util';
 import {
   DOC_KIND_CONFIG,
   DOC_PAYMENT_LABEL,
-  DOC_REASON_LABEL,
   DocKind,
   Document,
+  DOCUMENT_ERROR_CODES,
   docStatusView,
 } from '../../models/document.model';
+import { ApiError } from '../../../../core/models/api-response.model';
+import { hasErrorCode } from '../../../../core/http/api-error-codes';
 import { DocumentsService } from '../../services/documents.service';
 import { LINES_PLURAL, PAYMENT_STATE_VIEW, partyLabel, paymentState, tracksPayment } from '../../utils/document-view';
 import { printDocument } from '../../utils/print-document';
+import { todayIsoDate } from '../../../../shared/utils/date-iso.util';
 
 type Busy = 'post' | 'complete' | 'cancel' | 'delete' | 'convert' | null;
 
@@ -67,10 +70,9 @@ export class DocumentDrawerComponent {
   protected readonly money = formatMoney;
   protected readonly int = formatInteger;
   protected readonly dateTime = formatDateTime;
-  protected readonly dayMonth = (iso: string) => formatDayMonth(`${iso.slice(0, 10)}T12:00:00`);
+  protected readonly dayMonth = (iso: string) => formatDayMonth(iso.slice(0, 10));
   protected readonly statusView = docStatusView;
   protected readonly paymentLabel = DOC_PAYMENT_LABEL;
-  protected readonly reasonLabel = DOC_REASON_LABEL;
   protected readonly paymentView = (d: Document) => PAYMENT_STATE_VIEW[paymentState(d)];
   protected readonly tracksPayment = tracksPayment;
   protected readonly partyLabel = partyLabel;
@@ -78,7 +80,7 @@ export class DocumentDrawerComponent {
   protected readonly kindConfig = (k: DocKind) => DOC_KIND_CONFIG[k];
   protected readonly totalQty = (d: Document) => d.lines.reduce((s, l) => s + l.qty, 0);
   protected readonly overdue = (d: Document) =>
-    !!d.dueDate && d.status === 'posted' && d.remaining > 0 && d.dueDate < new Date().toISOString().slice(0, 10);
+    !!d.dueDate && d.status === 'posted' && d.remaining > 0 && d.dueDate < todayIsoDate();
 
   protected print(d: Document): void {
     printDocument(d);
@@ -115,10 +117,13 @@ export class DocumentDrawerComponent {
     this.docs
       .delete(d.id)
       .pipe(finalize(() => this.busy.set(null)))
-      .subscribe(() => {
-        this.toast.success('تم حذف المسودة');
-        this.changed.emit();
-        this.closed.emit();
+      .subscribe({
+        next: () => {
+          this.toast.success('تم حذف المسودة');
+          this.changed.emit();
+          this.closed.emit();
+        },
+        error: (err: ApiError) => this.onActionError(d, err),
       });
   }
 
@@ -128,10 +133,13 @@ export class DocumentDrawerComponent {
     this.docs
       .convert(d.id, to)
       .pipe(finalize(() => this.busy.set(null)))
-      .subscribe((draft) => {
-        this.toast.success(`تم إنشاء ${DOC_KIND_CONFIG[to].singular} ${draft.number} كمسودة`);
-        this.changed.emit();
-        this.router.navigate([DOC_KIND_CONFIG[to].route], { queryParams: { doc: draft.id } });
+      .subscribe({
+        next: (draft) => {
+          this.toast.success(`تم إنشاء ${DOC_KIND_CONFIG[to].singular} ${draft.number} كمسودة`);
+          this.changed.emit();
+          this.router.navigate([DOC_KIND_CONFIG[to].route], { queryParams: { doc: draft.id } });
+        },
+        error: (err: ApiError) => this.onActionError(d, err),
       });
   }
 
@@ -157,10 +165,43 @@ export class DocumentDrawerComponent {
       if (!ok) return;
     }
     this.busy.set(kind);
-    request$.pipe(finalize(() => this.busy.set(null))).subscribe(() => {
-      this.toast.success(success);
+    const d = this.current()!;
+    request$.pipe(finalize(() => this.busy.set(null))).subscribe({
+      next: () => {
+        this.toast.success(success);
+        this.doc.reload();
+        this.changed.emit();
+      },
+      error: (err: ApiError) => this.onActionError(d, err),
+    });
+  }
+
+  /**
+   * One place for lifecycle failures. The server's message is always shown
+   * as-is (it explains the rule). On a 409 the document's status may have
+   * changed elsewhere (posted / cancelled by someone else), so it's reloaded
+   * and the drawer re-renders with the actions that are actually allowed.
+   */
+  private onActionError(d: Document, err: ApiError): void {
+    if (err.status === 409) {
       this.doc.reload();
       this.changed.emit();
+    }
+    if (hasErrorCode(err, DOCUMENT_ERROR_CODES.hasReturns) && d.targetId) {
+      void this.offerOpenReturn(d, err.message);
+      return;
+    }
+    this.toast.error(err.message);
+  }
+
+  /** Cancelling a document with an active return: the return must be cancelled first. */
+  private async offerOpenReturn(d: Document, serverMessage: string): Promise<void> {
+    const open = await this.dialog.confirm({
+      title: `لا يمكن إلغاء ${d.number}`,
+      message: `${serverMessage || 'على هذا المستند مرتجع نشط.'}\nألغِ المرتجع ${d.targetNumber ?? ''} أولًا، ثم أعد المحاولة.`,
+      confirmText: 'فتح المرتجع',
+      type: 'warning',
     });
+    if (open && d.targetId) this.openLinked(d.targetId);
   }
 }

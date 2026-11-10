@@ -142,7 +142,8 @@
         </div>
 
         @for (g of lines.controls; track g; let i = $index) {
-        <div class="ve-line" [formGroupName]="i" [class.is-invalid]="(submitted() || g.dirty) && lineIssues().has(i)">
+        <div class="ve-line" [formGroupName]="i"
+          [class.is-invalid]="((submitted() || g.dirty) && lineIssues().has(i)) || !!serverLineError(g)">
           <span class="ve-line__idx">{{ i + 1 }}</span>
           <div class="ve-line__acc">
             <app-searchable-select formControlName="accountId" [options]="lookups.allAccountOptions()" placeholder="اختر الحساب"
@@ -169,8 +170,8 @@
               <app-icon name="trash" [size]="15" />
             </button>
           </div>
-          @if ((submitted() || g.dirty) && lineIssues().get(i); as issue) {
-          <span class="ve-line__err"><app-icon name="alert" [size]="12" /> {{ issue }}</span>
+          @if (((submitted() || g.dirty) && lineIssues().get(i)) || serverLineError(g); as issue) {
+          <span class="ve-line__err" role="alert"><app-icon name="alert" [size]="12" /> {{ issue }}</span>
           }
         </div>
         }

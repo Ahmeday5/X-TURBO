@@ -37,6 +37,16 @@ export const CACHE_INVALIDATE = new HttpContextToken<readonly string[]>(() => []
 /** Force-bypass the cache for this GET (useful for explicit refresh buttons). */
 export const CACHE_BYPASS = new HttpContextToken<boolean>(() => false);
 
+/**
+ * Exempt a request from the global 30 s timeout — for uploads, whose duration
+ * depends on file size and the user's connection rather than on the server.
+ */
+export const SKIP_TIMEOUT = new HttpContextToken<boolean>(() => false);
+
+export function withNoTimeout(ctx: HttpContext = new HttpContext()): HttpContext {
+  return ctx.set(SKIP_TIMEOUT, true);
+}
+
 export function withSkipLoader(ctx: HttpContext = new HttpContext()): HttpContext {
   return ctx.set(SKIP_LOADER, true);
 }

@@ -1,10 +1,9 @@
-import { ITEMS_ENDPOINTS } from '../../features/items/services/items.service';
-import { ITEM_GROUPS_ENDPOINTS } from '../../features/items/services/item-groups.service';
 import { Item, ItemPayload, ITEM_UNITS, stockLevel } from '../../features/items/models/item.model';
 import { GROUP_COLORS, ItemGroup, ItemGroupOption, ItemGroupPayload } from '../../features/items/models/item-group.model';
 import { bodyOf, queryCollection } from '../mock-collection';
 import { fail, MockContext, MockRoute, ok } from '../mock-http';
 import { daysAgo, seeded } from '../mock-utils';
+import { API_ENDPOINTS } from '../../core/constants/api-endpoints.const';
 
 /**
  * In-memory items + groups "database". Seeded deterministically so lists are
@@ -71,8 +70,11 @@ function buildItems(): Item[] {
           minStock,
           stock: rand() < 0.08 ? 0 : Math.floor(rand() * minStock * 6),
           description: '',
+          compatibleWith: car,
           isActive: rand() > 0.07,
           createdAt: daysAgo(Math.floor(rand() * 360)),
+          averageRating: 0,
+          reviewsCount: 0,
         });
       }
     });
@@ -109,6 +111,8 @@ function createItem({ req }: MockContext) {
     code: `IT-${String(n).padStart(5, '0')}`,
     stock: 0,
     createdAt: new Date().toISOString(),
+    averageRating: 0,
+    reviewsCount: 0,
   };
   items.unshift(item);
   return ok(item, 201);
@@ -220,16 +224,16 @@ const ITEM_BY_ID = 'items/:id';
 const GROUP_BY_ID = 'item-groups/:id';
 
 export const ITEMS_MOCK_ROUTES: MockRoute[] = [
-  { method: 'GET', path: ITEMS_ENDPOINTS.list, protected: true, handle: listItems },
-  { method: 'POST', path: ITEMS_ENDPOINTS.list, protected: true, handle: createItem },
+  { method: 'GET', path: API_ENDPOINTS.items.list, protected: true, handle: listItems },
+  { method: 'POST', path: API_ENDPOINTS.items.list, protected: true, handle: createItem },
   { method: 'GET', path: ITEM_BY_ID, protected: true, handle: getItem },
   { method: 'PUT', path: ITEM_BY_ID, protected: true, handle: updateItem },
   { method: 'DELETE', path: ITEM_BY_ID, protected: true, handle: deleteItem },
 
   // `lookup` before `:id` so it isn't captured as an id.
-  { method: 'GET', path: ITEM_GROUPS_ENDPOINTS.lookup, protected: true, handle: lookupGroups },
-  { method: 'GET', path: ITEM_GROUPS_ENDPOINTS.list, protected: true, handle: listGroups },
-  { method: 'POST', path: ITEM_GROUPS_ENDPOINTS.list, protected: true, handle: createGroup },
+  { method: 'GET', path: API_ENDPOINTS.itemGroups.lookup, protected: true, handle: lookupGroups },
+  { method: 'GET', path: API_ENDPOINTS.itemGroups.list, protected: true, handle: listGroups },
+  { method: 'POST', path: API_ENDPOINTS.itemGroups.list, protected: true, handle: createGroup },
   { method: 'PUT', path: GROUP_BY_ID, protected: true, handle: updateGroup },
   { method: 'DELETE', path: GROUP_BY_ID, protected: true, handle: deleteGroup },
 ];

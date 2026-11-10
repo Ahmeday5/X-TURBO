@@ -22,9 +22,20 @@ import { UrlListState } from '../../../../shared/list/url-list-state';
 import { downloadCsv } from '../../../../shared/utils/csv.util';
 import { formatInteger, formatMoney, formatMoneyCompact, formatRelative } from '../../../../shared/utils/format.util';
 import { PartyCardComponent } from '../../components/party-card/party-card.component';
-import { BALANCE_SIDE_LABEL, balanceSide, Party, PARTY_KIND_VIEW, PRICE_LIST_LABEL } from '../../models/party.model';
+import {
+  BALANCE_SIDE_LABEL,
+  balanceSide,
+  Party,
+  PARTY_ERROR_CODES,
+  PARTY_KIND_VIEW,
+  PRICE_LIST_LABEL,
+  toPartyPayload,
+} from '../../models/party.model';
+import { ApiError } from '../../../../core/models/api-response.model';
+import { hasErrorCode } from '../../../../core/http/api-error-codes';
 import { PartiesService } from '../../services/parties.service';
 import { balanceTone, formatBalance } from '../../utils/party-display.util';
+import { todayIsoDate } from '../../../../shared/utils/date-iso.util';
 
 /** Customers & suppliers directory — kind tabs, filters, totals, all in the URL. */
 @Component({
@@ -158,8 +169,34 @@ export class PartyListPage {
       type: 'danger',
     });
     if (!confirmed) return;
-    this.parties.delete(p.id).subscribe(() => {
-      this.toast.success('تم حذف الحساب');
+    this.parties.delete(p.id).subscribe({
+      next: () => {
+        this.toast.success('تم حذف الحساب');
+        this.refresh();
+      },
+      error: (err: ApiError) => {
+        if (hasErrorCode(err, PARTY_ERROR_CODES.hasMovements)) void this.offerDeactivate(p, err.message);
+        else this.toast.error(err.message);
+      },
+    });
+  }
+
+  /** A party with movements can't be deleted — deactivating keeps its statement intact. */
+  private async offerDeactivate(p: Party, serverMessage: string): Promise<void> {
+    const reason = serverMessage || `«${p.name}» عليه حركات ولا يمكن حذفه.`;
+    if (!p.isActive) {
+      this.toast.error(`${reason} الحساب موقوف بالفعل.`);
+      return;
+    }
+    const deactivate = await this.dialog.confirm({
+      title: 'لا يمكن حذف الحساب',
+      message: `${reason}\nهل تريد إيقافه بدلًا من ذلك؟ لن يظهر في المستندات الجديدة، ويبقى كشف حسابه ورصيده كما هما.`,
+      confirmText: 'إيقاف الحساب',
+      type: 'warning',
+    });
+    if (!deactivate) return;
+    this.parties.update(p.id, toPartyPayload(p, { isActive: false })).subscribe(() => {
+      this.toast.success(`تم إيقاف «${p.name}»`);
       this.refresh();
     });
   }
@@ -170,7 +207,7 @@ export class PartyListPage {
     fetchAllPages((pageIndex, pageSize) => this.parties.list({ ...query, pageIndex, pageSize }), 100)
       .pipe(finalize(() => this.exporting.set(false)))
       .subscribe((rows) => {
-        downloadCsv(`parties-${new Date().toISOString().slice(0, 10)}`, rows, [
+        downloadCsv(`parties-${todayIsoDate()}`, rows, [
           { label: 'الكود', value: (p) => p.code },
           { label: 'الاسم', value: (p) => p.name },
           { label: 'النوع', value: (p) => PARTY_KIND_VIEW[p.kind].label },

@@ -10,7 +10,6 @@ import {
   PARTY_KINDS,
   PartyStatement,
 } from '../../features/parties/models/party.model';
-import { PARTIES_ENDPOINTS } from '../../features/parties/services/parties.service';
 import { findOr404, round2, todayIso } from '../db/db-utils';
 import { documentRows } from '../db/documents.db';
 import { allPartyBalances, partyEntries } from '../db/ledger.db';
@@ -18,6 +17,7 @@ import { newPartyId, nextPartyCode, partyRows, PartyRecord } from '../db/parties
 import { voucherRows } from '../db/vouchers.db';
 import { bodyOf, CollectionOptions, filterCollection, queryCollection } from '../mock-collection';
 import { fail, MockContext, MockRoute, ok } from '../mock-http';
+import { API_ENDPOINTS } from '../../core/constants/api-endpoints.const';
 
 const PHONE = /^01[0125]\d{8}$/;
 
@@ -229,11 +229,11 @@ function balancesSummary({ query }: MockContext) {
 const BY_ID = 'parties/:id';
 
 export const PARTIES_MOCK_ROUTES: MockRoute[] = [
-  { method: 'GET', path: PARTIES_ENDPOINTS.lookup, protected: true, handle: lookup },
-  { method: 'GET', path: PARTIES_ENDPOINTS.balancesSummary, protected: true, handle: balancesSummary },
-  { method: 'GET', path: PARTIES_ENDPOINTS.balances, protected: true, handle: balances },
-  { method: 'GET', path: PARTIES_ENDPOINTS.list, protected: true, handle: list },
-  { method: 'POST', path: PARTIES_ENDPOINTS.list, protected: true, handle: create },
+  { method: 'GET', path: API_ENDPOINTS.parties.lookup, protected: true, handle: lookup },
+  { method: 'GET', path: API_ENDPOINTS.parties.balancesSummary, protected: true, handle: balancesSummary },
+  { method: 'GET', path: API_ENDPOINTS.parties.balances, protected: true, handle: balances },
+  { method: 'GET', path: API_ENDPOINTS.parties.list, protected: true, handle: list },
+  { method: 'POST', path: API_ENDPOINTS.parties.list, protected: true, handle: create },
   { method: 'GET', path: `${BY_ID}/statement/detailed`, protected: true, handle: statementDetailed },
   { method: 'GET', path: `${BY_ID}/statement`, protected: true, handle: statement },
   { method: 'GET', path: BY_ID, protected: true, handle: get },

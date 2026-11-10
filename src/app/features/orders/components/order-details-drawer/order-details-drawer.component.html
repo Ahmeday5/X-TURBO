@@ -105,6 +105,11 @@
 
   @if (current(); as o) {
   <div drawer-footer class="odd-actions">
+    @if (showNotifyHint()) {
+    <p class="odd-actions__hint" role="note">
+      <app-icon name="bell" [size]="13" /> تغيير حالة هذا الطلب يرسل إشعارًا للعميل على تطبيق الموبايل
+    </p>
+    }
     @if (cancellable()) {
     <button type="button" class="ui-btn ui-btn--ghost odd-actions__cancel" [class.is-loading]="busy() === 'cancelled'"
       [disabled]="!!busy()" (click)="cancel(o)">

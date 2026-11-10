@@ -17,6 +17,7 @@ import { createQueryResource } from '../../../../shared/list/query-resource';
 import { UrlListState } from '../../../../shared/list/url-list-state';
 import { downloadCsv } from '../../../../shared/utils/csv.util';
 import { formatCompact, formatInteger, formatMoney, formatMoneyCompact, formatRelative } from '../../../../shared/utils/format.util';
+import { todayIsoDate } from '../../../../shared/utils/date-iso.util';
 import { StockMeterComponent } from '../../../items/components/stock-meter/stock-meter.component';
 import { STOCK_LEVEL_LABEL, StockLevel } from '../../../items/models/item.model';
 import { ItemGroupsService } from '../../../items/services/item-groups.service';
@@ -147,7 +148,7 @@ export class StockPage {
     fetchAllPages((pageIndex, pageSize) => this.stock.list({ ...query, pageIndex, pageSize }), 100)
       .pipe(finalize(() => this.exporting.set(false)))
       .subscribe((rows) =>
-        downloadCsv(`stock-${new Date().toISOString().slice(0, 10)}`, rows, [
+        downloadCsv(`stock-${todayIsoDate()}`, rows, [
           { label: 'كود الصنف', value: (r) => r.itemCode },
           { label: 'الصنف', value: (r) => r.itemName },
           { label: 'المجموعة', value: (r) => r.groupName },

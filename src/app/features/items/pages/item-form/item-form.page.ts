@@ -7,18 +7,23 @@ import { ToastService } from '../../../../core/services/toast.service';
 import { ApiError } from '../../../../core/models/api-response.model';
 import { applyServerErrors } from '../../../../core/utils/api-error.util';
 import { FormErrorComponent } from '../../../../shared/components/form-error/form-error.component';
-import { IconComponent } from '../../../../shared/components/icon/icon.component';
+import { AppValidators } from '../../../../shared/validators/app-validators';
+import { IconComponent, IconName } from '../../../../shared/components/icon/icon.component';
+import { ItemImagesComponent } from '../../components/item-images/item-images.component';
+import { ItemStoreComponent } from '../../components/item-store/item-store.component';
+import { ItemFitmentsComponent } from '../../components/item-fitments/item-fitments.component';
 import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
 import {
   SearchableSelectComponent,
   SearchableSelectOption,
 } from '../../../../shared/components/searchable-select/searchable-select.component';
 import { ItemCardComponent, ItemCardData } from '../../components/item-card/item-card.component';
-import { Item, ITEM_UNITS, ItemPayload, marginPct } from '../../models/item.model';
+import { COMPATIBLE_WITH_MAX, Item, ITEM_UNITS, ItemPayload, marginPct } from '../../models/item.model';
 import { ItemGroupsService } from '../../services/item-groups.service';
 import { ItemsService } from '../../services/items.service';
 
-const BARCODE_PATTERN = /^\d{8,14}$/;
+
+type ItemTab = 'details' | 'images' | 'store' | 'fitments';
 
 /**
  * Create / edit an item. `?id=` switches to edit mode (bound from the URL,
@@ -36,6 +41,9 @@ const BARCODE_PATTERN = /^\d{8,14}$/;
     FormErrorComponent,
     SearchableSelectComponent,
     ItemCardComponent,
+    ItemImagesComponent,
+    ItemStoreComponent,
+    ItemFitmentsComponent,
   ],
   templateUrl: './item-form.page.html',
   styleUrl: './item-form.page.scss',
@@ -49,8 +57,30 @@ export class ItemFormPage {
   /** Bound from route data / query string. */
   readonly navId = input.required<string>();
   readonly id = input<string>();
+  /** `?tab=` — the store-related tabs only exist once the item is saved (they need its id). */
+  readonly tab = input<string>();
+
+  protected readonly tabs: readonly { key: ItemTab; label: string; icon: IconName }[] = [
+    { key: 'details', label: 'البيانات الأساسية', icon: 'box' },
+    { key: 'images', label: 'الصور', icon: 'image' },
+    { key: 'store', label: 'بيانات المتجر', icon: 'store' },
+    { key: 'fitments', label: 'التوافق مع السيارات', icon: 'car' },
+  ];
+  protected readonly activeTab = computed<ItemTab>(() => {
+    const t = this.tab();
+    return this.isEdit() && this.tabs.some((x) => x.key === t) ? (t as ItemTab) : 'details';
+  });
+
+  protected setTab(tab: ItemTab): void {
+    this.router.navigate([], {
+      queryParams: { tab: tab === 'details' ? null : tab },
+      queryParamsHandling: 'merge',
+      replaceUrl: true,
+    });
+  }
 
   protected readonly units = ITEM_UNITS;
+  protected readonly compatibleMax = COMPATIBLE_WITH_MAX;
   protected readonly groups = toSignal(inject(ItemGroupsService).lookup(), { initialValue: [] });
   protected readonly groupOptions = computed<SearchableSelectOption[]>(() =>
     this.groups().map((g) => ({ value: g.id, label: g.name })),
@@ -61,11 +91,12 @@ export class ItemFormPage {
     groupId: ['', Validators.required],
     unit: [ITEM_UNITS[0] as string, Validators.required],
     brand: ['', Validators.maxLength(60)],
-    barcode: ['', Validators.pattern(BARCODE_PATTERN)],
+    barcode: ['', AppValidators.barcode()],
     purchasePrice: [0, [Validators.required, Validators.min(0)]],
     salePrice: [0, [Validators.required, Validators.min(0)]],
     minStock: [0, [Validators.required, Validators.min(0)]],
     description: ['', Validators.maxLength(500)],
+    compatibleWith: ['', Validators.maxLength(COMPATIBLE_WITH_MAX)],
     isActive: [true],
   });
 
@@ -145,6 +176,7 @@ export class ItemFormPage {
             salePrice: item.salePrice,
             minStock: item.minStock,
             description: item.description,
+            compatibleWith: item.compatibleWith ?? '',
             isActive: item.isActive,
           });
         },
@@ -165,6 +197,7 @@ export class ItemFormPage {
       name: v.name.trim(),
       brand: v.brand.trim(),
       description: v.description.trim(),
+      compatibleWith: v.compatibleWith.trim() || null,
       unit: v.unit as Item['unit'],
       purchasePrice: Number(v.purchasePrice),
       salePrice: Number(v.salePrice),

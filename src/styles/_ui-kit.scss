@@ -203,10 +203,21 @@
     background: var(--bg3);
     color: var(--txt2);
   }
-  &.ng-invalid.ng-touched {
+  &.ng-invalid.ng-touched,
+  /* Inputs not backed by a FormControl (e.g. document lines) flag server errors with this. */
+  &.is-invalid {
     border-color: var(--re);
     box-shadow: 0 0 0 3px var(--re-l);
   }
+}
+
+/** Server / validation message under an input that has no `<app-form-error>`. */
+.ui-field-error {
+  display: block;
+  margin-top: 3px;
+  font-size: 10.5px;
+  line-height: 1.4;
+  color: var(--re);
 }
 
 textarea.ui-input {

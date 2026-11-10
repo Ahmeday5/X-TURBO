@@ -1,0 +1,131 @@
+<!-- ── Cell templates ── -->
+<ng-template #nameCell [appRowOf]="list.items()" let-u>
+  <div class="up-name">
+    <app-avatar [name]="u.name" [size]="32" />
+    <div>
+      <strong>
+        {{ u.name }}
+        @if (isSelf(u)) {<span class="up-you">أنت</span>}
+      </strong>
+      <small class="ltr">{{ u.email }}</small>
+    </div>
+  </div>
+</ng-template>
+
+<ng-template #roleCell [appRowOf]="list.items()" let-u>
+  <span class="up-role" [style.--tone]="roleView[u.role].color">
+    <app-icon [name]="roleView[u.role].icon" [size]="13" /> {{ roleView[u.role].label }}
+  </span>
+</ng-template>
+
+<ng-template #permsCell [appRowOf]="list.items()" let-u>
+  <span class="up-perms" [title]="u.permissions.length + ' صلاحية'">{{ u.permissions.length }}</span>
+</ng-template>
+
+<ng-template #statusCell [appRowOf]="list.items()" let-u>
+  <app-status-pill [view]="statusView[u.isActive ? 'active' : 'suspended']" />
+</ng-template>
+
+<ng-template #loginCell [appRowOf]="list.items()" let-u>
+  @if (u.lastLoginAt) {
+  <span class="up-login" [title]="dateTime(u.lastLoginAt)">{{ relative(u.lastLoginAt) }}</span>
+  } @else {
+  <span class="up-login up-login--never">لم يسجل الدخول</span>
+  }
+</ng-template>
+
+<ng-template #actions [appRowOf]="list.items()" let-u>
+  <button type="button" class="ui-icon-btn" title="تعديل" [attr.aria-label]="'تعديل ' + u.name" (click)="edit(u)">
+    <app-icon name="edit" [size]="16" />
+  </button>
+  <button type="button" class="ui-icon-btn" title="تعيين كلمة مرور" [attr.aria-label]="'تعيين كلمة مرور ' + u.name"
+    (click)="resetting.set(u)">
+    <app-icon name="lock" [size]="16" />
+  </button>
+  <button type="button" class="ui-icon-btn" [class.is-loading]="busyId() === u.id" [disabled]="busyId() === u.id"
+    [title]="protectedReason(u) ?? (u.isActive ? 'إيقاف' : 'تفعيل')"
+    [attr.aria-label]="(u.isActive ? 'إيقاف ' : 'تفعيل ') + u.name" (click)="toggleActive(u)">
+    <app-icon [name]="u.isActive ? 'user-x' : 'user-check'" [size]="16" />
+  </button>
+  <button type="button" class="ui-icon-btn ui-icon-btn--danger" [title]="protectedReason(u) ?? 'حذف'"
+    [attr.aria-label]="'حذف ' + u.name" [disabled]="busyId() === u.id" (click)="remove(u)">
+    <app-icon name="trash" [size]="16" />
+  </button>
+</ng-template>
+
+<ng-template #card [appRowOf]="list.items()" let-u>
+  <article class="up-card" [style.--tone]="roleView[u.role].color">
+    <header>
+      <app-avatar [name]="u.name" [size]="40" />
+      <div>
+        <strong>{{ u.name }} @if (isSelf(u)) {<span class="up-you">أنت</span>}</strong>
+        <small class="ltr">{{ u.email }}</small>
+      </div>
+      <app-status-pill [view]="statusView[u.isActive ? 'active' : 'suspended']" />
+    </header>
+    <dl>
+      <div><dt>الدور</dt><dd>{{ roleView[u.role].label }}</dd></div>
+      <div><dt>الصلاحيات</dt><dd>{{ u.permissions.length }}</dd></div>
+      <div><dt>آخر دخول</dt><dd>{{ u.lastLoginAt ? relative(u.lastLoginAt) : '—' }}</dd></div>
+    </dl>
+  </article>
+</ng-template>
+
+<!-- ── Page ── -->
+<app-page-header [navId]="navId()">
+  <button type="button" class="refresh-btn" [class.is-spinning]="list.loading() || stats.loading()"
+    [disabled]="list.loading()" title="تحديث" aria-label="تحديث القائمة" (click)="refresh()">
+    <app-icon name="refresh" [size]="16" />
+  </button>
+  <button type="button" class="ui-btn ui-btn--primary" (click)="openCreate()">
+    <app-icon name="plus" [size]="16" /> مستخدم جديد
+  </button>
+</app-page-header>
+
+<app-summary-tiles [tiles]="tiles()" [refreshing]="stats.loading() && !!stats.value()" />
+
+<div class="seg up-tabs" role="tablist" aria-label="أقسام الصفحة">
+  <button type="button" class="seg__btn" role="tab" [attr.aria-selected]="tab() === 'users'"
+    [attr.aria-pressed]="tab() === 'users'" (click)="setTab('users')">
+    <app-icon name="users" [size]="15" /> المستخدمون
+  </button>
+  <button type="button" class="seg__btn" role="tab" [attr.aria-selected]="tab() === 'roles'"
+    [attr.aria-pressed]="tab() === 'roles'" (click)="setTab('roles')">
+    <app-icon name="shield" [size]="15" /> الأدوار والصلاحيات
+  </button>
+</div>
+
+@if (tab() === 'users') {
+<app-status-tabs label="تصفية حسب الدور" [tabs]="roleTabs()" [active]="state.query().filters['role']"
+  (activeChange)="state.setFilter('role', $event)" />
+
+<app-list-toolbar placeholder="ابحث بالاسم أو البريد أو الموبايل…" [search]="state.query().search"
+  [view]="state.view()" [sort]="state.query().sort" [sortOptions]="sortOptions" [count]="list.count()"
+  [activeFilters]="state.activeFilters()" (searchChange)="state.setSearch($event)" (sortChange)="state.setSort($event)"
+  (viewChange)="state.setView($event)" (clearFilters)="state.clearFilters()">
+  <app-filter-select filters label="الحالة" allLabel="كل الحالات" [options]="statusOptions"
+    [value]="state.query().filters['status']" (valueChange)="state.setFilter('status', $event)" />
+</app-list-toolbar>
+
+<app-data-table [columns]="columns()" [data]="list.items()" [view]="state.view()" [sort]="state.query().sort"
+  [loading]="list.loading()" [initialLoading]="list.initialLoading()" [error]="list.error()"
+  [skeletonCount]="state.query().pageSize" [cardTemplate]="card" [actionsTemplate]="actions" emptyIcon="users"
+  emptyTitle="لا يوجد مستخدمون مطابقون" emptyText="جرّب تعديل البحث أو الفلاتر، أو أضف مستخدمًا جديدًا."
+  (sortChange)="state.toggleSort($event)" (retry)="list.reload()">
+  <button empty-actions type="button" class="ui-btn ui-btn--primary" (click)="openCreate()">
+    <app-icon name="plus" [size]="16" /> مستخدم جديد
+  </button>
+</app-data-table>
+
+<app-pagination class="up-pager" [pageIndex]="state.query().pageIndex" [pageSize]="state.query().pageSize"
+  [count]="list.count()" [totalPages]="list.totalPages()" [pageSizeOptions]="[10, 25, 50, 100]"
+  [disabled]="list.loading()" (pageChange)="state.setPage($event)" (pageSizeChange)="state.setPageSize($event)" />
+} @else {
+<app-roles-overview [stats]="stats.value()" (roleSelected)="showRole($event)" />
+}
+
+<!-- ── Overlays ── -->
+<app-user-form-drawer [userId]="editing()" [selfId]="selfId()" [activeAdmins]="activeAdmins()"
+  (closed)="closeDrawer()" (saved)="onSaved()" />
+
+<app-reset-password-modal [user]="resetting()" (closed)="resetting.set(null)" />

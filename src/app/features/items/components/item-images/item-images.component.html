@@ -1,0 +1,117 @@
+<section class="ii">
+  <header class="ii__head">
+    <div>
+      <h2>صور الصنف</h2>
+      <p>الصورة الرئيسية (★) هي اللي بتظهر على كارت المنتج في تطبيق الموبايل. اسحب الصور لتغيير ترتيبها.</p>
+    </div>
+    <span class="ii__count" [class.is-full]="images().length >= rules.maxPerItem">
+      {{ images().length }} / {{ rules.maxPerItem }}
+    </span>
+  </header>
+
+  <!-- Drop zone -->
+  <label class="ii__drop" [class.is-active]="dropActive()" [class.is-disabled]="slotsLeft() <= 0"
+    (dragover)="onDragOver($event)" (dragleave)="dropActive.set(false)" (drop)="onDrop($event)">
+    <input #picker type="file" multiple [accept]="rules.accept" [disabled]="slotsLeft() <= 0"
+      (change)="onFilesPicked(picker)" />
+    <app-icon name="upload" [size]="26" />
+    @if (slotsLeft() > 0) {
+    <strong>اسحب الصور هنا أو اضغط للاختيار</strong>
+    <small>JPG أو PNG أو WEBP — حتى 5 ميجا للصورة — متبقي {{ slotsLeft() }} من {{ rules.maxPerItem }}</small>
+    } @else {
+    <strong>وصلت للحد الأقصى ({{ rules.maxPerItem }} صور)</strong>
+    <small>احذف صورة لإضافة غيرها</small>
+    }
+  </label>
+
+  <!-- Upload queue -->
+  @if (queue().length) {
+  <div class="ii__queue" aria-live="polite">
+    @if (uploadingIndex(); as u) {
+    <p class="ii__queue-title">جارٍ رفع الصورة {{ u.current }} من {{ u.total }}…</p>
+    }
+    <ul>
+      @for (t of queue(); track t.key) {
+      <li [class]="'ii__task ii__task--' + t.status">
+        <span class="ii__task-thumb">
+          @if (t.previewUrl) {<img [src]="t.previewUrl" alt="" />} @else {<app-icon name="image" [size]="18" />}
+        </span>
+        <div class="ii__task-body">
+          <strong class="ltr">{{ t.file.name }}</strong>
+          @switch (t.status) {
+            @case ('queued') {<small>في الانتظار · {{ fileSize(t.file.size) }}</small>}
+            @case ('uploading') {
+            <small>{{ t.percent === null ? 'جارٍ الرفع…' : 'جارٍ الرفع ' + t.percent + '%' }}</small>
+            <span class="ii__bar" [class.is-indeterminate]="t.percent === null" role="progressbar"
+              [attr.aria-valuenow]="t.percent" aria-valuemin="0" aria-valuemax="100" [attr.aria-label]="'رفع ' + t.file.name">
+              <span [style.width.%]="t.percent ?? 40"></span>
+            </span>
+            }
+            @case ('error') {<small class="ii__task-error" role="alert">{{ t.error }}</small>}
+          }
+        </div>
+        @if (t.status === 'error') {
+        <div class="ii__task-acts">
+          @if (t.previewUrl) {
+          <button type="button" class="ui-icon-btn" title="إعادة المحاولة" aria-label="إعادة المحاولة" (click)="retry(t)">
+            <app-icon name="refresh" [size]="15" />
+          </button>
+          }
+          <button type="button" class="ui-icon-btn" title="إزالة" aria-label="إزالة من القائمة" (click)="dismiss(t)">
+            <app-icon name="x" [size]="15" />
+          </button>
+        </div>
+        }
+      </li>
+      }
+    </ul>
+  </div>
+  }
+
+  <!-- Gallery -->
+  @if (loadError(); as err) {
+  <div class="ii__state">
+    <app-icon name="alert" [size]="22" />
+    <p>{{ err }}</p>
+    <button type="button" class="ui-btn ui-btn--ghost ui-btn--sm" (click)="load()">إعادة المحاولة</button>
+  </div>
+  } @else if (loading() && !images().length) {
+  <div class="ii__grid">@for (i of [1, 2, 3]; track i) {<span class="skeleton ii__skeleton"></span>}</div>
+  } @else if (!images().length && !queue().length) {
+  <div class="ii__state"><app-icon name="image" [size]="26" /><p>لا توجد صور لهذا الصنف بعد</p></div>
+  } @else {
+  <ol class="ii__grid" aria-label="صور الصنف بالترتيب">
+    @for (img of images(); track img.id; let i = $index, first = $first, last = $last) {
+    <li class="ii__tile" [class.is-primary]="img.isPrimary" [class.is-dragging]="draggingId() === img.id"
+      [class.is-busy]="busyId() === img.id" draggable="true" (dragstart)="onImageDragStart($event, img)"
+      (dragover)="onImageDragOver($event)" (drop)="onImageDrop($event, img)" (dragend)="onImageDragEnd()">
+      <img [src]="img.url" [alt]="'صورة ' + (i + 1)" loading="lazy" />
+      <span class="ii__order">{{ i + 1 }}</span>
+      @if (img.isPrimary) {<span class="ii__badge"><app-icon name="star" [size]="12" /> الرئيسية</span>}
+      <span class="ii__grip" aria-hidden="true"><app-icon name="grip" [size]="16" /></span>
+
+      <div class="ii__tile-acts">
+        <button type="button" class="ii__btn" [class.is-on]="img.isPrimary" [disabled]="img.isPrimary || !!busyId()"
+          [title]="img.isPrimary ? 'الصورة الرئيسية' : 'تعيين كصورة رئيسية'" [attr.aria-pressed]="img.isPrimary"
+          [attr.aria-label]="'تعيين الصورة ' + (i + 1) + ' كرئيسية'" (click)="setPrimary(img)">
+          <app-icon name="star" [size]="15" />
+        </button>
+        <button type="button" class="ii__btn" [disabled]="first" title="تقديم" [attr.aria-label]="'تقديم الصورة ' + (i + 1)"
+          (click)="shift(i, -1)">
+          <app-icon name="chevron-left" [size]="15" />
+        </button>
+        <button type="button" class="ii__btn" [disabled]="last" title="تأخير" [attr.aria-label]="'تأخير الصورة ' + (i + 1)"
+          (click)="shift(i, 1)">
+          <app-icon name="chevron-left" [size]="15" class="ii__flip" />
+        </button>
+        <button type="button" class="ii__btn ii__btn--danger" [disabled]="!!busyId()" title="حذف"
+          [attr.aria-label]="'حذف الصورة ' + (i + 1)" (click)="remove(img, i)">
+          <app-icon name="trash" [size]="15" />
+        </button>
+      </div>
+      <small class="ii__meta ltr">{{ fileSize(img.size) }}</small>
+    </li>
+    }
+  </ol>
+  }
+</section>

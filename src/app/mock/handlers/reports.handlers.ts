@@ -8,12 +8,12 @@ import {
   ReportRange,
   ReportsOverview,
 } from '../../features/reports/models/report.model';
-import { REPORTS_ENDPOINTS } from '../../features/reports/services/reports.service';
 import { queryCollection } from '../mock-collection';
 import { MockContext, MockRoute, ok } from '../mock-http';
 import { DAY_MS, kpi, startOfDay, sum } from '../mock-utils';
 import { itemsSnapshot } from './items.handlers';
 import { OrderRecord, ordersSnapshot } from './orders.handlers';
+import { API_ENDPOINTS } from '../../core/constants/api-endpoints.const';
 
 /** Reports aggregated live from the orders mock — every figure reconciles with the orders page. */
 
@@ -172,6 +172,6 @@ function products({ query }: MockContext) {
 }
 
 export const REPORTS_MOCK_ROUTES: MockRoute[] = [
-  { method: 'GET', path: REPORTS_ENDPOINTS.overview, protected: true, handle: overview },
-  { method: 'GET', path: REPORTS_ENDPOINTS.products, protected: true, handle: products },
+  { method: 'GET', path: API_ENDPOINTS.reports.overview, protected: true, handle: overview },
+  { method: 'GET', path: API_ENDPOINTS.reports.products, protected: true, handle: products },
 ];

@@ -1,16 +1,8 @@
 /**
- * Auth endpoint configuration — the only file you should need to touch to
- * point this starter's auth flow at a different backend.
- *
- * Every endpoint is relative to `environment.apiUrl` (see `ApiService`).
+ * Client-side auth routes. API endpoints (`auth/login`, `auth/refresh-token`,
+ * `auth/logout`, `auth/me`) live in `core/constants/api-endpoints.const.ts`
+ * under `API_ENDPOINTS.auth`.
  */
-export const AUTH_ENDPOINTS = {
-  login: 'auth/login',
-  logout: 'auth/logout',
-  refresh: 'auth/refresh-token',
-  /** Authoritative current-user + permissions endpoint, fetched after login. */
-  me: 'auth/me',
-} as const;
 
 /** Default route to send an authenticated user to after login/guard redirects. */
 export const DEFAULT_AUTHENTICATED_ROUTE = '/dashboard';

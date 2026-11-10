@@ -1,0 +1,19 @@
+/* Shared by the car make / model dialogs. */
+.cd {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+
+  &__years {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  &__footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    width: 100%;
+  }
+}

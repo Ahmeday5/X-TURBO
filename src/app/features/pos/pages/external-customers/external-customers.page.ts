@@ -7,6 +7,7 @@ import { ToastService } from '../../../../core/services/toast.service';
 import { AvatarComponent } from '../../../../shared/components/avatar/avatar.component';
 import { DataTableComponent, TableColumn } from '../../../../shared/components/data-table/data-table.component';
 import { FormErrorComponent } from '../../../../shared/components/form-error/form-error.component';
+import { AppValidators } from '../../../../shared/validators/app-validators';
 import { IconComponent } from '../../../../shared/components/icon/icon.component';
 import { ListToolbarComponent, SortOption } from '../../../../shared/components/list-toolbar/list-toolbar.component';
 import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
@@ -18,7 +19,6 @@ import { formatMoney, formatRelative } from '../../../../shared/utils/format.uti
 import { Party, PartyPayload } from '../../../parties/models/party.model';
 import { PartiesService } from '../../../parties/services/parties.service';
 
-const PHONE = /^01[0125]\d{8}$/;
 
 /** Walk-in customers registered from the POS: quick form beside the list. */
 @Component({
@@ -81,7 +81,7 @@ export class ExternalCustomersPage {
 
   protected readonly form = this.fb.group({
     name: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(80)]],
-    phone: ['', [Validators.required, Validators.pattern(PHONE)]],
+    phone: ['', [Validators.required, AppValidators.mobile()]],
     city: ['', Validators.maxLength(40)],
     notes: ['', Validators.maxLength(200)],
   });

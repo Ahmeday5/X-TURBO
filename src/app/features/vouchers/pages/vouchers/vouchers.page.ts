@@ -45,6 +45,7 @@ import {
   voucherKindForRoute,
   VOUCHERS_PLURAL,
 } from '../../utils/voucher-view';
+import { todayIsoDate } from '../../../../shared/utils/date-iso.util';
 
 const FILTERS = ['status', 'from', 'to', 'method', 'cashAccountId', 'partyId', 'costCenterId'] as const;
 
@@ -193,7 +194,7 @@ export class VouchersPage {
   protected readonly methodLabel = VOUCHER_METHOD_LABEL;
   protected readonly counterparty = counterpartyName;
   protected readonly money = formatMoney;
-  protected readonly day = (iso: string) => formatDayMonth(`${iso.slice(0, 10)}T12:00:00`);
+  protected readonly day = (iso: string) => formatDayMonth(iso.slice(0, 10));
   protected readonly linesLabel = (n: number) => pluralAr(n, JOURNAL_LINES_PLURAL);
 
   // ── Navigation ──
@@ -252,7 +253,7 @@ export class VouchersPage {
     fetchAllPages((pageIndex, pageSize) => this.vouchers.list(kind, { ...query, pageIndex, pageSize }), 100)
       .pipe(finalize(() => this.exporting.set(false)))
       .subscribe((rows) => {
-        downloadCsv(`${cfg.prefix.toLowerCase()}-${new Date().toISOString().slice(0, 10)}`, rows, [
+        downloadCsv(`${cfg.prefix.toLowerCase()}-${todayIsoDate()}`, rows, [
           { label: 'الرقم', value: (v) => v.number },
           { label: 'التاريخ', value: (v) => v.date },
           ...(kind === 'journal'

@@ -23,6 +23,9 @@
 </ng-template>
 
 <ng-template #actions let-g>
+  <button type="button" class="ui-icon-btn" title="عرض التفاصيل" [attr.aria-label]="'عرض تفاصيل ' + g.name" (click)="viewId.set(g.id)">
+    <app-icon name="eye" [size]="16" />
+  </button>
   <button type="button" class="ui-icon-btn" title="تعديل" [attr.aria-label]="'تعديل ' + g.name" (click)="editing.set(g)">
     <app-icon name="edit" [size]="16" />
   </button>
@@ -85,6 +88,18 @@
 <app-pagination class="ig-pager" [pageIndex]="state.query().pageIndex" [pageSize]="state.query().pageSize"
   [count]="list.count()" [totalPages]="list.totalPages()" [pageSizeOptions]="[12, 24, 48]" [disabled]="list.loading()"
   (pageChange)="state.setPage($event)" (pageSizeChange)="state.setPageSize($event)" />
+
+<app-details-drawer [open]="!!viewId()" label="تفاصيل المجموعة" [details]="details()" [loading]="viewed.loading()"
+  [error]="viewed.error()" (retry)="viewed.reload()" (closed)="viewId.set(null)">
+  @if (viewed.value(); as g) {
+  <button drawer-actions type="button" class="ui-btn ui-btn--ghost" (click)="viewId.set(null); openItems(g)">
+    <app-icon name="table" [size]="15" /> أصناف المجموعة
+  </button>
+  <button drawer-actions type="button" class="ui-btn ui-btn--primary" (click)="viewId.set(null); editing.set(g)">
+    <app-icon name="edit" [size]="15" /> تعديل
+  </button>
+  }
+</app-details-drawer>
 
 <app-group-form-dialog [open]="editing() !== undefined" [group]="editing() ?? null" [parents]="parents()"
   (closed)="editing.set(undefined)" (saved)="onSaved()" />

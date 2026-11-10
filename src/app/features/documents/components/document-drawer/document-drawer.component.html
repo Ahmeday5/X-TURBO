@@ -59,7 +59,7 @@
         } @else {
         <div><dt>المخزن</dt><dd>{{ d.warehouseName }}</dd></div>
         }
-        @if (d.reason) {<div><dt>السبب</dt><dd>{{ reasonLabel[d.reason] }}</dd></div>}
+        
         @if (cfg()!.dueDateLabel && d.dueDate) {
         <div><dt>{{ cfg()!.dueDateLabel }}</dt><dd [class.dd-red]="overdue(d)">{{ dayMonth(d.dueDate) }}@if (overdue(d)) { · متأخر}</dd></div>
         }

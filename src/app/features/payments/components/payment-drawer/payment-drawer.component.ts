@@ -3,6 +3,7 @@ import { Router } from '@angular/router';
 import { finalize, Observable } from 'rxjs';
 import { DialogService } from '../../../../core/services/dialog.service';
 import { ToastService } from '../../../../core/services/toast.service';
+import { ApiError } from '../../../../core/models/api-response.model';
 import { AvatarComponent } from '../../../../shared/components/avatar/avatar.component';
 import { DrawerComponent } from '../../../../shared/components/drawer/drawer.component';
 import { IconComponent } from '../../../../shared/components/icon/icon.component';
@@ -89,7 +90,7 @@ export class PaymentDrawerComponent {
   protected readonly eventView = PAYMENT_EVENT_VIEW;
   protected readonly money = formatMoney;
   protected readonly dateTime = formatDateTime;
-  protected readonly day = (iso: string) => formatDayMonth(`${iso.slice(0, 10)}T12:00:00`);
+  protected readonly day = (iso: string) => formatDayMonth(iso.slice(0, 10));
   protected readonly canRefund = canRefund;
   protected readonly canSettle = canSettle;
   protected readonly canRetry = canRetry;
@@ -131,7 +132,11 @@ export class PaymentDrawerComponent {
     if (!this.refundValid()) return;
     const amount = this.refundMode() === 'full' ? refundable(p) : this.refundAmount()!;
     this.modal.set(null);
-    this.run('refund', this.payments.refund(p.id, { amount, reason: this.refundReason().trim() }), `تم استرداد ${formatMoney(amount)} من ${p.number}`);
+    this.run(
+      'refund',
+      this.payments.refund(p.id, { amount, reason: this.refundReason().trim() }),
+      `تم استرداد ${formatMoney(amount)} من ${p.number} — وتم إشعار العميل`,
+    );
   }
 
   protected submitFail(p: Payment): void {
@@ -146,7 +151,7 @@ export class PaymentDrawerComponent {
     this.run(
       'confirm',
       this.payments.confirm(p.id, { reference: this.confirmReference().trim() || undefined, note: this.confirmNote().trim() || undefined }),
-      p.method === 'cod' ? 'تم تأكيد استلام النقدية' : 'تم تأكيد السداد',
+      `${p.method === 'cod' ? 'تم تأكيد استلام النقدية' : 'تم تأكيد السداد'} — وتم إشعار العميل`,
     );
   }
 
@@ -172,10 +177,20 @@ export class PaymentDrawerComponent {
 
   private run(kind: Busy, request$: Observable<Payment>, success: string): void {
     this.busy.set(kind);
-    request$.pipe(finalize(() => this.busy.set(null))).subscribe(() => {
-      this.toast.success(success);
-      this.payment.reload();
-      this.changed.emit();
+    request$.pipe(finalize(() => this.busy.set(null))).subscribe({
+      next: () => {
+        this.toast.success(success);
+        this.payment.reload();
+        this.changed.emit();
+      },
+      // Reason already toasted by the interceptor. A 409 means the payment's
+      // status moved meanwhile (e.g. confirmed by a courier webhook) — reload
+      // so only the actions it now allows are offered.
+      error: (err: ApiError) => {
+        if (err.status !== 409) return;
+        this.payment.reload();
+        this.changed.emit();
+      },
     });
   }
 }

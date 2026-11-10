@@ -15,9 +15,6 @@ export type DocKind =
   | 'sale-return'
   | 'purchase-return'
   | 'transfer'
-  | 'voucher-transfer'
-  | 'goods-issue'
-  | 'goods-receipt'
   | 'reservation';
 
 /**
@@ -64,8 +61,8 @@ interface DocumentHeader {
   toWarehouseName: string | null;
   /** Supplier invoice no., PO, reason… free text. */
   reference: string;
-  /** Goods issue / receipt reason. */
-  reason: DocReason | null;
+  /** Part of the API contract; not used by any kind this dashboard manages (always null). */
+  reason: string | null;
   paymentMethod: DocPaymentMethod | null;
   subtotal: number;
   /** Header discount (amount). */
@@ -101,6 +98,17 @@ export interface Document extends DocumentHeader {
   lines: DocLine[];
 }
 
+/** Business-rule codes the documents API answers with (409). */
+export const DOCUMENT_ERROR_CODES = {
+  /** Only drafts can be edited / deleted / posted. */
+  notDraft: 'DOCUMENT_NOT_DRAFT',
+  alreadyPosted: 'DOCUMENT_ALREADY_POSTED',
+  /** Cancel refused while a return of this document is still active — cancel the return first. */
+  hasReturns: 'DOCUMENT_HAS_RETURNS',
+  /** Credit sale would push the customer past their credit limit. */
+  creditLimitExceeded: 'CREDIT_LIMIT_EXCEEDED',
+} as const;
+
 export interface DocLinePayload {
   itemId: string;
   qty: number;
@@ -116,7 +124,8 @@ export interface DocumentPayload {
   warehouseId: string;
   toWarehouseId: string | null;
   reference: string;
-  reason: DocReason | null;
+  /** Always null — see `DocumentHeader.reason`. */
+  reason: null;
   paymentMethod: DocPaymentMethod | null;
   lines: DocLinePayload[];
   discount: number;
@@ -142,32 +151,6 @@ export interface DocumentStats {
   totalQty: number;
 }
 
-// ── Reasons (goods issue / receipt) ──
-
-export type DocReason =
-  | 'consumption'
-  | 'damage'
-  | 'sample'
-  | 'shortage'
-  | 'opening'
-  | 'surplus'
-  | 'production'
-  | 'other';
-
-export const ISSUE_REASONS: readonly DocReason[] = ['consumption', 'damage', 'sample', 'shortage', 'other'];
-export const RECEIPT_REASONS: readonly DocReason[] = ['opening', 'surplus', 'production', 'other'];
-
-export const DOC_REASON_LABEL: Record<DocReason, string> = {
-  consumption: 'استهلاك داخلي',
-  damage: 'تالف',
-  sample: 'عينات',
-  shortage: 'عجز جرد',
-  opening: 'رصيد افتتاحي',
-  surplus: 'زيادة جرد',
-  production: 'تجميع / إنتاج',
-  other: 'أخرى',
-};
-
 // ── Per-kind behaviour ──
 
 export type PartyRole = 'customer' | 'supplier';
@@ -175,10 +158,10 @@ export type PartyRole = 'customer' | 'supplier';
 export type PriceSource = 'sale' | 'purchase' | 'cost';
 /**
  * Stock effect when posted: `out` / `in` on the warehouse, `move` from
- * warehouse to destination at once, `ship` out on post + in on completion,
+ * warehouse to destination at once,
  * `reserve` holds qty, `none` for quotations.
  */
-export type StockEffect = 'out' | 'in' | 'move' | 'ship' | 'reserve' | 'none';
+export type StockEffect = 'out' | 'in' | 'move' | 'reserve' | 'none';
 
 export interface DocKindConfig {
   kind: DocKind;
@@ -202,8 +185,6 @@ export interface DocKindConfig {
   stock: StockEffect;
   /** Label of `dueDate` (null → hidden). */
   dueDateLabel: string | null;
-  /** Shows the reason select with these options. */
-  reasons: readonly DocReason[] | null;
   /** Labels for statuses where the generic wording doesn't fit. */
   statusLabels?: Partial<Record<DocStatus, string>>;
   /** Follow-up action on a posted document (posted → completed). */
@@ -235,7 +216,6 @@ export const DOC_KIND_CONFIG: Record<DocKind, DocKindConfig> = {
     transfer: false,
     stock: 'none',
     dueDateLabel: 'صالح حتى',
-    reasons: null,
     statusLabels: { posted: 'معتمد', completed: 'تحوّل لفاتورة' },
     convertTo: ['sale'],
   },
@@ -251,7 +231,6 @@ export const DOC_KIND_CONFIG: Record<DocKind, DocKindConfig> = {
     transfer: false,
     stock: 'out',
     dueDateLabel: 'تاريخ الاستحقاق',
-    reasons: null,
     convertTo: ['sale-return'],
   },
   purchase: {
@@ -266,7 +245,6 @@ export const DOC_KIND_CONFIG: Record<DocKind, DocKindConfig> = {
     transfer: false,
     stock: 'in',
     dueDateLabel: 'تاريخ الاستحقاق',
-    reasons: null,
     convertTo: ['purchase-return'],
   },
   'sale-return': {
@@ -281,7 +259,6 @@ export const DOC_KIND_CONFIG: Record<DocKind, DocKindConfig> = {
     transfer: false,
     stock: 'in',
     dueDateLabel: null,
-    reasons: null,
   },
   'purchase-return': {
     kind: 'purchase-return',
@@ -295,7 +272,6 @@ export const DOC_KIND_CONFIG: Record<DocKind, DocKindConfig> = {
     transfer: false,
     stock: 'out',
     dueDateLabel: null,
-    reasons: null,
   },
   transfer: {
     kind: 'transfer',
@@ -307,46 +283,7 @@ export const DOC_KIND_CONFIG: Record<DocKind, DocKindConfig> = {
     ...STOCK_ONLY,
     transfer: true,
     stock: 'move',
-    reasons: null,
     statusLabels: { posted: 'تم التحويل' },
-  },
-  'voucher-transfer': {
-    kind: 'voucher-transfer',
-    route: '/invoices/voucher-transfers',
-    title: 'تحويلات المخازن بسندات',
-    singular: 'تحويل بسند',
-    prefix: 'VT',
-    icon: 'layers',
-    ...STOCK_ONLY,
-    transfer: true,
-    stock: 'ship',
-    reasons: null,
-    statusLabels: { posted: 'في الطريق', completed: 'تم الاستلام' },
-    completeAction: { label: 'تأكيد الاستلام', icon: 'goods-in', hint: 'تُضاف الكميات إلى المخزن المستلم' },
-  },
-  'goods-issue': {
-    kind: 'goods-issue',
-    route: '/invoices/goods-issue',
-    title: 'سندات صرف البضاعة',
-    singular: 'سند صرف',
-    prefix: 'GI',
-    icon: 'goods-out',
-    ...STOCK_ONLY,
-    transfer: false,
-    stock: 'out',
-    reasons: ISSUE_REASONS,
-  },
-  'goods-receipt': {
-    kind: 'goods-receipt',
-    route: '/invoices/goods-receipt',
-    title: 'سندات استلام البضاعة',
-    singular: 'سند استلام',
-    prefix: 'GRN',
-    icon: 'goods-in',
-    ...STOCK_ONLY,
-    transfer: false,
-    stock: 'in',
-    reasons: RECEIPT_REASONS,
   },
   reservation: {
     kind: 'reservation',
@@ -360,7 +297,6 @@ export const DOC_KIND_CONFIG: Record<DocKind, DocKindConfig> = {
     transfer: false,
     stock: 'reserve',
     dueDateLabel: 'موعد الاستلام',
-    reasons: null,
     statusLabels: { posted: 'محجوز', completed: 'تم التسليم' },
     completeAction: { label: 'تسليم وإصدار فاتورة', icon: 'check', hint: 'تُصدر فاتورة بيع بالأصناف ويُخصم العربون' },
   },

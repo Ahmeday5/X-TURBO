@@ -95,6 +95,6 @@ export class VoucherPrintComponent {
   protected readonly money = formatMoney;
   protected readonly methodLabel = VOUCHER_METHOD_LABEL;
   protected readonly cfg = computed(() => VOUCHER_KIND_CONFIG[this.voucher()?.kind ?? 'receipt']);
-  protected readonly date = computed(() => (this.voucher() ? formatLongDate(new Date(`${this.voucher()!.date}T12:00:00`)) : ''));
+  protected readonly date = computed(() => (this.voucher() ? formatLongDate(this.voucher()!.date.slice(0, 10)) : ''));
   protected readonly status = computed(() => (this.voucher() ? VOUCHER_STATUS_VIEW[this.voucher()!.status].label : ''));
 }

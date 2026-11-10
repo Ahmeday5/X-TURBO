@@ -1,0 +1,83 @@
+<app-modal [open]="open()" [title]="isEdit() ? 'تعديل منطقة التوصيل' : 'منطقة توصيل جديدة'" size="md" (closed)="closed.emit()">
+  <form id="zone-form" class="zd" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+    <label class="ui-field">
+      <span class="ui-label is-required">المحافظة</span>
+      <select class="ui-input" formControlName="governorate">
+        <option value="" disabled>اختر المحافظة</option>
+        @for (g of options(); track g) {<option [value]="g">{{ g }}</option>}
+      </select>
+      @if (!options().length) {<span class="ui-hint">كل المحافظات لها مناطق توصيل بالفعل.</span>}
+      <app-form-error [control]="form.controls.governorate" label="المحافظة" />
+    </label>
+
+    <div class="zd__grid">
+      <label class="ui-field">
+        <span class="ui-label is-required">رسوم التوصيل</span>
+        <div class="ui-affix">
+          <input class="ui-input ltr" type="number" min="0" step="0.5" inputmode="decimal" formControlName="fee" placeholder="50" />
+          <span class="ui-affix__text">ج.م</span>
+        </div>
+        <span class="ui-hint">0 = توصيل مجاني دائمًا.</span>
+        <app-form-error [control]="form.controls.fee" label="رسوم التوصيل" />
+      </label>
+
+      <label class="ui-field">
+        <span class="ui-label">حد الشحن المجاني</span>
+        <div class="ui-affix">
+          <input class="ui-input ltr" type="number" min="1" step="1" inputmode="decimal" formControlName="freeShippingThreshold"
+            placeholder="1500" />
+          <span class="ui-affix__text">ج.م</span>
+        </div>
+        <span class="ui-hint">اتركه فارغًا لو مفيش شحن مجاني.</span>
+        <app-form-error [control]="form.controls.freeShippingThreshold" label="حد الشحن المجاني" />
+      </label>
+
+      <label class="ui-field">
+        <span class="ui-label is-required">أقل مدة</span>
+        <div class="ui-affix">
+          <input class="ui-input ltr" type="number" min="0" [max]="maxDays" step="1" inputmode="numeric"
+            formControlName="estimatedDaysMin" />
+          <span class="ui-affix__text">يوم</span>
+        </div>
+        <span class="ui-hint">0 = نفس اليوم.</span>
+        <app-form-error [control]="form.controls.estimatedDaysMin" label="أقل مدة" />
+      </label>
+
+      <label class="ui-field">
+        <span class="ui-label is-required">أقصى مدة</span>
+        <div class="ui-affix">
+          <input class="ui-input ltr" type="number" min="0" [max]="maxDays" step="1" inputmode="numeric"
+            formControlName="estimatedDaysMax" />
+          <span class="ui-affix__text">يوم</span>
+        </div>
+        <app-form-error [control]="form.controls.estimatedDaysMax" label="أقصى مدة" />
+      </label>
+    </div>
+
+    <label class="ui-switch">
+      <input type="checkbox" formControlName="isActive" />
+      <span class="ui-switch__track"></span>
+      {{ form.controls.isActive.value ? 'مفعّلة — التوصيل متاح في التطبيق' : 'موقوفة — لا يوجد توصيل لهذه المحافظة' }}
+    </label>
+
+    <!-- What the customer reads at checkout -->
+    <div class="zd__preview" aria-live="polite">
+      <span class="zd__preview-label"><app-icon name="eye" [size]="13" /> كما يراها العميل</span>
+      <div class="zd__preview-row">
+        <app-icon name="truck" [size]="18" />
+        <div>
+          <strong>التوصيل إلى {{ preview().governorate }}</strong>
+          <small>{{ preview().fee }} · خلال {{ preview().days }}</small>
+          @if (preview().free; as free) {<small class="zd__free">{{ free }}</small>}
+        </div>
+      </div>
+    </div>
+  </form>
+
+  <div modal-footer class="zd__footer">
+    <button type="button" class="ui-btn ui-btn--ghost" (click)="closed.emit()">إلغاء</button>
+    <button type="submit" form="zone-form" class="ui-btn ui-btn--primary" [class.is-loading]="saving()" [disabled]="saving()">
+      <app-icon name="check" [size]="16" /> {{ isEdit() ? 'حفظ التعديلات' : 'إضافة المنطقة' }}
+    </button>
+  </div>
+</app-modal>

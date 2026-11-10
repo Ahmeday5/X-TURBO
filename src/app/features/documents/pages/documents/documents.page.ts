@@ -29,7 +29,6 @@ import { DocumentEditorComponent } from '../../components/document-editor/docume
 import {
   DOC_KIND_CONFIG,
   DOC_PAYMENT_LABEL,
-  DOC_REASON_LABEL,
   DocKind,
   docKindForRoute,
   Document,
@@ -47,6 +46,7 @@ import {
   paymentState,
   tracksPayment,
 } from '../../utils/document-view';
+import { todayIsoDate } from '../../../../shared/utils/date-iso.util';
 
 const FILTERS = ['status', 'from', 'to', 'warehouseId', 'partyId', 'payment', 'channel', 'overdue'] as const;
 
@@ -184,9 +184,7 @@ export class DocumentsPage {
     return [
       count,
       { label: 'إجمالي الكميات', icon: 'layers', value: v('totalQty'), format: formatInteger },
-      cfg.kind === 'voucher-transfer'
-        ? { label: 'في الطريق', icon: 'truck', value: v('posted'), format: formatInteger, tone: 'var(--am)' }
-        : { label: 'مُرحّلة', icon: 'check', value: v('posted') !== null ? (v('posted') ?? 0) + (v('completed') ?? 0) : null, format: formatInteger, tone: 'var(--gr)' },
+      { label: 'مُرحّلة', icon: 'check', value: v('posted') !== null ? (v('posted') ?? 0) + (v('completed') ?? 0) : null, format: formatInteger, tone: 'var(--gr)' },
       { label: 'القيمة بالتكلفة', icon: 'coins', value: v('total'), format: formatMoneyCompact, tone: 'var(--bl)' },
     ];
   });
@@ -228,14 +226,13 @@ export class DocumentsPage {
   protected readonly statusView = docStatusView;
   protected readonly paymentView = (d: DocumentSummary) => PAYMENT_STATE_VIEW[paymentState(d)];
   protected readonly paymentLabel = DOC_PAYMENT_LABEL;
-  protected readonly reasonLabel = DOC_REASON_LABEL;
   protected readonly money = formatMoney;
   protected readonly int = formatInteger;
   protected readonly relative = formatRelative;
-  protected readonly day = (iso: string) => formatDayMonth(`${iso.slice(0, 10)}T12:00:00`);
+  protected readonly day = (iso: string) => formatDayMonth(iso.slice(0, 10));
   protected readonly linesLabel = (n: number) => pluralAr(n, LINES_PLURAL);
   protected readonly overdue = (d: DocumentSummary) =>
-    !!d.dueDate && d.status === 'posted' && d.remaining > 0 && d.dueDate < new Date().toISOString().slice(0, 10);
+    !!d.dueDate && d.status === 'posted' && d.remaining > 0 && d.dueDate < todayIsoDate();
 
   // ── Navigation ──
 
@@ -288,13 +285,12 @@ export class DocumentsPage {
     fetchAllPages((pageIndex, pageSize) => this.docs.list(kind, { ...query, pageIndex, pageSize }), 100)
       .pipe(finalize(() => this.exporting.set(false)))
       .subscribe((rows) => {
-        downloadCsv(`${cfg.prefix.toLowerCase()}-${new Date().toISOString().slice(0, 10)}`, rows, [
+        downloadCsv(`${cfg.prefix.toLowerCase()}-${todayIsoDate()}`, rows, [
           { label: 'الرقم', value: (d) => d.number },
           { label: 'التاريخ', value: (d) => d.date },
           ...(cfg.party ? [{ label: this.partyLabel(), value: (d: DocumentSummary) => d.partyName ?? 'عميل نقدي' }] : []),
           { label: cfg.transfer ? 'من مخزن' : 'المخزن', value: (d) => d.warehouseName },
           ...(cfg.transfer ? [{ label: 'إلى مخزن', value: (d: DocumentSummary) => d.toWarehouseName ?? '' }] : []),
-          ...(cfg.reasons ? [{ label: 'السبب', value: (d: DocumentSummary) => (d.reason ? DOC_REASON_LABEL[d.reason] : '') }] : []),
           { label: 'عدد الأصناف', value: (d) => d.linesCount },
           { label: 'الكمية', value: (d) => d.totalQty },
           ...(cfg.financial

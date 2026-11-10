@@ -11,6 +11,7 @@ import { formatDateTime, formatDayMonth, formatMoney } from '../../../../shared/
 import { pluralAr } from '../../../../shared/utils/plural.util';
 import { Voucher, VOUCHER_KIND_CONFIG, VOUCHER_METHOD_LABEL, VOUCHER_STATUS_VIEW } from '../../models/voucher.model';
 import { VouchersService } from '../../services/vouchers.service';
+import { ApiError } from '../../../../core/models/api-response.model';
 import { cashSideLabel, counterpartyName, JOURNAL_LINES_PLURAL, VOUCHER_KIND_ICON } from '../../utils/voucher-view';
 
 type Busy = 'post' | 'cancel' | 'delete' | null;
@@ -58,7 +59,7 @@ export class VoucherDrawerComponent {
 
   protected readonly money = formatMoney;
   protected readonly dateTime = formatDateTime;
-  protected readonly dayMonth = (iso: string) => formatDayMonth(`${iso.slice(0, 10)}T12:00:00`);
+  protected readonly dayMonth = (iso: string) => formatDayMonth(iso.slice(0, 10));
   protected readonly statusView = VOUCHER_STATUS_VIEW;
   protected readonly methodLabel = VOUCHER_METHOD_LABEL;
   protected readonly counterparty = counterpartyName;
@@ -86,10 +87,13 @@ export class VoucherDrawerComponent {
     this.vouchers
       .post(v.id)
       .pipe(finalize(() => this.busy.set(null)))
-      .subscribe(() => {
-        this.toast.success(`تم ترحيل ${v.number}`);
-        this.voucher.reload();
-        this.changed.emit();
+      .subscribe({
+        next: () => {
+          this.toast.success(`تم ترحيل ${v.number}`);
+          this.voucher.reload();
+          this.changed.emit();
+        },
+        error: (err: ApiError) => this.onActionError(err),
       });
   }
 
@@ -106,10 +110,13 @@ export class VoucherDrawerComponent {
     this.vouchers
       .cancel(v.id, reason)
       .pipe(finalize(() => this.busy.set(null)))
-      .subscribe(() => {
-        this.toast.success(`تم إلغاء ${v.number}`);
-        this.voucher.reload();
-        this.changed.emit();
+      .subscribe({
+        next: () => {
+          this.toast.success(`تم إلغاء ${v.number}`);
+          this.voucher.reload();
+          this.changed.emit();
+        },
+        error: (err: ApiError) => this.onActionError(err),
       });
   }
 
@@ -125,10 +132,24 @@ export class VoucherDrawerComponent {
     this.vouchers
       .delete(v.id)
       .pipe(finalize(() => this.busy.set(null)))
-      .subscribe(() => {
-        this.toast.success('تم حذف المسودة');
-        this.changed.emit();
-        this.closed.emit();
+      .subscribe({
+        next: () => {
+          this.toast.success('تم حذف المسودة');
+          this.changed.emit();
+          this.closed.emit();
+        },
+        error: (err: ApiError) => this.onActionError(err),
       });
+  }
+
+  /**
+   * The server's reason is already toasted by the error interceptor. On a 409
+   * the voucher's status changed elsewhere (posted / cancelled by someone
+   * else) — reload so the drawer shows the actions that are actually allowed.
+   */
+  private onActionError(err: ApiError): void {
+    if (err.status !== 409) return;
+    this.voucher.reload();
+    this.changed.emit();
   }
 }

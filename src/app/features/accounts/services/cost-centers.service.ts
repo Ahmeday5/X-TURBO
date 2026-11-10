@@ -5,12 +5,7 @@ import { withSkipLoader } from '../../../core/http/http-context.tokens';
 import { PagedResponse } from '../../../core/models/api-response.model';
 import { ListQuery, toListParams } from '../../../core/models/list-query.model';
 import { CostCenter, CostCenterOption, CostCenterPayload } from '../models/cost-center.model';
-
-export const COST_CENTERS_ENDPOINTS = {
-  list: 'cost-centers',
-  lookup: 'cost-centers/lookup',
-  byId: (id: string) => `cost-centers/${encodeURIComponent(id)}`,
-} as const;
+import { API_ENDPOINTS } from '../../../core/constants/api-endpoints.const';
 
 @Injectable({ providedIn: 'root' })
 export class CostCentersService {
@@ -18,25 +13,29 @@ export class CostCentersService {
 
   /** Filters: `status` (active | inactive). */
   list(query: ListQuery): Observable<PagedResponse<CostCenter>> {
-    return this.api.get<PagedResponse<CostCenter>>(COST_CENTERS_ENDPOINTS.list, {
+    return this.api.get<PagedResponse<CostCenter>>(API_ENDPOINTS.costCenters.list, {
       params: toListParams(query),
       context: withSkipLoader(),
     });
   }
 
   lookup(): Observable<CostCenterOption[]> {
-    return this.api.get<CostCenterOption[]>(COST_CENTERS_ENDPOINTS.lookup, { context: withSkipLoader() });
+    return this.api.get<CostCenterOption[]>(API_ENDPOINTS.costCenters.lookup, { context: withSkipLoader() });
+  }
+
+  get(id: string): Observable<CostCenter> {
+    return this.api.get<CostCenter>(API_ENDPOINTS.costCenters.byId(id), { context: withSkipLoader() });
   }
 
   create(payload: CostCenterPayload): Observable<CostCenter> {
-    return this.api.post<CostCenter>(COST_CENTERS_ENDPOINTS.list, payload);
+    return this.api.post<CostCenter>(API_ENDPOINTS.costCenters.list, payload);
   }
 
   update(id: string, payload: CostCenterPayload): Observable<CostCenter> {
-    return this.api.put<CostCenter>(COST_CENTERS_ENDPOINTS.byId(id), payload);
+    return this.api.put<CostCenter>(API_ENDPOINTS.costCenters.byId(id), payload);
   }
 
   delete(id: string): Observable<void> {
-    return this.api.delete<void>(COST_CENTERS_ENDPOINTS.byId(id));
+    return this.api.delete<void>(API_ENDPOINTS.costCenters.byId(id));
   }
 }

@@ -1,5 +1,4 @@
 import { VoucherKind, VoucherPayload, VoucherStats, VoucherSummary } from '../../features/vouchers/models/voucher.model';
-import { VOUCHERS_ENDPOINTS } from '../../features/vouchers/services/vouchers.service';
 import { actorName, findOr404, inRange, round2, todayIso } from '../db/db-utils';
 import {
   cancelVoucher,
@@ -12,6 +11,7 @@ import {
 } from '../db/vouchers.db';
 import { bodyOf, CollectionOptions, filterCollection, queryCollection } from '../mock-collection';
 import { MockContext, MockRoute, ok } from '../mock-http';
+import { API_ENDPOINTS } from '../../core/constants/api-endpoints.const';
 
 const LIST_OPTIONS: CollectionOptions<VoucherSummary> = {
   searchFields: ['number', 'description', 'reference', 'partyName', 'accountName', 'cashAccountName', 'createdBy'],
@@ -86,9 +86,9 @@ function cancel({ params, req }: MockContext) {
 const BY_ID = 'vouchers/:id';
 
 export const VOUCHERS_MOCK_ROUTES: MockRoute[] = [
-  { method: 'GET', path: VOUCHERS_ENDPOINTS.stats, protected: true, handle: stats },
-  { method: 'GET', path: VOUCHERS_ENDPOINTS.list, protected: true, handle: list },
-  { method: 'POST', path: VOUCHERS_ENDPOINTS.list, protected: true, handle: create },
+  { method: 'GET', path: API_ENDPOINTS.vouchers.stats, protected: true, handle: stats },
+  { method: 'GET', path: API_ENDPOINTS.vouchers.list, protected: true, handle: list },
+  { method: 'POST', path: API_ENDPOINTS.vouchers.list, protected: true, handle: create },
   { method: 'GET', path: BY_ID, protected: true, handle: get },
   { method: 'PUT', path: BY_ID, protected: true, handle: update },
   { method: 'DELETE', path: BY_ID, protected: true, handle: remove },

@@ -10,6 +10,7 @@ import { AuthService } from '../../../../core/auth/services/auth.service';
 import { ToastService } from '../../../../core/services/toast.service';
 import { ApiError } from '../../../../core/models/api-response.model';
 import { FormErrorComponent } from '../../../../shared/components/form-error/form-error.component';
+import { AppValidators } from '../../../../shared/validators/app-validators';
 import { IconComponent } from '../../../../shared/components/icon/icon.component';
 import { PasswordInputComponent } from '../../../../shared/components/password-input/password-input.component';
 import { DEFAULT_AUTHENTICATED_ROUTE } from '../../../../core/auth/auth.config';
@@ -64,7 +65,7 @@ export class LoginComponent {
   protected readonly capsLock = signal(false);
 
   protected readonly form = this.fb.nonNullable.group({
-    email: ['', [Validators.required, Validators.email]],
+    email: ['', [Validators.required, AppValidators.email()]],
     password: ['', [Validators.required, Validators.minLength(6)]],
     rememberMe: [true],
   });

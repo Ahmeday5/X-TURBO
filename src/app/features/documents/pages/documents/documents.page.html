@@ -23,7 +23,7 @@
   } @else {
   <div class="dp-stack dp-stack--start">
     <span>{{ d.warehouseName }}</span>
-    @if (d.reason) {<small>{{ reasonLabel[d.reason] }}</small>}
+    
   </div>
   }
 </ng-template>
@@ -80,7 +80,7 @@
     </strong>
     <span class="dp-card__meta">
       <app-icon name="calendar" [size]="12" /> {{ day(d.date) }} · {{ linesLabel(d.linesCount) }}
-      @if (d.reason) { · {{ reasonLabel[d.reason] }}}
+      
     </span>
     <footer class="dp-card__foot">
       <strong>{{ money(d.total) }}</strong>

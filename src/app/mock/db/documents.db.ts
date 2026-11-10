@@ -4,14 +4,11 @@ import {
   DOC_KIND_CONFIG,
   DOC_KINDS,
   DocPaymentMethod,
-  DocReason,
   Document,
   DocumentPayload,
   DocumentSummary,
   docTotals,
-  ISSUE_REASONS,
   lineTotal,
-  RECEIPT_REASONS,
 } from '../../features/documents/models/document.model';
 import { partyFits } from '../../features/parties/models/party.model';
 import { StockMovement } from '../../features/warehouses/models/stock.model';
@@ -227,31 +224,6 @@ function seed(): DocumentsDb {
         status: recentStatus(day),
       });
     }
-    if (rand() < 0.06) {
-      const from = someWarehouse();
-      push('voucher-transfer', day, {
-        lines: lines(2 + Math.floor(rand() * 3), () => 2 + Math.floor(rand() * 10), 'purchase'),
-        warehouseId: from,
-        toWarehouseId: otherWarehouse(from),
-        reference: `سائق: ${pick(rand, ['عم سيد', 'محمود', 'رضا'])}`,
-        // Shipments older than a few days have arrived.
-        status: day > 4 ? 'completed' : 'posted',
-      });
-    }
-    if (rand() < 0.07) {
-      push('goods-issue', day, {
-        lines: lines(1 + Math.floor(rand() * 2), () => 1 + Math.floor(rand() * 3), 'purchase'),
-        warehouseId: someWarehouse(),
-        reason: pick(rand, ISSUE_REASONS) as DocReason,
-      });
-    }
-    if (rand() < 0.05) {
-      push('goods-receipt', day, {
-        lines: lines(1 + Math.floor(rand() * 3), () => 2 + Math.floor(rand() * 10), 'purchase'),
-        warehouseId: someWarehouse(),
-        reason: pick(rand, RECEIPT_REASONS) as DocReason,
-      });
-    }
     // Reservations.
     if (rand() < 0.08) {
       const ls = lines(1 + Math.floor(rand() * 2), () => 1 + Math.floor(rand() * 2), 'sale');
@@ -303,8 +275,6 @@ function build(payload: DocumentPayload, url: string, existing?: Document): Omit
   }
   if (cfg.partyRequired && !party) throw fail(422, cfg.party === 'supplier' ? 'اختر المورد' : 'اختر العميل', url);
 
-  if (cfg.reasons && (!payload.reason || !cfg.reasons.includes(payload.reason))) throw fail(422, 'اختر سبب الحركة', url);
-
   const items = itemsSnapshot();
   if (!payload.lines?.length) throw fail(422, 'أضف صنفًا واحدًا على الأقل', url);
   const lines: DocLine[] = payload.lines.map((l, i) => {
@@ -337,7 +307,7 @@ function build(payload: DocumentPayload, url: string, existing?: Document): Omit
     toWarehouseId: to?.id ?? null,
     toWarehouseName: to?.name ?? null,
     reference: (payload.reference ?? '').trim(),
-    reason: cfg.reasons ? payload.reason : null,
+    reason: null,
     paymentMethod: cfg.financial && cfg.stock !== 'none' ? (remaining > 0 && paid === 0 ? 'credit' : payload.paymentMethod ?? 'cash') : null,
     lines,
     subtotal: totals.subtotal,
@@ -407,7 +377,7 @@ export function postDocument(id: string, url: string): Document {
   if (doc.status !== 'draft') throw fail(409, 'المستند مُرحّل بالفعل', url);
   const cfg = DOC_KIND_CONFIG[doc.kind];
 
-  if (cfg.stock === 'out' || cfg.stock === 'move' || cfg.stock === 'ship' || cfg.stock === 'reserve') {
+  if (cfg.stock === 'out' || cfg.stock === 'move' || cfg.stock === 'reserve') {
     assertAvailable(doc.warehouseId, doc.lines, url);
   }
   if (doc.kind === 'sale' && doc.partyId && doc.remaining > 0) assertCreditLimit(doc, url);
@@ -424,9 +394,7 @@ export function completeDocument(id: string, actor: string, url: string): Docume
   if (!cfg.completeAction) throw fail(422, 'هذا المستند لا يحتاج إلى إتمام', url);
   if (doc.status !== 'posted') throw fail(409, 'يجب ترحيل المستند أولًا', url);
 
-  if (doc.kind === 'voucher-transfer') {
-    for (const l of doc.lines) adjustStock(l.itemId, doc.toWarehouseId!, l.qty);
-  } else if (doc.kind === 'reservation') {
+  if (doc.kind === 'reservation') {
     for (const l of doc.lines) adjustReserved(l.itemId, doc.warehouseId, -l.qty);
     try {
       const sale = createDocument(
@@ -534,9 +502,6 @@ function applyPostEffects(doc: Document, sign: 1 | -1): void {
         adjustStock(l.itemId, doc.warehouseId, -q);
         adjustStock(l.itemId, doc.toWarehouseId!, q);
         break;
-      case 'ship':
-        adjustStock(l.itemId, doc.warehouseId, -q);
-        break;
       case 'reserve':
         adjustReserved(l.itemId, doc.warehouseId, q);
         break;
@@ -604,7 +569,7 @@ function payloadOf(doc: Document): DocumentPayload {
     warehouseId: doc.warehouseId,
     toWarehouseId: doc.toWarehouseId,
     reference: doc.reference,
-    reason: doc.reason,
+    reason: null,
     paymentMethod: doc.paymentMethod,
     lines: doc.lines.map(({ itemId, qty, price, discountPct }) => ({ itemId, qty, price, discountPct })),
     discount: doc.discount,
@@ -630,7 +595,7 @@ export function itemMovements(itemId: string, limit = 30): StockMovement[] {
     const base = { documentId: doc.id, documentNumber: doc.number, kind: doc.kind, kindLabel: cfg.singular, date: doc.date, partyName: doc.partyName };
     if (cfg.stock === 'in') out.push({ ...base, warehouseId: doc.warehouseId, warehouseName: doc.warehouseName, qty });
     else out.push({ ...base, warehouseId: doc.warehouseId, warehouseName: doc.warehouseName, qty: -qty });
-    if (cfg.stock === 'move' || (cfg.stock === 'ship' && doc.status === 'completed')) {
+    if (cfg.stock === 'move') {
       out.push({ ...base, warehouseId: doc.toWarehouseId!, warehouseName: doc.toWarehouseName!, qty });
     }
     if (out.length >= limit) break;

@@ -42,7 +42,7 @@
         </span>
       </label>
 
-      <div class="ui-field fp__span-2">
+      <div class="ui-field fp__span-full">
         <span class="ui-label">اللون</span>
         <div class="ce-colors" role="radiogroup" aria-label="لون المركز">
           @for (c of palette; track c) {
@@ -64,7 +64,7 @@
         </label>
       </div>
 
-      <label class="ui-field fp__span-2">
+      <label class="ui-field fp__span-full">
         <span class="ui-label">ملاحظات</span>
         <textarea class="ui-input" formControlName="notes" rows="2" placeholder="نطاق المركز، الأنشطة التي يغطيها…"></textarea>
         <app-form-error [control]="form.controls.notes" label="الملاحظات" />

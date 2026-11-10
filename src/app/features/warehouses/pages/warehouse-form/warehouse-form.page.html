@@ -21,7 +21,7 @@
           <app-form-error [control]="form.controls.name" label="اسم المخزن" />
         </label>
 
-        <div class="ui-field fp__span-2">
+        <div class="ui-field fp__span-full">
           <span class="ui-label is-required">نوع المخزن</span>
           <div class="wf-types" role="radiogroup" aria-label="نوع المخزن">
             @for (t of types; track t) {
@@ -42,7 +42,7 @@
 
         <label class="ui-field">
           <span class="ui-label">رقم الهاتف</span>
-          <input class="ui-input ltr" formControlName="phone" inputmode="tel" placeholder="01000000000" />
+          <input class="ui-input ltr" formControlName="phone" inputmode="tel" placeholder="0223456789" />
           <app-form-error [control]="form.controls.phone" label="رقم الهاتف" />
         </label>
       </div>
@@ -115,10 +115,10 @@
         </div>
 
         @if (form.controls.allowNegative.value) {
-        <p class="fp__warn fp__span-2"><app-icon name="alert" [size]="15" /> سيسمح النظام بصرف كميات أكبر من الرصيد المتاح في هذا المخزن.</p>
+        <p class="fp__warn fp__span-full"><app-icon name="alert" [size]="15" /> سيسمح النظام بصرف كميات أكبر من الرصيد المتاح في هذا المخزن.</p>
         }
 
-        <label class="ui-field fp__span-2">
+        <label class="ui-field fp__span-full">
           <span class="ui-label">ملاحظات</span>
           <textarea class="ui-input" formControlName="notes" rows="3" placeholder="مواعيد العمل، تعليمات الاستلام…"></textarea>
         </label>

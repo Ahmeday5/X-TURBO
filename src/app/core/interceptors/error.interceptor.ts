@@ -5,10 +5,10 @@ import { AuthService } from '../auth/services/auth.service';
 import { ToastService } from '../services/toast.service';
 import { SKIP_ERROR_TOAST } from '../http/http-context.tokens';
 import { ApiError, ApiFieldErrors } from '../models/api-response.model';
-import { AUTH_ENDPOINTS } from '../auth/auth.config';
 import { environment } from '../../../environments/environment';
 import { API_ERROR_CODES } from '../http/api-error-codes';
 import { waitText } from '../utils/api-error.util';
+import { API_ENDPOINTS } from '../constants/api-endpoints.const';
 
 /**
  * Normalizes every HTTP failure into an `ApiError` and (unless the caller
@@ -49,8 +49,8 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
       // transparently or logs out with its own "session expired" notice.
       const silent =
         req.context.get(SKIP_ERROR_TOAST) ||
-        req.url.includes(AUTH_ENDPOINTS.refresh) ||
-        (apiError.status === 401 && !req.url.includes(AUTH_ENDPOINTS.login)) ||
+        req.url.includes(API_ENDPOINTS.auth.refresh) ||
+        (apiError.status === 401 && !req.url.includes(API_ENDPOINTS.auth.login)) ||
         !auth.isAuthenticated();
 
       if (!silent) toast.error(apiError.message);
@@ -128,7 +128,7 @@ function statusMessage(status: number, err: HttpErrorResponse, url: string): str
 
   const messages: Record<number, string> = {
     400: 'الطلب غير صالح',
-    401: url.includes(AUTH_ENDPOINTS.login)
+    401: url.includes(API_ENDPOINTS.auth.login)
       ? 'بيانات الدخول غير صحيحة'
       : 'غير مصرح، برجاء تسجيل الدخول مرة أخرى',
     403: 'ليس لديك صلاحية لتنفيذ هذا الإجراء',

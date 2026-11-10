@@ -21,7 +21,7 @@ import {
   SearchableSelectOption,
 } from '../../../../shared/components/searchable-select/searchable-select.component';
 import { StatusPillComponent } from '../../../../shared/components/status-pill/status-pill.component';
-import { plusMonthsIsoDate, todayIsoDate, toIsoDate } from '../../../../shared/utils/date-iso.util';
+import { plusDaysIsoDate, plusMonthsIsoDate, todayIsoDate } from '../../../../shared/utils/date-iso.util';
 import { formatInteger, formatMoney } from '../../../../shared/utils/format.util';
 import { pluralAr } from '../../../../shared/utils/plural.util';
 import { PartiesService } from '../../../parties/services/parties.service';
@@ -32,16 +32,17 @@ import {
   DOC_KIND_CONFIG,
   DOC_PAYMENT_LABEL,
   DOC_PAYMENT_METHODS,
-  DOC_REASON_LABEL,
   DocKind,
+  DocLinePayload,
   DocPaymentMethod,
-  DocReason,
   Document,
   DocumentPayload,
   docStatusView,
   docTotals,
   lineTotal,
 } from '../../models/document.model';
+import { ApiError } from '../../../../core/models/api-response.model';
+import { applyServerErrors, RowErrors, splitIndexedErrors } from '../../../../core/utils/api-error.util';
 import { DocumentsService } from '../../services/documents.service';
 import { isOutgoing, LINES_PLURAL, newLabel, partyLabel, tracksPayment } from '../../utils/document-view';
 import { ItemPickerComponent } from '../item-picker/item-picker.component';
@@ -58,12 +59,6 @@ interface EditLine {
 }
 
 let lineKey = 0;
-
-const plusDays = (days: number): string => {
-  const d = new Date();
-  d.setDate(d.getDate() + days);
-  return toIsoDate(d);
-};
 
 /**
  * Create / edit a draft document of any kind. Fields, prices, payment and
@@ -99,7 +94,6 @@ export class DocumentEditorComponent {
   protected readonly partyLabel = computed(() => partyLabel(this.cfg()));
   protected readonly tracksPayment = computed(() => tracksPayment(this.cfg()));
   protected readonly outgoing = computed(() => isOutgoing(this.cfg()));
-  protected readonly reasonOptions = computed(() => (this.cfg().reasons ?? []).map((r) => ({ value: r, label: DOC_REASON_LABEL[r] })));
   protected readonly methods = DOC_PAYMENT_METHODS.filter((m) => m !== 'credit');
   protected readonly methodLabel = DOC_PAYMENT_LABEL;
 
@@ -110,7 +104,6 @@ export class DocumentEditorComponent {
     warehouseId: ['', Validators.required],
     toWarehouseId: [''],
     reference: ['', Validators.maxLength(80)],
-    reason: [''],
     paymentMethod: ['cash' as DocPaymentMethod],
     discount: [0, Validators.min(0)],
     taxPct: [0, [Validators.min(0), Validators.max(100)]],
@@ -247,6 +240,7 @@ export class DocumentEditorComponent {
 
   protected patchLine(key: number, patch: Partial<EditLine>): void {
     this.lines.update((ls) => ls.map((l) => (l.key === key ? { ...l, ...patch } : l)));
+    this.clearLineErrors(key, Object.keys(patch));
   }
 
   protected setNumber(key: number, field: 'qty' | 'price' | 'discountPct', raw: string): void {
@@ -256,6 +250,39 @@ export class DocumentEditorComponent {
 
   protected removeLine(key: number): void {
     this.lines.update((ls) => ls.filter((l) => l.key !== key));
+    this.clearLineErrors(key);
+  }
+
+  // ── Server validation on lines (422 `lines[i].field`) ──
+
+  /** Server messages per line, keyed by the line's stable `key` (not its index). */
+  protected readonly lineErrors = signal<ReadonlyMap<number, RowErrors>>(new Map());
+
+  protected lineError(key: number, field: keyof DocLinePayload): string | null {
+    return this.lineErrors().get(key)?.[field] ?? null;
+  }
+
+  /** Header errors → form controls; `lines[i].x` → the line that was sent at index i. */
+  private showServerErrors(err: ApiError, sentLines: readonly EditLine[]): void {
+    const { rows, rest } = splitIndexedErrors(err.fieldErrors, 'lines');
+    const byKey = new Map<number, RowErrors>();
+    rows.forEach((fields, index) => {
+      const line = sentLines[index];
+      if (line) byKey.set(line.key, fields);
+    });
+    this.lineErrors.set(byKey);
+    applyServerErrors(this.form, { ...err, fieldErrors: rest });
+  }
+
+  /** Drop a line's errors (all, or only the edited fields). */
+  private clearLineErrors(key: number, fields?: readonly string[]): void {
+    const current = this.lineErrors().get(key);
+    if (!current) return;
+    const next = new Map(this.lineErrors());
+    const remaining = fields ? Object.fromEntries(Object.entries(current).filter(([f]) => !fields.includes(f))) : {};
+    if (Object.keys(remaining).length) next.set(key, remaining);
+    else next.delete(key);
+    this.lineErrors.set(next);
   }
 
   protected lineTotal(l: EditLine): number {
@@ -288,15 +315,13 @@ export class DocumentEditorComponent {
           ? `اختر ${this.partyLabel()}`
           : cfg.transfer && !v.toWarehouseId
             ? 'اختر المخزن المستلم'
-            : cfg.reasons && !v.reason
-              ? 'اختر سبب الحركة'
-              : !this.lines().length
-                ? 'أضف صنفًا واحدًا على الأقل'
-                : this.lines().some((l) => !(Number(l.qty) > 0))
-                  ? 'الكميات يجب أن تكون أكبر من صفر'
-                  : this.tracksPayment() && this.totals().remaining > 0 && !v.partyId
-                    ? `البيع الآجل يتطلب تحديد ${this.partyLabel()}`
-                    : null;
+            : !this.lines().length
+              ? 'أضف صنفًا واحدًا على الأقل'
+              : this.lines().some((l) => !(Number(l.qty) > 0))
+                ? 'الكميات يجب أن تكون أكبر من صفر'
+                : this.tracksPayment() && this.totals().remaining > 0 && !v.partyId
+                  ? `البيع الآجل يتطلب تحديد ${this.partyLabel()}`
+                  : null;
     if (problem) {
       this.form.markAllAsTouched();
       this.toast.warning(problem);
@@ -312,7 +337,7 @@ export class DocumentEditorComponent {
       warehouseId: v.warehouseId,
       toWarehouseId: cfg.transfer ? v.toWarehouseId || null : null,
       reference: v.reference.trim(),
-      reason: cfg.reasons ? (v.reason as DocReason) : null,
+      reason: null,
       paymentMethod: cfg.financial && cfg.stock !== 'none' ? (totals.paid <= 0 && totals.remaining > 0 ? 'credit' : v.paymentMethod) : null,
       lines: this.lines().map((l) => ({ itemId: l.itemId, qty: Number(l.qty), price: Number(l.price) || 0, discountPct: Number(l.discountPct) || 0 })),
       discount: cfg.financial ? Number(v.discount) || 0 : 0,
@@ -323,12 +348,19 @@ export class DocumentEditorComponent {
     };
 
     const id = this.current()?.id;
+    const sentLines = this.lines();
+    this.lineErrors.set(new Map());
     this.saving.set(post ? 'post' : 'draft');
     (id ? this.docs.update(id, payload) : this.docs.create(payload))
       .pipe(finalize(() => this.saving.set(null)))
-      .subscribe((doc) => {
-        this.toast.success(post ? `تم ترحيل ${cfg.singular} ${doc.number}` : `تم حفظ ${doc.number} كمسودة`);
-        this.saved.emit(doc);
+      .subscribe({
+        next: (doc) => {
+          this.toast.success(post ? `تم ترحيل ${cfg.singular} ${doc.number}` : `تم حفظ ${doc.number} كمسودة`);
+          this.saved.emit(doc);
+        },
+        // 422 → under each field / line. 409s (e.g. CREDIT_LIMIT_EXCEEDED,
+        // DOCUMENT_NOT_DRAFT) are toasted verbatim by the error interceptor.
+        error: (err: ApiError) => this.showServerErrors(err, sentLines),
       });
   }
 
@@ -354,7 +386,6 @@ export class DocumentEditorComponent {
             warehouseId: doc.warehouseId,
             toWarehouseId: doc.toWarehouseId ?? '',
             reference: doc.reference,
-            reason: doc.reason ?? '',
             paymentMethod: doc.paymentMethod && doc.paymentMethod !== 'credit' ? doc.paymentMethod : 'cash',
             discount: doc.discount,
             taxPct: doc.taxPct,
@@ -381,12 +412,12 @@ export class DocumentEditorComponent {
     this.payFull.set(kind === 'sale' || kind === 'sale-return' || kind === 'purchase-return');
     this.form.reset({
       date: todayIsoDate(),
-      dueDate: kind === 'quotation' ? plusDays(14) : kind === 'reservation' ? plusDays(3) : kind === 'purchase' ? plusMonthsIsoDate(1) : '',
+      dueDate:
+        kind === 'quotation' ? plusDaysIsoDate(14) : kind === 'reservation' ? plusDaysIsoDate(3) : kind === 'purchase' ? plusMonthsIsoDate(1) : '',
       partyId: '',
       warehouseId: defaultWh?.id ?? '',
       toWarehouseId: '',
       reference: '',
-      reason: '',
       paymentMethod: kind === 'purchase' ? 'bank' : 'cash',
       discount: 0,
       taxPct: purchaseSide ? 14 : 0,

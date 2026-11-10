@@ -1,7 +1,5 @@
 import { ItemLookup, ItemStockDetails, StockRow, StockSummary } from '../../features/warehouses/models/stock.model';
 import { WarehouseOption, WarehousePayload, WAREHOUSE_TYPES } from '../../features/warehouses/models/warehouse.model';
-import { STOCK_ENDPOINTS } from '../../features/warehouses/services/stock.service';
-import { WAREHOUSES_ENDPOINTS } from '../../features/warehouses/services/warehouses.service';
 import { findOr404 } from '../db/db-utils';
 import { documentRows, itemMovements } from '../db/documents.db';
 import {
@@ -17,6 +15,7 @@ import {
 import { bodyOf, CollectionOptions, filterCollection, queryCollection } from '../mock-collection';
 import { fail, MockContext, MockRoute, ok } from '../mock-http';
 import { itemsSnapshot } from './items.handlers';
+import { API_ENDPOINTS } from '../../core/constants/api-endpoints.const';
 
 // ── Warehouses ──
 
@@ -229,16 +228,16 @@ const WAREHOUSE_BY_ID = 'warehouses/:id';
 
 export const WAREHOUSES_MOCK_ROUTES: MockRoute[] = [
   // Literal paths first so they aren't captured as `:id`.
-  { method: 'GET', path: WAREHOUSES_ENDPOINTS.lookup, protected: true, handle: lookupWarehouses },
-  { method: 'GET', path: WAREHOUSES_ENDPOINTS.list, protected: true, handle: listWarehouses },
-  { method: 'POST', path: WAREHOUSES_ENDPOINTS.list, protected: true, handle: createWarehouse },
+  { method: 'GET', path: API_ENDPOINTS.warehouses.lookup, protected: true, handle: lookupWarehouses },
+  { method: 'GET', path: API_ENDPOINTS.warehouses.list, protected: true, handle: listWarehouses },
+  { method: 'POST', path: API_ENDPOINTS.warehouses.list, protected: true, handle: createWarehouse },
   { method: 'GET', path: WAREHOUSE_BY_ID, protected: true, handle: getWarehouse },
   { method: 'PUT', path: WAREHOUSE_BY_ID, protected: true, handle: updateWarehouse },
   { method: 'DELETE', path: WAREHOUSE_BY_ID, protected: true, handle: deleteWarehouse },
 
-  { method: 'GET', path: STOCK_ENDPOINTS.summary, protected: true, handle: stockSummary },
-  { method: 'GET', path: STOCK_ENDPOINTS.list, protected: true, handle: listStock },
+  { method: 'GET', path: API_ENDPOINTS.stock.summary, protected: true, handle: stockSummary },
+  { method: 'GET', path: API_ENDPOINTS.stock.list, protected: true, handle: listStock },
   { method: 'GET', path: 'stock/items/:itemId', protected: true, handle: itemStock },
   // Registered before ITEMS_MOCK_ROUTES (see interceptor) so `items/:id` doesn't capture it.
-  { method: 'GET', path: STOCK_ENDPOINTS.itemLookup, protected: true, handle: itemLookup },
+  { method: 'GET', path: API_ENDPOINTS.items.lookup, protected: true, handle: itemLookup },
 ];

@@ -1,0 +1,119 @@
+<app-page-header [navId]="navId()">
+  <button type="button" class="refresh-btn" [class.is-spinning]="zones.loading()" [disabled]="zones.loading()" title="تحديث"
+    aria-label="تحديث" (click)="zones.reload()">
+    <app-icon name="refresh" [size]="16" />
+  </button>
+  <button type="button" class="ui-btn ui-btn--primary" [disabled]="!unzoned().length" (click)="add()">
+    <app-icon name="plus" [size]="16" /> منطقة جديدة
+  </button>
+</app-page-header>
+
+<app-summary-tiles [tiles]="tiles()" [refreshing]="zones.loading() && !!zones.value()" />
+
+<div class="dz">
+  <!-- ── Zones ── -->
+  <section class="panel dz__zones">
+    <header class="panel__head">
+      <div>
+        <h3 class="panel__title">مناطق التوصيل</h3>
+        <p class="panel__sub">الرسوم والمدة وحد الشحن المجاني لكل محافظة</p>
+      </div>
+    </header>
+
+    @if (zones.error(); as err) {
+    <div class="dz__state">
+      <app-icon name="alert" [size]="22" />
+      <p>{{ err }}</p>
+      <button type="button" class="ui-btn ui-btn--ghost ui-btn--sm" (click)="zones.reload()">إعادة المحاولة</button>
+    </div>
+    } @else if (!zones.value() && zones.loading()) {
+    <div class="dz__skeleton">@for (i of [1, 2, 3, 4]; track i) {<span class="skeleton"></span>}</div>
+    } @else if (!sorted().length) {
+    <div class="dz__state">
+      <app-icon name="truck" [size]="26" />
+      <p>لا توجد مناطق توصيل بعد — التطبيق لا يوصّل لأي محافظة حاليًا.</p>
+      <button type="button" class="ui-btn ui-btn--primary ui-btn--sm" (click)="add('القاهرة')">
+        <app-icon name="plus" [size]="14" /> ابدأ بالقاهرة
+      </button>
+    </div>
+    } @else {
+    <div class="dz__table-wrap">
+      <table class="dz__table">
+        <thead>
+          <tr>
+            <th>المحافظة</th>
+            <th>الرسوم</th>
+            <th>مدة التوصيل</th>
+            <th>الشحن المجاني</th>
+            <th class="dz__c">الحالة</th>
+            <th class="dz__c" aria-label="إجراءات"></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (z of sorted(); track z.id) {
+          <tr [class.is-off]="!z.isActive">
+            <td><strong>{{ z.governorate }}</strong></td>
+            <td>{{ z.fee === 0 ? 'مجاني' : money(z.fee) }}</td>
+            <td>{{ days(z.estimatedDaysMin, z.estimatedDaysMax) }}</td>
+            <td>{{ z.freeShippingThreshold ? 'من ' + money(z.freeShippingThreshold) : '—' }}</td>
+            <td class="dz__c">
+              <label class="ui-switch dz__switch" [title]="z.isActive ? 'إيقاف التوصيل' : 'تفعيل التوصيل'">
+                <input type="checkbox" [checked]="z.isActive" [disabled]="busyId() === z.id"
+                  [attr.aria-label]="(z.isActive ? 'إيقاف التوصيل إلى ' : 'تفعيل التوصيل إلى ') + z.governorate" (change)="toggle(z)" />
+                <span class="ui-switch__track"></span>
+              </label>
+            </td>
+            <td class="dz__c dz__acts">
+              <button type="button" class="ui-icon-btn" title="تعديل" [attr.aria-label]="'تعديل ' + z.governorate" (click)="edit(z)">
+                <app-icon name="edit" [size]="15" />
+              </button>
+              <button type="button" class="ui-icon-btn ui-icon-btn--danger" title="حذف" [attr.aria-label]="'حذف ' + z.governorate"
+                [disabled]="busyId() === z.id" (click)="remove(z)">
+                <app-icon name="trash" [size]="15" />
+              </button>
+            </td>
+          </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    }
+  </section>
+
+  <!-- ── Coverage gaps ── -->
+  <aside class="panel dz__gaps">
+    <header class="panel__head">
+      <div>
+        <h3 class="panel__title">بدون توصيل ({{ noDeliveryCount() }})</h3>
+        <p class="panel__sub">عملاء هذه المحافظات لا يمكنهم الطلب من التطبيق</p>
+      </div>
+    </header>
+
+    @if (zones.value()) {
+      @if (!noDeliveryCount()) {
+      <p class="dz__all"><app-icon name="check" [size]="15" /> التوصيل متاح لكل المحافظات</p>
+      }
+      @if (inactive().length) {
+      <h4 class="dz__gaps-title">موقوفة</h4>
+      <div class="dz__chips">
+        @for (z of inactive(); track z.id) {
+        <button type="button" class="dz__chip dz__chip--off" title="تعديل / تفعيل" (click)="edit(z)">{{ z.governorate }}</button>
+        }
+      </div>
+      }
+      @if (unzoned().length) {
+      <h4 class="dz__gaps-title">بدون منطقة — اضغط للإضافة</h4>
+      <div class="dz__chips">
+        @for (g of unzoned(); track g) {
+        <button type="button" class="dz__chip" [title]="'إضافة منطقة ' + g" (click)="add(g)">
+          <app-icon name="plus" [size]="12" /> {{ g }}
+        </button>
+        }
+      </div>
+      }
+    }
+  </aside>
+</div>
+
+<app-zone-dialog [open]="dialogOpen()" [zone]="editing()" [available]="unzoned()" [presetGovernorate]="preset()"
+  (closed)="dialogOpen.set(false)" (saved)="onSaved()" />

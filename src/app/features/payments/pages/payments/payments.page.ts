@@ -166,7 +166,7 @@ export class PaymentsPage {
   protected readonly settlementView = SETTLEMENT_VIEW;
   protected readonly money = formatMoney;
   protected readonly relative = formatRelative;
-  protected readonly day = (iso: string) => formatDayMonth(`${iso.slice(0, 10)}T12:00:00`);
+  protected readonly day = (iso: string) => formatDayMonth(iso.slice(0, 10));
   protected readonly overdue = (p: PaymentSummary) => isSettlementOverdue(p, todayIsoDate());
 
   protected open(p: PaymentSummary): void {

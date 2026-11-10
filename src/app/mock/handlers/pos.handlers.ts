@@ -1,10 +1,10 @@
 import { POS_PAYMENT_METHODS, POS_CASH_ACCOUNTS, PosSettingsPayload } from '../../features/pos/models/pos-settings.model';
-import { POS_ENDPOINTS } from '../../features/pos/services/pos-settings.service';
 import { actorName } from '../db/db-utils';
 import { posSettings, setPosSettings } from '../db/pos-settings.db';
 import { warehouseRows } from '../db/warehouses.db';
 import { bodyOf } from '../mock-collection';
 import { fail, MockContext, MockRoute, ok } from '../mock-http';
+import { API_ENDPOINTS } from '../../core/constants/api-endpoints.const';
 
 function getSettings() {
   return ok(posSettings());
@@ -44,6 +44,6 @@ function saveSettings({ req, userId }: MockContext) {
 }
 
 export const POS_MOCK_ROUTES: MockRoute[] = [
-  { method: 'GET', path: POS_ENDPOINTS.settings, protected: true, handle: getSettings },
-  { method: 'PUT', path: POS_ENDPOINTS.settings, protected: true, handle: saveSettings },
+  { method: 'GET', path: API_ENDPOINTS.pos.settings, protected: true, handle: getSettings },
+  { method: 'PUT', path: API_ENDPOINTS.pos.settings, protected: true, handle: saveSettings },
 ];

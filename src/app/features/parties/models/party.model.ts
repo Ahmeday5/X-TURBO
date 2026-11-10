@@ -58,6 +58,25 @@ export type PartyPayload = Pick<
   | 'isExternal'
 >;
 
+/** Business-rule codes the parties API answers with (409). */
+export const PARTY_ERROR_CODES = {
+  /** Party has documents / vouchers — can't be deleted, only deactivated. */
+  hasMovements: 'PARTY_HAS_MOVEMENTS',
+} as const;
+
+/** Full update payload from a loaded party (e.g. to toggle `isActive`). */
+export function toPartyPayload(p: Party, patch: Partial<PartyPayload> = {}): PartyPayload {
+  const {
+    kind, name, phone, phone2, email, city, address, taxNumber, commercialRegister,
+    creditLimit, paymentTermDays, priceList, openingBalance, notes, isActive, isExternal,
+  } = p;
+  return {
+    kind, name, phone, phone2, email, city, address, taxNumber, commercialRegister,
+    creditLimit, paymentTermDays, priceList, openingBalance, notes, isActive, isExternal,
+    ...patch,
+  };
+}
+
 /** Minimal shape for selects. */
 export interface PartyOption {
   id: string;

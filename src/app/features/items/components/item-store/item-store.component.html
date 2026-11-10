@@ -1,0 +1,127 @@
+@if (loadError(); as err) {
+<div class="ist-state">
+  <app-icon name="alert" [size]="22" />
+  <p>{{ err }}</p>
+  <button type="button" class="ui-btn ui-btn--ghost ui-btn--sm" (click)="load()">إعادة المحاولة</button>
+</div>
+} @else {
+<form class="fp" [formGroup]="form" (ngSubmit)="submit()" [class.is-loading]="loading()" novalidate>
+  <div class="fp__main">
+    <!-- Visibility -->
+    <section class="fp__section" style="--i: 0">
+      <header class="fp__section-head">
+        <span class="fp__section-icon"><app-icon name="store" [size]="17" /></span>
+        <div>
+          <h2>الظهور في التطبيق</h2>
+          <p>تحكم في ظهور الصنف لعملاء تطبيق الموبايل</p>
+        </div>
+      </header>
+
+      <div class="fp__grid">
+        <div class="ui-field fp__switch">
+          <span class="ui-label">النشر</span>
+          <label class="ui-switch">
+            <input type="checkbox" formControlName="isPublished" />
+            <span class="ui-switch__track"></span>
+            {{ form.controls.isPublished.value ? 'منشور — يظهر في التطبيق' : 'غير منشور — مخفي من التطبيق' }}
+          </label>
+        </div>
+        <div class="ui-field fp__switch">
+          <span class="ui-label">التوصيل السريع</span>
+          <label class="ui-switch">
+            <input type="checkbox" formControlName="isFastDelivery" />
+            <span class="ui-switch__track"></span>
+            {{ form.controls.isFastDelivery.value ? 'يظهر في قسم «توصيل سريع»' : 'توصيل عادي' }}
+          </label>
+        </div>
+      </div>
+
+      @if (publishedWithoutImages()) {
+      <p class="ist-warn" role="note">
+        <app-icon name="alert" [size]="15" /> الصنف منشور بدون صور — أضف صورة واحدة على الأقل من تاب «الصور» ليظهر بشكل جيد في التطبيق.
+      </p>
+      }
+    </section>
+
+    <!-- Price tiers -->
+    <section class="fp__section" style="--i: 1">
+      <header class="fp__section-head">
+        <span class="fp__section-icon"><app-icon name="tag" [size]="17" /></span>
+        <div>
+          <h2>شرائح أسعار الجملة</h2>
+          <p>سعر أقل للقطعة عند شراء كمية أكبر. سعر القطعة الواحدة = سعر البيع الأساسي ({{ money(basePrice()) }}).</p>
+        </div>
+      </header>
+
+      <div class="ist-tiers" formArrayName="priceTiers">
+        @for (g of tiers.controls; track g; let i = $index) {
+        <div class="ist-tier" [formGroupName]="i" [class.is-invalid]="issues().has(i) && (submitted() || g.dirty)">
+          <label class="ui-field">
+            <span class="ui-label is-required">من كمية</span>
+            <div class="ui-affix">
+              <input class="ui-input ltr" type="number" [min]="minQty" step="1" inputmode="numeric" formControlName="minQty"
+                [attr.aria-label]="'كمية الشريحة ' + (i + 1)" />
+              <span class="ui-affix__text">قطعة</span>
+            </div>
+            <app-form-error [control]="g.controls.minQty" label="الكمية" />
+          </label>
+          <label class="ui-field">
+            <span class="ui-label is-required">سعر القطعة</span>
+            <div class="ui-affix">
+              <input class="ui-input ltr" type="number" min="0.01" step="0.01" inputmode="decimal" formControlName="unitPrice"
+                [placeholder]="basePrice()" [attr.aria-label]="'سعر الشريحة ' + (i + 1)" />
+              <span class="ui-affix__text">ج.م</span>
+            </div>
+            <app-form-error [control]="g.controls.unitPrice" label="سعر القطعة" />
+          </label>
+          <button type="button" class="ui-icon-btn ui-icon-btn--danger ist-tier__remove" title="حذف الشريحة"
+            [attr.aria-label]="'حذف الشريحة ' + (i + 1)" (click)="removeTier(i)">
+            <app-icon name="trash" [size]="15" />
+          </button>
+          @if (issues().get(i); as issue) {
+          @if (submitted() || g.dirty) {<p class="ist-tier__issue" role="alert"><app-icon name="alert" [size]="13" /> {{ issue }}</p>}
+          }
+        </div>
+        } @empty {
+        <p class="ist-empty">لا توجد شرائح — كل الكميات بسعر البيع الأساسي.</p>
+        }
+      </div>
+
+      <button type="button" class="ui-btn ui-btn--ghost ui-btn--sm ist-add" (click)="addTier()">
+        <app-icon name="plus" [size]="14" /> إضافة شريحة
+      </button>
+    </section>
+  </div>
+
+  <!-- Customer-facing preview -->
+  <aside class="fp__aside">
+    <div class="fp__preview">
+      <span class="fp__preview-label"><app-icon name="eye" [size]="14" /> السعر كما يراه العميل</span>
+      <table class="ist-bands">
+        <thead>
+          <tr><th>الكمية</th><th>سعر القطعة</th><th>التوفير</th></tr>
+        </thead>
+        <tbody>
+          @for (b of bands(); track b.range) {
+          <tr>
+            <td class="ltr">{{ b.range }}</td>
+            <td><strong>{{ money(b.unitPrice) }}</strong></td>
+            <td>@if (b.savingPct > 0) {<span class="ist-save">{{ b.savingPct }}%</span>} @else {—}</td>
+          </tr>
+          }
+        </tbody>
+      </table>
+      @if (form.controls.isFastDelivery.value) {
+      <span class="ist-chip"><app-icon name="truck" [size]="13" /> توصيل سريع</span>
+      }
+    </div>
+  </aside>
+
+  <footer class="fp__actions">
+    <button type="button" class="ui-btn ui-btn--ghost" [disabled]="!form.dirty || saving()" (click)="reset()">تراجع عن التغييرات</button>
+    <button type="submit" class="ui-btn ui-btn--primary" [class.is-loading]="saving()" [disabled]="saving() || loading()">
+      <app-icon name="check" [size]="16" /> حفظ بيانات المتجر
+    </button>
+  </footer>
+</form>
+}

@@ -7,6 +7,8 @@ import { NavLeaf } from './core/models/nav.model';
 import { LoadComponent, PageRegistry } from './core/models/page-registry.model';
 import { ACCOUNTS_PAGES } from './features/accounts/accounts.pages';
 import { ADMIN_PAGES } from './features/admin/admin.pages';
+import { CARS_PAGES } from './features/cars/cars.pages';
+import { DELIVERY_ZONES_PAGES } from './features/delivery-zones/delivery-zones.pages';
 import { DOCUMENTS_PAGES } from './features/documents/documents.pages';
 import { PARTIES_PAGES } from './features/parties/parties.pages';
 import { PAYMENTS_PAGES } from './features/payments/payments.pages';
@@ -37,6 +39,8 @@ const BUILT_PAGES: PageRegistry = {
   ...VOUCHERS_PAGES,
   ...ACCOUNTS_PAGES,
   ...ADMIN_PAGES,
+  ...CARS_PAGES,
+  ...DELIVERY_ZONES_PAGES,
 };
 
 const modulePage: LoadComponent = () =>

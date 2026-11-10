@@ -54,17 +54,6 @@
   }
 }
 
-.fp__grid--4 {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-
-  @media (max-width: 991.98px) {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-  @media (max-width: 575.98px) {
-    grid-template-columns: minmax(0, 1fr);
-  }
-}
-
 .fp__main {
   grid-area: main;
   display: flex;
@@ -74,7 +63,7 @@
 }
 
 .fp__section {
-  padding: 20px;
+  padding: 18px;
   border: 1px solid var(--brd);
   border-radius: var(--rx);
   background: var(--bg2);
@@ -104,7 +93,7 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: 18px;
+  margin-bottom: 14px;
 
   h2 {
     margin: 0;
@@ -131,25 +120,39 @@
   transition: background var(--dur), color var(--dur), transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
+/*
+ * Fields flow side by side as wide as the section allows — a field never
+ * stretches past what it needs just because the screen is wide (2 columns
+ * in a drawer, 4–5 on a desktop form). `--fp-field-min` tunes the density.
+ * `--3` / `--4` are kept as aliases so existing templates keep working.
+ */
 .fp__grid {
+  --fp-field-min: 200px;
+  container-type: inline-size;
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--fp-field-min)), 1fr));
+  gap: 14px 16px;
 
-  &--3 {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
-  @media (max-width: 767.98px) {
-    &,
-    &--3 {
-      grid-template-columns: minmax(0, 1fr);
-    }
+  &--wide {
+    --fp-field-min: 260px;
   }
 }
 
+/* A field that needs two tracks (long names, selects with long labels). */
 .fp__span-2 {
+  grid-column: span 2;
+}
+
+/* A field that needs the whole row (notes, descriptions, addresses). */
+.fp__span-full {
   grid-column: 1 / -1;
+}
+
+/* Below two tracks the grid is single-column — a 2-track span would overflow. */
+@container (max-width: 415.98px) {
+  .fp__span-2 {
+    grid-column: 1 / -1;
+  }
 }
 
 .fp__switch {

@@ -35,3 +35,39 @@
   display: block;
   margin-top: 14px;
 }
+
+/* Rating cell — opens the item's reviews tab. */
+.id-rating {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 8px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+  transition: background var(--dur-fast);
+
+  &:hover {
+    background: var(--bg3);
+  }
+  &:focus-visible {
+    outline: none;
+    box-shadow: var(--focus-ring);
+  }
+  strong {
+    font-size: 12.5px;
+    font-weight: 700;
+    color: var(--txt);
+    font-variant-numeric: tabular-nums;
+  }
+  small {
+    font-size: 11px;
+    color: var(--txt3);
+  }
+
+  &__none {
+    font-style: normal;
+  }
+}

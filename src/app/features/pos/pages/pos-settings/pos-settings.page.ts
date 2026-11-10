@@ -3,6 +3,8 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { finalize } from 'rxjs';
 import { ToastService } from '../../../../core/services/toast.service';
+import { ApiError } from '../../../../core/models/api-response.model';
+import { applyServerErrors } from '../../../../core/utils/api-error.util';
 import { FormErrorComponent } from '../../../../shared/components/form-error/form-error.component';
 import { IconComponent } from '../../../../shared/components/icon/icon.component';
 import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
@@ -136,9 +138,12 @@ export class PosSettingsPage {
     this.api
       .save(payload)
       .pipe(finalize(() => this.saving.set(false)))
-      .subscribe((s) => {
-        this.apply(s);
-        this.toast.success('تم حفظ إعدادات نقطة البيع');
+      .subscribe({
+        next: (s) => {
+          this.apply(s);
+          this.toast.success('تم حفظ إعدادات نقطة البيع');
+        },
+        error: (err: ApiError) => applyServerErrors(this.form, err),
       });
   }
 

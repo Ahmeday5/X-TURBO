@@ -14,7 +14,7 @@ import { StatusPillComponent } from '../../../../shared/components/status-pill/s
 import { createQueryResource } from '../../../../shared/list/query-resource';
 import { UrlListState } from '../../../../shared/list/url-list-state';
 import { downloadCsv } from '../../../../shared/utils/csv.util';
-import { formatDayMonth, formatInteger, formatMoney } from '../../../../shared/utils/format.util';
+import { formatDateTime, formatDayMonth, formatInteger, formatMoney } from '../../../../shared/utils/format.util';
 import { pluralAr } from '../../../../shared/utils/plural.util';
 import { PrintStylesComponent } from '../../components/print-styles/print-styles.component';
 import {
@@ -113,7 +113,8 @@ export class PartyStatementPage {
   protected readonly sourceLink = statementSourceLink;
   protected readonly sourceLabel = statementSourceLabel;
   protected readonly kindView = PARTY_KIND_VIEW;
-  protected readonly printedAt = new Date().toLocaleString('ar-EG-u-nu-latn');
+  /** Cairo time, like every other timestamp in the app. */
+  protected readonly printedAt = formatDateTime(new Date().toISOString());
 
   constructor() {
     // URL → select (back / forward, links from other pages).

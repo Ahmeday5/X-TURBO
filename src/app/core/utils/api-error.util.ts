@@ -1,5 +1,5 @@
 import { AbstractControl } from '@angular/forms';
-import { ApiError } from '../models/api-response.model';
+import { ApiError, ApiFieldErrors } from '../models/api-response.model';
 
 /**
  * Turns an `ApiError` (already normalized by `errorInterceptor`) into a
@@ -75,6 +75,48 @@ export function applyServerErrors(
     }
   }
   return unmatched.length ? unmatched.join('، ') : null;
+}
+
+/** Field → first message, for one row of an indexed collection. */
+export type RowErrors = Readonly<Record<string, string>>;
+
+/**
+ * Splits indexed 422 errors (`lines[2].qty`) from the rest, for collections
+ * held outside Reactive Forms (e.g. a signal of editor rows).
+ *
+ *   const { rows, rest } = splitIndexedErrors(err.fieldErrors, 'lines');
+ *   rows.get(2)?.['qty']  // → message for the 3rd line's qty
+ *
+ * Keys are matched case-insensitively on the collection name and field names
+ * are normalized to camelCase. `rest` keeps every other key untouched so it
+ * can go through `applyServerErrors` for the header form.
+ */
+export function splitIndexedErrors(
+  fieldErrors: ApiError['fieldErrors'],
+  collection: string,
+): { rows: ReadonlyMap<number, RowErrors>; rest: ApiFieldErrors | undefined } {
+  if (!fieldErrors) return { rows: new Map(), rest: undefined };
+
+  const pattern = new RegExp(`^${collection}\\[(\\d+)\\]\\.(\\w+)$`, 'i');
+  const rows = new Map<number, Record<string, string>>();
+  const rest: ApiFieldErrors = {};
+
+  for (const [key, value] of Object.entries(fieldErrors)) {
+    const match = pattern.exec(key);
+    const message = (Array.isArray(value) ? value : [value]).find(
+      (m): m is string => typeof m === 'string' && m.trim().length > 0,
+    );
+    if (!match || !message) {
+      rest[key] = value;
+      continue;
+    }
+    const index = Number(match[1]);
+    const field = match[2].charAt(0).toLowerCase() + match[2].slice(1);
+    const row = rows.get(index) ?? {};
+    row[field] ??= message;
+    rows.set(index, row);
+  }
+  return { rows, rest: Object.keys(rest).length ? rest : undefined };
 }
 
 /** Arabic wait duration: "30 ثانية" / "دقيقة" / "دقيقتين" / "5 دقائق" / "15 دقيقة". */

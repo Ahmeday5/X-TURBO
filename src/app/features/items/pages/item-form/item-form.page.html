@@ -3,6 +3,27 @@
   <a class="ui-btn ui-btn--ghost" routerLink="/items/directory"><app-icon name="table" [size]="16" /> دليل الأصناف</a>
 </app-page-header>
 
+@if (isEdit()) {
+<div class="seg if-tabs" role="tablist" aria-label="أقسام الصنف">
+  @for (t of tabs; track t.key) {
+  <button type="button" class="seg__btn" role="tab" [attr.aria-selected]="activeTab() === t.key"
+    [attr.aria-pressed]="activeTab() === t.key" (click)="setTab(t.key)">
+    <app-icon [name]="t.icon" [size]="15" /> {{ t.label }}
+  </button>
+  }
+</div>
+} @else {
+<p class="if-note"><app-icon name="image" [size]="14" /> الصور وبيانات المتجر بتتضاف من «تعديل الصنف» بعد حفظه.</p>
+}
+
+@if (activeTab() === 'images' && id()) {
+<app-item-images [itemId]="id()!" />
+} @else if (activeTab() === 'store' && id()) {
+<!-- Base price = the saved sale price (tiers are validated against it). -->
+<app-item-store [itemId]="id()!" [basePrice]="current()?.salePrice ?? 0" />
+} @else if (activeTab() === 'fitments' && id()) {
+<app-item-fitments [itemId]="id()!" />
+} @else {
 <form class="if" [formGroup]="form" (ngSubmit)="submit('save')" [class.is-loading]="loadingItem()" novalidate>
   <div class="if__main">
     <!-- Basic info -->
@@ -123,7 +144,20 @@
         <label class="ui-field if__span-2">
           <span class="ui-label">الوصف</span>
           <textarea class="ui-input" formControlName="description" rows="3"
-            placeholder="ملاحظات، أرقام بديلة، موديلات متوافقة…"></textarea>
+            placeholder="ملاحظات، أرقام بديلة…"></textarea>
+        </label>
+
+        <label class="ui-field if__span-2">
+          <span class="ui-label if__label-row">
+            متوافق مع
+            <small class="if__counter" [class.is-over]="form.controls.compatibleWith.value.length > compatibleMax">
+              {{ form.controls.compatibleWith.value.length }} / {{ compatibleMax }}
+            </small>
+          </span>
+          <textarea class="ui-input" formControlName="compatibleWith" rows="2" [attr.maxlength]="compatibleMax"
+            placeholder="مثال: تويوتا كورولا 2014–2019، ياريس 2016"></textarea>
+          <span class="ui-hint">نص حر يظهر للعميل ويدخل في البحث. لتحديد الموديلات والسنوات بدقة استخدم تاب «التوافق مع السيارات».</span>
+          <app-form-error [control]="form.controls.compatibleWith" label="متوافق مع" />
         </label>
       </div>
     </section>
@@ -151,3 +185,4 @@
     </button>
   </footer>
 </form>
+}

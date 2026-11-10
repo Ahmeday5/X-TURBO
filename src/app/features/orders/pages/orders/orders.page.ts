@@ -35,6 +35,7 @@ import {
   PAYMENT_STATUS_VIEW,
 } from '../../models/order.model';
 import { OrdersService } from '../../services/orders.service';
+import { todayIsoDate } from '../../../../shared/utils/date-iso.util';
 
 interface SummaryTile {
   label: string;
@@ -165,7 +166,7 @@ export class OrdersPage {
     fetchAllPages((pageIndex, pageSize) => this.orders.list({ ...query, pageIndex, pageSize }), 100)
       .pipe(finalize(() => this.exporting.set(false)))
       .subscribe((rows) => {
-        downloadCsv(`orders-${new Date().toISOString().slice(0, 10)}`, rows, [
+        downloadCsv(`orders-${todayIsoDate()}`, rows, [
           { label: 'رقم الطلب', value: (o) => o.number },
           { label: 'التاريخ', value: (o) => formatDateTime(o.createdAt) },
           { label: 'العميل', value: (o) => o.customerName },

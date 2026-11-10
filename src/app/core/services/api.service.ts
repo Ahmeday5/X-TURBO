@@ -2,12 +2,16 @@ import { Injectable, inject } from '@angular/core';
 import {
   HttpClient,
   HttpContext,
+  HttpEventType,
   HttpHeaders,
   HttpParams,
 } from '@angular/common/http';
-import { Observable, map } from 'rxjs';
+import { Observable, filter, map } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { ApiResponse } from '../models/api-response.model';
+
+/** Progress / completion of `ApiService.upload`. */
+export type UploadEvent<T> = { kind: 'progress'; percent: number | null } | { kind: 'done'; value: T };
 
 export interface RequestOptions {
   params?: Record<string, unknown>;
@@ -73,6 +77,35 @@ export class ApiService {
     return this.http
       .delete<ApiResponse<T> | T>(this.url(endpoint), this.opts(options))
       .pipe(map((res) => this.unwrap<T>(res)));
+  }
+
+  /**
+   * Multipart upload (POST `FormData`) that reports progress.
+   *
+   * Emits `{ kind: 'progress', percent }` while sending — `percent` is `null`
+   * when the transport can't measure it (the Fetch backend, `withFetch()`,
+   * has no upload-progress events) — then `{ kind: 'done', value }` with the
+   * unwrapped response. Don't set `Content-Type`: the browser adds the
+   * multipart boundary itself.
+   */
+  upload<T>(endpoint: string, body: FormData, options: RequestOptions = {}): Observable<UploadEvent<T>> {
+    return this.http
+      .post<ApiResponse<T> | T>(this.url(endpoint), body, {
+        ...this.opts(options),
+        reportProgress: true,
+        observe: 'events',
+      })
+      .pipe(
+        map((event): UploadEvent<T> | null => {
+          if (event.type === HttpEventType.Sent) return { kind: 'progress', percent: null };
+          if (event.type === HttpEventType.UploadProgress) {
+            return { kind: 'progress', percent: event.total ? Math.round((100 * event.loaded) / event.total) : null };
+          }
+          if (event.type === HttpEventType.Response) return { kind: 'done', value: this.unwrap<T>(event.body as ApiResponse<T> | T) };
+          return null;
+        }),
+        filter((event): event is UploadEvent<T> => event !== null),
+      );
   }
 
   // ─────────── internals ───────────

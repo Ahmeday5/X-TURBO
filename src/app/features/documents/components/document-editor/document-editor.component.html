@@ -54,17 +54,6 @@
         </div>
         }
 
-        @if (cfg().reasons) {
-        <label class="ui-field">
-          <span class="ui-label is-required">السبب</span>
-          <select class="ui-input" formControlName="reason">
-            <option value="">— اختر —</option>
-            @for (r of reasonOptions(); track r.value) {<option [value]="r.value">{{ r.label }}</option>}
-          </select>
-          @if (submitted() && !form.controls.reason.value) {<span class="de__err">السبب مطلوب</span>}
-        </label>
-        }
-
         @if (cfg().dueDateLabel) {
         <label class="ui-field">
           <span class="ui-label">{{ cfg().dueDateLabel }}</span>
@@ -119,15 +108,20 @@
                   · <span [class.de__short]="shortLines().has(l.key)">متاح {{ int(available(l.itemId)!) }} {{ l.unit }}</span>
                   }
                 </small>
+                @if (lineError(l.key, 'itemId'); as msg) {<small class="ui-field-error" role="alert">{{ msg }}</small>}
               </td>
               <td>
                 <input class="ui-input de__num" type="number" min="1" step="1" [value]="l.qty"
+                  [class.is-invalid]="!!lineError(l.key, 'qty')" [attr.aria-invalid]="!!lineError(l.key, 'qty')"
                   [attr.aria-label]="'كمية ' + l.name" (input)="setNumber(l.key, 'qty', $any($event.target).value)" />
+                @if (lineError(l.key, 'qty'); as msg) {<small class="ui-field-error" role="alert">{{ msg }}</small>}
               </td>
               <td>
                 @if (cfg().financial) {
                 <input class="ui-input de__num" type="number" min="0" step="0.01" [value]="l.price"
+                  [class.is-invalid]="!!lineError(l.key, 'price')" [attr.aria-invalid]="!!lineError(l.key, 'price')"
                   [attr.aria-label]="'سعر ' + l.name" (input)="setNumber(l.key, 'price', $any($event.target).value)" />
+                @if (lineError(l.key, 'price'); as msg) {<small class="ui-field-error" role="alert">{{ msg }}</small>}
                 } @else {
                 <span class="de__ro">{{ money(l.price) }}</span>
                 }
@@ -135,7 +129,9 @@
               @if (cfg().financial) {
               <td>
                 <input class="ui-input de__num" type="number" min="0" max="100" step="1" [value]="l.discountPct"
+                  [class.is-invalid]="!!lineError(l.key, 'discountPct')" [attr.aria-invalid]="!!lineError(l.key, 'discountPct')"
                   [attr.aria-label]="'خصم ' + l.name" (input)="setNumber(l.key, 'discountPct', $any($event.target).value)" />
+                @if (lineError(l.key, 'discountPct'); as msg) {<small class="ui-field-error" role="alert">{{ msg }}</small>}
               </td>
               }
               <td><strong class="de__total">{{ money(lineTotal(l)) }}</strong></td>
@@ -238,9 +234,6 @@
         <div><dt>إجمالي الكمية</dt><dd>{{ int(totalQty()) }}</dd></div>
         <div class="de__grand"><dt>القيمة بالتكلفة</dt><dd>{{ money(totals().subtotal) }}</dd></div>
       </dl>
-      @if (cfg().stock === 'ship') {
-      <p class="ui-hint">تُخصم الكميات من المخزن المحوِّل عند الترحيل، وتُضاف للمخزن المستلم عند تأكيد الاستلام.</p>
-      }
       }
     </div>
   </aside>

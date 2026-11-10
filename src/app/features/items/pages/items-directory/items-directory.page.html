@@ -25,7 +25,23 @@
   </span>
 </ng-template>
 
+<ng-template #ratingCell let-item>
+  <button type="button" class="id-rating" [title]="'عرض تقييمات ' + item.name" (click)="openReviews(item)">
+    @if (item.reviewsCount) {
+    <app-rating-stars [value]="item.averageRating" [size]="13" />
+    <strong>{{ item.averageRating.toFixed(1) }}</strong>
+    <small>({{ int(item.reviewsCount) }})</small>
+    } @else {
+    <small class="id-rating__none">لا تقييمات</small>
+    }
+  </button>
+</ng-template>
+
 <ng-template #actions let-item>
+  <button type="button" class="ui-icon-btn" title="عرض التفاصيل" [attr.aria-label]="'عرض تفاصيل ' + item.name"
+    (click)="viewId.set(item.id)">
+    <app-icon name="eye" [size]="16" />
+  </button>
   <button type="button" class="ui-icon-btn" title="تعديل" [attr.aria-label]="'تعديل ' + item.name" (click)="edit(item)">
     <app-icon name="edit" [size]="16" />
   </button>
@@ -76,6 +92,18 @@
     <app-icon name="plus" [size]="16" /> صنف جديد
   </a>
 </app-data-table>
+
+<app-details-drawer [open]="!!viewId()" label="تفاصيل الصنف" [details]="details()" [loading]="viewed.loading()"
+  [error]="viewed.error()" (retry)="viewed.reload()" (closed)="viewId.set(null)">
+  @if (details()) {
+  <button drawer-actions type="button" class="ui-btn ui-btn--ghost" (click)="openReviews(viewed.value()!)">
+    <app-icon name="star" [size]="15" /> التقييمات
+  </button>
+  <button drawer-actions type="button" class="ui-btn ui-btn--primary" (click)="edit(viewed.value()!)">
+    <app-icon name="edit" [size]="15" /> تعديل
+  </button>
+  }
+</app-details-drawer>
 
 <app-pagination class="id-pager" [pageIndex]="state.query().pageIndex" [pageSize]="state.query().pageSize"
   [count]="list.count()" [totalPages]="list.totalPages()" [pageSizeOptions]="[12, 24, 48, 96]"

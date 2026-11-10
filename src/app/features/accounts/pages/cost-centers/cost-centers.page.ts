@@ -20,6 +20,7 @@ import { formatInteger, formatMoney, formatMoneyCompact, formatPercent } from '.
 import { CostCenter } from '../../models/cost-center.model';
 import { CostCentersService } from '../../services/cost-centers.service';
 import { CostCenterEditorComponent } from './cost-center-editor/cost-center-editor.component';
+import { todayIsoDate } from '../../../../shared/utils/date-iso.util';
 
 export interface BudgetUsage {
   /** % of the annual budget spent, `null` when there is no budget. */
@@ -213,7 +214,7 @@ export class CostCentersPage {
     fetchAllPages((pageIndex, pageSize) => this.api.list({ ...query, pageIndex, pageSize }), 100)
       .pipe(finalize(() => this.exporting.set(false)))
       .subscribe((rows) => {
-        downloadCsv(`cost-centers-${new Date().toISOString().slice(0, 10)}`, rows, [
+        downloadCsv(`cost-centers-${todayIsoDate()}`, rows, [
           { label: 'الكود', value: (c) => c.code },
           { label: 'الاسم', value: (c) => c.name },
           { label: 'المركز الرئيسي', value: (c) => c.parentName ?? '' },

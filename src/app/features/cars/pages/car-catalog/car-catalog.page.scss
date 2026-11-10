@@ -1,0 +1,216 @@
+:host {
+  display: block;
+}
+
+/* Master (makes) – detail (models). Stacks on narrow screens. */
+.cc {
+  display: grid;
+  grid-template-columns: minmax(260px, 340px) minmax(0, 1fr);
+  align-items: start;
+  gap: 16px;
+
+  @media (max-width: 991.98px) {
+    grid-template-columns: 1fr;
+  }
+
+  &__makes,
+  &__models {
+    min-width: 0;
+  }
+
+  /* ── Makes list ── */
+
+  &__search {
+    position: relative;
+    display: block;
+    margin-bottom: 10px;
+
+    app-icon {
+      position: absolute;
+      inset-inline-start: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--txt3);
+      pointer-events: none;
+    }
+    .ui-input {
+      height: 38px;
+      padding-inline-start: 34px;
+    }
+  }
+
+  &__list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    max-height: 62vh;
+    margin: 0;
+    padding: 0;
+    overflow-y: auto;
+    list-style: none;
+  }
+
+  &__make {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 10px;
+    border: 1px solid transparent;
+    border-radius: var(--rl);
+    cursor: pointer;
+    transition: background var(--dur-fast), border-color var(--dur-fast);
+
+    &:hover {
+      background: var(--bg3);
+    }
+    &:focus-visible {
+      outline: none;
+      box-shadow: var(--focus-ring);
+    }
+    &.is-selected {
+      border-color: rgba(var(--primary-rgb), 0.35);
+      background: var(--primary-soft);
+    }
+    &.is-inactive .cc__make-text strong {
+      color: var(--txt3);
+    }
+  }
+
+  &__make-icon {
+    display: grid;
+    flex-shrink: 0;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    background: var(--bg3);
+    color: var(--txt2);
+
+    .is-selected & {
+      background: var(--primary);
+      color: #fff;
+    }
+  }
+
+  &__make-text {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+
+    strong {
+      overflow: hidden;
+      font-size: 13.5px;
+      font-weight: 600;
+      color: var(--txt);
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    small {
+      font-size: 11px;
+      color: var(--txt3);
+    }
+  }
+
+  &__off {
+    color: var(--re);
+  }
+
+  &__make-acts {
+    display: flex;
+    gap: 2px;
+    opacity: 0;
+    transition: opacity var(--dur-fast);
+
+    .cc__make:hover &,
+    .cc__make:focus-within &,
+    .cc__make.is-selected & {
+      opacity: 1;
+    }
+    @media (hover: none) {
+      opacity: 1;
+    }
+  }
+
+  /* ── Models table ── */
+
+  &__table-wrap {
+    overflow-x: auto;
+  }
+
+  &__table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+
+    th {
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--brd);
+      font-size: 11.5px;
+      font-weight: 600;
+      color: var(--txt3);
+      text-align: start;
+      white-space: nowrap;
+    }
+    td {
+      padding: 9px 10px;
+      border-bottom: 1px solid var(--brd);
+      color: var(--txt);
+      vertical-align: middle;
+    }
+    td strong {
+      display: block;
+      font-weight: 600;
+    }
+    td small {
+      display: block;
+      font-size: 11px;
+      color: var(--txt3);
+    }
+    tr.is-inactive td {
+      color: var(--txt3);
+    }
+  }
+
+  &__c {
+    text-align: center !important;
+  }
+
+  &__years {
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  &__row-acts {
+    white-space: nowrap;
+  }
+
+  /* ── States ── */
+
+  &__state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding: 36px 12px;
+    color: var(--txt3);
+    text-align: center;
+
+    p {
+      margin: 0;
+      font-size: 13px;
+    }
+  }
+
+  &__skeleton {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+
+    .skeleton {
+      height: 48px;
+      border-radius: var(--rl);
+    }
+  }
+}

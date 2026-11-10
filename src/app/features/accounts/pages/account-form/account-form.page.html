@@ -58,7 +58,7 @@
             {{ natureLabel[typeView[form.controls.type.value].nature] }}</span>
         </div>
 
-        <div class="ui-field fp__span-2">
+        <div class="ui-field fp__span-full">
           <span class="ui-label">تصنيف الحساب</span>
           <div class="afp-kinds">
             <button type="button" class="afp-kind" [class.is-on]="!form.controls.isGroup.value"
@@ -87,14 +87,6 @@
       </header>
 
       <div class="fp__grid">
-        <label class="ui-field">
-          <span class="ui-label">العملة</span>
-          <select class="ui-input" formControlName="currency">
-            @for (c of activeCurrencies(); track c.id) {<option [value]="c.code">{{ c.name }} ({{ c.code }})</option>}
-            @if (!activeCurrencies().length) {<option value="EGP">جنيه مصري (EGP)</option>}
-          </select>
-        </label>
-
         @if (!form.controls.isGroup.value) {
         <label class="ui-field">
           <span class="ui-label">الرصيد الافتتاحي</span>
@@ -125,7 +117,7 @@
           @if (current()?.isSystem) {<span class="ui-hint">حساب نظامي — لا يمكن إيقافه.</span>}
         </div>
 
-        <label class="ui-field fp__span-2">
+        <label class="ui-field fp__span-full">
           <span class="ui-label">ملاحظات</span>
           <textarea class="ui-input" formControlName="notes" rows="2" placeholder="الغرض من الحساب، تعليمات الاستخدام…"></textarea>
         </label>
@@ -161,7 +153,6 @@
         <div><dt>الطبيعة</dt><dd>{{ natureLabel[form.controls.nature.value] }}</dd></div>
         <div><dt>المستوى</dt><dd>{{ path().length + 1 }}</dd></div>
         <div><dt>التصنيف</dt><dd>{{ form.controls.isGroup.value ? 'تجميعي' : 'فرعي' }}</dd></div>
-        <div><dt>العملة</dt><dd class="ltr">{{ form.controls.currency.value }}</dd></div>
       </dl>
 
       @if (current(); as c) {

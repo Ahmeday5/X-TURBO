@@ -8,9 +8,9 @@ import { inject } from '@angular/core';
 import { catchError, switchMap, throwError } from 'rxjs';
 import { AuthService } from '../services/auth.service';
 import { SKIP_AUTH } from '../../http/http-context.tokens';
-import { AUTH_ENDPOINTS } from '../auth.config';
 import { isJwtExpired } from '../utils/jwt.util';
 import { API_ERROR_CODES } from '../../http/api-error-codes';
+import { API_ENDPOINTS } from '../../constants/api-endpoints.const';
 
 /**
  * Attaches `Authorization: Bearer <token>` to every request unless the caller
@@ -95,8 +95,8 @@ function errorCode(err: HttpErrorResponse): string | undefined {
 
 function isAuthEndpoint(url: string): boolean {
   return (
-    url.includes(AUTH_ENDPOINTS.login) ||
-    url.includes(AUTH_ENDPOINTS.refresh) ||
-    url.includes(AUTH_ENDPOINTS.logout)
+    url.includes(API_ENDPOINTS.auth.login) ||
+    url.includes(API_ENDPOINTS.auth.refresh) ||
+    url.includes(API_ENDPOINTS.auth.logout)
   );
 }

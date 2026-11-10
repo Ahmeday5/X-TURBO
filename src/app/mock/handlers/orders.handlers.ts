@@ -1,4 +1,3 @@
-import { ORDERS_ENDPOINTS } from '../../features/orders/services/orders.service';
 import {
   canCancelOrder,
   nextOrderStatus,
@@ -21,6 +20,7 @@ import { fail, MockContext, MockRoute, ok } from '../mock-http';
 import { DAY_MS, pick, seeded, startOfDay, sum } from '../mock-utils';
 import { DEMO_USERS } from '../mock-users';
 import { itemsSnapshot } from './items.handlers';
+import { API_ENDPOINTS } from '../../core/constants/api-endpoints.const';
 
 /**
  * In-memory orders "database": ~13 months of seeded history built from the
@@ -245,9 +245,9 @@ export function ordersSnapshot(): readonly OrderRecord[] {
 }
 
 export const ORDERS_MOCK_ROUTES: MockRoute[] = [
-  { method: 'GET', path: ORDERS_ENDPOINTS.list, protected: true, handle: listOrders },
+  { method: 'GET', path: API_ENDPOINTS.orders.list, protected: true, handle: listOrders },
   // `stats` before `:id` so it isn't captured as an id.
-  { method: 'GET', path: ORDERS_ENDPOINTS.stats, protected: true, handle: orderStats },
+  { method: 'GET', path: API_ENDPOINTS.orders.stats, protected: true, handle: orderStats },
   { method: 'GET', path: 'orders/:id', protected: true, handle: getOrder },
   { method: 'PATCH', path: 'orders/:id/status', protected: true, handle: changeStatus },
 ];

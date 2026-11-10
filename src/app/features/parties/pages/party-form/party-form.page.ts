@@ -4,7 +4,10 @@ import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angula
 import { Router, RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
 import { ToastService } from '../../../../core/services/toast.service';
+import { ApiError } from '../../../../core/models/api-response.model';
+import { applyServerErrors } from '../../../../core/utils/api-error.util';
 import { FormErrorComponent } from '../../../../shared/components/form-error/form-error.component';
+import { AppValidators } from '../../../../shared/validators/app-validators';
 import { IconComponent, IconName } from '../../../../shared/components/icon/icon.component';
 import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
 import { formatDateTime } from '../../../../shared/utils/format.util';
@@ -12,7 +15,6 @@ import { PartyCardComponent, PartyCardData } from '../../components/party-card/p
 import { Party, PartyKind, PartyPayload, PRICE_LIST_LABEL, PriceList } from '../../models/party.model';
 import { PartiesService } from '../../services/parties.service';
 
-const PHONE_PATTERN = /^01[0125]\d{8}$/;
 
 const KIND_CARDS: ReadonlyArray<{ value: PartyKind; label: string; hint: string; icon: IconName }> = [
   { value: 'customer', label: 'عميل', hint: 'نبيع له ونحصّل منه', icon: 'user' },
@@ -48,12 +50,12 @@ export class PartyFormPage {
   protected readonly form = this.fb.group({
     kind: ['customer' as PartyKind, Validators.required],
     name: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(120)]],
-    phone: ['', Validators.pattern(PHONE_PATTERN)],
-    phone2: ['', Validators.pattern(PHONE_PATTERN)],
-    email: ['', Validators.email],
+    phone: ['', AppValidators.mobile()],
+    phone2: ['', AppValidators.mobile()],
+    email: ['', AppValidators.email()],
     city: ['', Validators.maxLength(60)],
     address: ['', Validators.maxLength(200)],
-    taxNumber: ['', Validators.pattern(/^\d{9}$/)],
+    taxNumber: ['', AppValidators.taxNumber()],
     commercialRegister: ['', Validators.maxLength(20)],
     priceList: ['retail' as PriceList],
     creditLimit: [0, Validators.min(0)],
@@ -123,10 +125,14 @@ export class PartyFormPage {
     this.saving.set(mode);
     (id ? this.parties.update(id, payload) : this.parties.create(payload))
       .pipe(finalize(() => this.saving.set(null)))
-      .subscribe((party) => {
-        this.toast.success(id ? 'تم تحديث البيانات' : `تم إضافة ${party.name} — ${party.code}`);
-        if (mode === 'saveNew') this.resetForCreate();
-        else this.router.navigate(['/customers/list']);
+      .subscribe({
+        next: (party) => {
+          this.toast.success(id ? 'تم تحديث البيانات' : `تم إضافة ${party.name} — ${party.code}`);
+          if (mode === 'saveNew') this.resetForCreate();
+          else this.router.navigate(['/customers/list']);
+        },
+        // The form splits the signed opening balance into amount + side.
+        error: (err: ApiError) => applyServerErrors(this.form, err, { openingBalance: 'openingAmount' }),
       });
   }
 

@@ -10,9 +10,12 @@ import { ListToolbarComponent, SortOption } from '../../../../shared/components/
 import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
 import { PaginationComponent } from '../../../../shared/components/pagination/pagination.component';
 import { createListResource } from '../../../../shared/list/list-resource';
+import { createQueryResource } from '../../../../shared/list/query-resource';
 import { UrlListState } from '../../../../shared/list/url-list-state';
 import { GroupFormDialogComponent } from '../../components/group-form-dialog/group-form-dialog.component';
 import { ItemGroup } from '../../models/item-group.model';
+import { toItemGroupDetails } from '../../utils/item-details';
+import { DetailsDrawerComponent } from '../../../../shared/components/details-drawer/details-drawer.component';
 import { ITEM_ERROR_CODES } from '../../models/item.model';
 import { ApiError } from '../../../../core/models/api-response.model';
 import { hasErrorCode } from '../../../../core/http/api-error-codes';
@@ -30,6 +33,7 @@ import { ItemGroupsService } from '../../services/item-groups.service';
     PaginationComponent,
     IconComponent,
     GroupFormDialogComponent,
+    DetailsDrawerComponent,
   ],
   templateUrl: './item-groups.page.html',
   styleUrl: './item-groups.page.scss',
@@ -63,6 +67,17 @@ export class ItemGroupsPage {
 
   /** `undefined` → dialog closed, `null` → creating, group → editing. */
   protected readonly editing = signal<ItemGroup | null | undefined>(undefined);
+
+  // ── Details drawer (👁) ──
+  protected readonly viewId = signal<string | null>(null);
+  protected readonly viewed = createQueryResource(this.viewId, (id) => this.api.get(id!), {
+    enabled: (id) => !!id,
+    errorMessage: 'تعذّر تحميل تفاصيل المجموعة',
+  });
+  protected readonly details = computed(() => {
+    const g = this.viewed.value();
+    return g && g.id === this.viewId() ? toItemGroupDetails(g) : null;
+  });
 
   private readonly nameCell = viewChild.required<TemplateRef<{ $implicit: ItemGroup }>>('nameCell');
   private readonly countCell = viewChild.required<TemplateRef<{ $implicit: ItemGroup }>>('countCell');

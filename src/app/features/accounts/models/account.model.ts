@@ -44,6 +44,27 @@ export type AccountPayload = Pick<
   'name' | 'parentId' | 'type' | 'nature' | 'isGroup' | 'costCenterRequired' | 'currency' | 'openingBalance' | 'notes' | 'isActive'
 >;
 
+/** Business-rule codes the accounts API answers with (409). */
+export const ACCOUNT_ERROR_CODES = {
+  /** Account has ledger postings — can't be deleted, only deactivated. */
+  hasPostings: 'ACCOUNT_HAS_POSTINGS',
+} as const;
+
+/** Full update payload from a loaded account (e.g. to toggle `isActive`). */
+export function toAccountPayload(a: Account, patch: Partial<AccountPayload> = {}): AccountPayload {
+  const { name, parentId, type, nature, isGroup, costCenterRequired, currency, openingBalance, notes, isActive } = a;
+  return { name, parentId, type, nature, isGroup, costCenterRequired, currency, openingBalance, notes, isActive, ...patch };
+}
+
+/** `GET accounts/trial-balance?asOf=` — the server's check that every posting balances. */
+export interface TrialBalance {
+  /** Per-account lines — not rendered yet; type them once the API returns real rows. */
+  rows: readonly unknown[];
+  totalDebit: number;
+  totalCredit: number;
+  isBalanced: boolean;
+}
+
 /** Minimal shape for selects (`label` = "code — name"). */
 export interface AccountOption {
   id: string;

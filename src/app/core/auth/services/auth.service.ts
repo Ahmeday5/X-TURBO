@@ -28,13 +28,14 @@ import {
   UserRole,
 } from '../models/auth.model';
 import { ApiError } from '../../models/api-response.model';
-import { AUTH_ENDPOINTS, LOGIN_ROUTE } from '../auth.config';
+import { LOGIN_ROUTE } from '../auth.config';
 import {
   withInlineHandling,
   withSkipAuth,
 } from '../../http/http-context.tokens';
 import { getJwtExpiry } from '../utils/jwt.util';
 import { initialsOf } from '../../../shared/utils/initials.util';
+import { API_ENDPOINTS } from '../../constants/api-endpoints.const';
 
 const USER_KEY = 'xturbo_user';
 /** Refresh this many ms BEFORE the access token actually expires. */
@@ -169,7 +170,7 @@ export class AuthService {
     const area: StorageArea = input.rememberMe ? 'local' : 'session';
 
     return this.api
-      .post<AuthResponseData>(AUTH_ENDPOINTS.login, payload, {
+      .post<AuthResponseData>(API_ENDPOINTS.auth.login, payload, {
         context: withInlineHandling(withSkipAuth()),
       })
       .pipe(
@@ -214,7 +215,7 @@ export class AuthService {
 
   private hydratePermissions(baseUser: User): Observable<User> {
     return this.api
-      .get<MePermissionsData>(AUTH_ENDPOINTS.me, {
+      .get<MePermissionsData>(API_ENDPOINTS.auth.me, {
         context: withInlineHandling(),
       })
       .pipe(
@@ -264,7 +265,7 @@ export class AuthService {
       // the body identifies the session, and skipping auth also stops the
       // interceptor from refreshing an expired access token just to log out.
       this.api
-        .post<unknown>(AUTH_ENDPOINTS.logout, payload, {
+        .post<unknown>(API_ENDPOINTS.auth.logout, payload, {
           context: withInlineHandling(withSkipAuth()),
         })
         .subscribe({ error: () => {} });
@@ -434,7 +435,7 @@ export class AuthService {
     };
 
     return this.api
-      .post<AuthResponseData>(AUTH_ENDPOINTS.refresh, payload, {
+      .post<AuthResponseData>(API_ENDPOINTS.auth.refresh, payload, {
         context: withInlineHandling(withSkipAuth()),
       })
       .pipe(

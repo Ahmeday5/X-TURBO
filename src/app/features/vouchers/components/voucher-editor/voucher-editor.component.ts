@@ -1,8 +1,10 @@
 import { ChangeDetectionStrategy, Component, computed, effect, HostListener, inject, input, output, signal, untracked } from '@angular/core';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
-import { FormControl, FormGroup, NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { AbstractControl, FormControl, FormGroup, NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { finalize } from 'rxjs';
 import { ToastService } from '../../../../core/services/toast.service';
+import { ApiError } from '../../../../core/models/api-response.model';
+import { applyServerErrors } from '../../../../core/utils/api-error.util';
 import { FormErrorComponent } from '../../../../shared/components/form-error/form-error.component';
 import { IconComponent } from '../../../../shared/components/icon/icon.component';
 import {
@@ -240,6 +242,19 @@ export class VoucherEditorComponent {
     this.lines.removeAt(i);
   }
 
+  /**
+   * First server message on a journal line (422 `lines[i].debit` etc. are
+   * set on the line's controls by `applyServerErrors`; cleared on edit).
+   */
+  protected serverLineError(line: AbstractControl): string | null {
+    const controls = (line as FormGroup).controls ?? {};
+    for (const control of Object.values(controls)) {
+      const message = control.errors?.['server'];
+      if (typeof message === 'string') return message;
+    }
+    return null;
+  }
+
   /** Typing a debit clears the credit of the same line, and vice versa. */
   protected onAmount(i: number, side: 'debit' | 'credit'): void {
     const g = this.lines.at(i);
@@ -319,9 +334,13 @@ export class VoucherEditorComponent {
     this.saving.set(post ? 'post' : 'draft');
     (id ? this.vouchers.update(id, payload) : this.vouchers.create(payload))
       .pipe(finalize(() => this.saving.set(null)))
-      .subscribe((saved) => {
-        this.toast.success(post ? `تم ترحيل ${cfg.singular} ${saved.number}` : `تم حفظ ${saved.number} كمسودة`);
-        this.saved.emit(saved);
+      .subscribe({
+        next: (saved) => {
+          this.toast.success(post ? `تم ترحيل ${cfg.singular} ${saved.number}` : `تم حفظ ${saved.number} كمسودة`);
+          this.saved.emit(saved);
+        },
+        // 422 → header fields and journal lines (`lines[i].debit` → that line's control).
+        error: (err: ApiError) => applyServerErrors(this.form, err),
       });
   }
 

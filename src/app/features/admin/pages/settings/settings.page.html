@@ -1,0 +1,203 @@
+<app-page-header [navId]="navId()"
+  [subtitle]="current() ? 'آخر تعديل ' + dateTime(current()!.updatedAt) + ' — ' + current()!.updatedBy : ''" />
+
+<form class="fp" [formGroup]="form" (ngSubmit)="submit()" [class.is-loading]="loading()" novalidate>
+  <div class="fp__main">
+    <!-- Company -->
+    <section class="fp__section" style="--i: 0" formGroupName="company">
+      <header class="fp__section-head">
+        <span class="fp__section-icon"><app-icon name="store" [size]="17" /></span>
+        <div>
+          <h2>بيانات الشركة</h2>
+          <p>تظهر في ترويسة الفواتير والسندات والإيصالات المطبوعة</p>
+        </div>
+      </header>
+      <div class="fp__grid">
+        <label class="ui-field fp__span-2">
+          <span class="ui-label is-required">اسم الشركة</span>
+          <input class="ui-input" formControlName="name" />
+          <app-form-error [control]="form.controls.company.controls.name" label="اسم الشركة" />
+        </label>
+        <label class="ui-field">
+          <span class="ui-label">الرقم الضريبي</span>
+          <input class="ui-input ltr" formControlName="taxNumber" />
+          <app-form-error [control]="form.controls.company.controls.taxNumber" label="الرقم الضريبي" />
+        </label>
+        <label class="ui-field">
+          <span class="ui-label">السجل التجاري</span>
+          <input class="ui-input ltr" formControlName="commercialRegister" />
+          <app-form-error [control]="form.controls.company.controls.commercialRegister" label="السجل التجاري" />
+        </label>
+        <label class="ui-field">
+          <span class="ui-label">الهاتف</span>
+          <input class="ui-input ltr" type="tel" formControlName="phone" />
+          <app-form-error [control]="form.controls.company.controls.phone" label="الهاتف" />
+        </label>
+        <label class="ui-field">
+          <span class="ui-label">البريد الإلكتروني</span>
+          <input class="ui-input ltr" type="email" formControlName="email" />
+          <app-form-error [control]="form.controls.company.controls.email" label="البريد الإلكتروني" />
+        </label>
+        <label class="ui-field fp__span-2">
+          <span class="ui-label">العنوان</span>
+          <input class="ui-input" formControlName="address" />
+          <app-form-error [control]="form.controls.company.controls.address" label="العنوان" />
+        </label>
+        <label class="ui-field">
+          <span class="ui-label is-required">حروف الشعار</span>
+          <input class="ui-input ltr st-initials" maxlength="3" formControlName="logoInitials" />
+          <span class="ui-hint">حتى 3 أحرف تظهر كشعار على المطبوعات.</span>
+          <app-form-error [control]="form.controls.company.controls.logoInitials" label="حروف الشعار" />
+        </label>
+      </div>
+    </section>
+
+    <!-- Financial -->
+    <section class="fp__section" style="--i: 1" formGroupName="financial">
+      <header class="fp__section-head">
+        <span class="fp__section-icon"><app-icon name="calculator" [size]="17" /></span>
+        <div>
+          <h2>الإعدادات المالية</h2>
+          <p>الضريبة والسنة المالية ودقة المبالغ</p>
+        </div>
+      </header>
+      <div class="fp__grid fp__grid--3">
+        <label class="ui-field">
+          <span class="ui-label">العملة الأساسية</span>
+          <input class="ui-input ltr" formControlName="baseCurrency" />
+          <span class="ui-hint">عملة الدفاتر — لا يمكن تغييرها.</span>
+        </label>
+        <label class="ui-field">
+          <span class="ui-label is-required">ضريبة القيمة المضافة</span>
+          <div class="ui-affix">
+            <input class="ui-input" type="number" min="0" max="100" step="0.5" formControlName="vatRate" />
+            <span class="ui-affix__text">%</span>
+          </div>
+          <app-form-error [control]="form.controls.financial.controls.vatRate" label="الضريبة" />
+        </label>
+        <div class="ui-field fp__switch">
+          <span class="ui-label">الأسعار</span>
+          <label class="ui-switch">
+            <input type="checkbox" formControlName="pricesIncludeTax" />
+            <span class="ui-switch__track"></span>
+            {{ form.controls.financial.controls.pricesIncludeTax.value ? 'شاملة الضريبة' : 'قبل الضريبة' }}
+          </label>
+        </div>
+        <label class="ui-field">
+          <span class="ui-label is-required">بداية السنة المالية</span>
+          <select class="ui-input" formControlName="fiscalYearStartMonth">
+            @for (m of months; track $index) {<option [ngValue]="$index + 1">{{ m }}</option>}
+          </select>
+          <app-form-error [control]="form.controls.financial.controls.fiscalYearStartMonth" label="بداية السنة المالية" />
+        </label>
+        <label class="ui-field">
+          <span class="ui-label is-required">الكسور العشرية</span>
+          <input class="ui-input" type="number" min="0" max="4" step="1" formControlName="decimalPlaces" />
+          <app-form-error [control]="form.controls.financial.controls.decimalPlaces" label="الكسور العشرية" />
+        </label>
+      </div>
+    </section>
+
+    <!-- Numbering -->
+    <section class="fp__section" style="--i: 2">
+      <header class="fp__section-head">
+        <span class="fp__section-icon"><app-icon name="list" [size]="17" /></span>
+        <div>
+          <h2>ترقيم المستندات</h2>
+          <p>البادئة (1–5 أحرف إنجليزية كبيرة) والرقم التالي وعدد الخانات لكل نوع مستند</p>
+        </div>
+      </header>
+
+      @if (numberingError(); as msg) {
+      <div class="st-alert" role="alert">
+        <app-icon name="alert" [size]="16" />
+        <span>{{ msg }}<br /><small>اختر رقمًا تاليًا أكبر من آخر رقم صادر، أو بادئة مختلفة.</small></span>
+      </div>
+      }
+
+      <div class="st-numbering" formArrayName="numbering">
+        @for (group of numberingGroups(); track group.label) {
+        <h3 class="st-numbering__group">{{ group.label }}</h3>
+        @for (row of group.rows; track row.kind) {
+        <div class="st-numbering__row" [formGroupName]="row.index">
+          <span class="st-numbering__kind">{{ kindLabel(row.kind) }}</span>
+          <label class="ui-field">
+            <span class="ui-label">البادئة</span>
+            <input class="ui-input ltr" maxlength="5" formControlName="prefix"
+              [attr.aria-label]="'بادئة ' + kindLabel(row.kind)" />
+            <app-form-error [control]="numbering.at(row.index).controls.prefix" label="البادئة" />
+          </label>
+          <label class="ui-field">
+            <span class="ui-label">الرقم التالي</span>
+            <input class="ui-input ltr" type="number" min="1" step="1" formControlName="nextNumber"
+              [attr.aria-label]="'الرقم التالي ' + kindLabel(row.kind)" />
+            <app-form-error [control]="numbering.at(row.index).controls.nextNumber" label="الرقم التالي" />
+          </label>
+          <label class="ui-field">
+            <span class="ui-label">الخانات</span>
+            <input class="ui-input ltr" type="number" min="1" max="10" step="1" formControlName="digits"
+              [attr.aria-label]="'عدد خانات ' + kindLabel(row.kind)" />
+            <app-form-error [control]="numbering.at(row.index).controls.digits" label="الخانات" />
+          </label>
+          <span class="st-numbering__preview ui-code ltr" title="الرقم القادم">{{ preview(row.index) }}</span>
+        </div>
+        }
+        }
+      </div>
+    </section>
+
+    <!-- Inventory -->
+    <section class="fp__section" style="--i: 3" formGroupName="inventory">
+      <header class="fp__section-head">
+        <span class="fp__section-icon"><app-icon name="warehouse" [size]="17" /></span>
+        <div>
+          <h2>المخزون</h2>
+          <p>قواعد الصرف وحد التنبيه والمخزن الافتراضي</p>
+        </div>
+      </header>
+      <div class="fp__grid fp__grid--3">
+        <div class="ui-field fp__switch">
+          <span class="ui-label">الصرف بالسالب</span>
+          <label class="ui-switch">
+            <input type="checkbox" formControlName="allowNegativeStock" />
+            <span class="ui-switch__track"></span>
+            {{ form.controls.inventory.controls.allowNegativeStock.value ? 'مسموح على مستوى النظام' : 'غير مسموح' }}
+          </label>
+        </div>
+        <label class="ui-field">
+          <span class="ui-label is-required">حد التنبيه الافتراضي</span>
+          <input class="ui-input" type="number" min="0" step="1" formControlName="lowStockThreshold" />
+          <span class="ui-hint">يُستخدم للأصناف التي لم يُحدَّد لها حد طلب.</span>
+          <app-form-error [control]="form.controls.inventory.controls.lowStockThreshold" label="حد التنبيه" />
+        </label>
+        <label class="ui-field">
+          <span class="ui-label">المخزن الافتراضي</span>
+          <select class="ui-input" formControlName="defaultWarehouseId">
+            <option value="">المخزن المحدد كافتراضي في دليل المخازن</option>
+            @for (w of warehouses(); track w.id) {<option [value]="w.id">{{ w.name }}</option>}
+          </select>
+        </label>
+      </div>
+    </section>
+  </div>
+
+  <aside class="fp__aside">
+    <div class="fp__preview">
+      <span class="fp__preview-label"><app-icon name="eye" [size]="14" /> معاينة ترويسة المطبوعات</span>
+      <div class="st-letterhead">
+        <span class="st-letterhead__logo ltr">{{ letterhead().initials }}</span>
+        <div>
+          <strong>{{ letterhead().name }}</strong>
+          @for (line of letterhead().lines; track $index) {<small>{{ line }}</small>}
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <footer class="fp__actions">
+    <button type="button" class="ui-btn ui-btn--ghost" [disabled]="!form.dirty || saving()" (click)="reset()">تراجع عن التغييرات</button>
+    <button type="submit" class="ui-btn ui-btn--primary" [class.is-loading]="saving()" [disabled]="saving() || loading()">
+      <app-icon name="check" [size]="16" /> حفظ الإعدادات
+    </button>
+  </footer>
+</form>

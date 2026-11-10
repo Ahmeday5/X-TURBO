@@ -4,6 +4,8 @@ import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angula
 import { Router, RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
 import { ToastService } from '../../../../core/services/toast.service';
+import { ApiError } from '../../../../core/models/api-response.model';
+import { applyServerErrors } from '../../../../core/utils/api-error.util';
 import { FormErrorComponent } from '../../../../shared/components/form-error/form-error.component';
 import { IconComponent } from '../../../../shared/components/icon/icon.component';
 import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
@@ -24,7 +26,7 @@ import {
   AccountType,
 } from '../../models/account.model';
 import { AccountsService } from '../../services/accounts.service';
-import { CurrenciesService } from '../../services/currencies.service';
+import { environment } from '../../../../../environments/environment';
 import { ancestorsOf, balanceText, predictChildCode } from '../../utils/account-display.util';
 
 /**
@@ -55,8 +57,6 @@ export class AccountFormPage {
   protected readonly chart = createQueryResource(this.reload, () => this.api.list());
   protected readonly accounts = computed(() => this.chart.value() ?? []);
   private readonly ready = computed(() => this.accounts().length > 0);
-  protected readonly currencies = toSignal(inject(CurrenciesService).list(), { initialValue: [] });
-  protected readonly activeCurrencies = computed(() => this.currencies().filter((c) => c.isActive));
 
   protected readonly types = ACCOUNT_TYPES;
   protected readonly typeView = ACCOUNT_TYPE_VIEW;
@@ -70,7 +70,6 @@ export class AccountFormPage {
     type: ['asset' as AccountType, Validators.required],
     nature: ['debit' as AccountNature, Validators.required],
     isGroup: [false],
-    currency: ['EGP'],
     openingBalance: [0],
     costCenterRequired: [false],
     notes: ['', Validators.maxLength(300)],
@@ -144,7 +143,8 @@ export class AccountFormPage {
       nature: v.nature,
       isGroup: v.isGroup,
       costCenterRequired: !v.isGroup && v.costCenterRequired,
-      currency: v.currency,
+      // Single-currency ledger: every account is in the base currency (EGP).
+      currency: environment.currency,
       openingBalance: v.isGroup ? 0 : Number(v.openingBalance) || 0,
       notes: v.notes.trim(),
       isActive: v.isActive,
@@ -153,15 +153,18 @@ export class AccountFormPage {
     this.saving.set(mode);
     (id ? this.api.update(id, payload) : this.api.create(payload))
       .pipe(finalize(() => this.saving.set(null)))
-      .subscribe((acc) => {
-        this.toast.success(id ? 'تم تحديث الحساب' : `تم إضافة الحساب ${acc.code} — ${acc.name}`);
-        if (mode === 'saveNew') {
-          // Same parent, ready for the next sibling.
-          this.reload.update((n) => n + 1);
-          this.resetForCreate(payload.parentId ?? '');
-        } else {
-          this.router.navigate(['/accounts/chart']);
-        }
+      .subscribe({
+        next: (acc) => {
+          this.toast.success(id ? 'تم تحديث الحساب' : `تم إضافة الحساب ${acc.code} — ${acc.name}`);
+          if (mode === 'saveNew') {
+            // Same parent, ready for the next sibling.
+            this.reload.update((n) => n + 1);
+            this.resetForCreate(payload.parentId ?? '');
+          } else {
+            this.router.navigate(['/accounts/chart']);
+          }
+        },
+        error: (err: ApiError) => applyServerErrors(this.form, err),
       });
   }
 
@@ -179,7 +182,6 @@ export class AccountFormPage {
         type: a.type,
         nature: a.nature,
         isGroup: a.isGroup,
-        currency: a.currency,
         openingBalance: a.openingBalance,
         costCenterRequired: a.costCenterRequired,
         notes: a.notes,

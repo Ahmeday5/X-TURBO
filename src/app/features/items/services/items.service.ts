@@ -5,30 +5,26 @@ import { withSilentErrors, withSkipLoader } from '../../../core/http/http-contex
 import { PagedResponse } from '../../../core/models/api-response.model';
 import { ListQuery, toListParams } from '../../../core/models/list-query.model';
 import { Item, ItemPayload } from '../models/item.model';
-
-export const ITEMS_ENDPOINTS = {
-  list: 'items',
-  byId: (id: string) => `items/${encodeURIComponent(id)}`,
-} as const;
+import { API_ENDPOINTS } from '../../../core/constants/api-endpoints.const';
 
 @Injectable({ providedIn: 'root' })
 export class ItemsService {
   private readonly api = inject(ApiService);
 
   list(query: ListQuery): Observable<PagedResponse<Item>> {
-    return this.api.get<PagedResponse<Item>>(ITEMS_ENDPOINTS.list, { params: toListParams(query), context: withSkipLoader() });
+    return this.api.get<PagedResponse<Item>>(API_ENDPOINTS.items.list, { params: toListParams(query), context: withSkipLoader() });
   }
 
   get(id: string): Observable<Item> {
-    return this.api.get<Item>(ITEMS_ENDPOINTS.byId(id), { context: withSkipLoader() });
+    return this.api.get<Item>(API_ENDPOINTS.items.byId(id), { context: withSkipLoader() });
   }
 
   create(payload: ItemPayload): Observable<Item> {
-    return this.api.post<Item>(ITEMS_ENDPOINTS.list, payload);
+    return this.api.post<Item>(API_ENDPOINTS.items.list, payload);
   }
 
   update(id: string, payload: ItemPayload): Observable<Item> {
-    return this.api.put<Item>(ITEMS_ENDPOINTS.byId(id), payload);
+    return this.api.put<Item>(API_ENDPOINTS.items.byId(id), payload);
   }
 
   /**
@@ -36,6 +32,6 @@ export class ItemsService {
    * offers to deactivate the item instead).
    */
   delete(id: string): Observable<void> {
-    return this.api.delete<void>(ITEMS_ENDPOINTS.byId(id), { context: withSilentErrors() });
+    return this.api.delete<void>(API_ENDPOINTS.items.byId(id), { context: withSilentErrors() });
   }
 }

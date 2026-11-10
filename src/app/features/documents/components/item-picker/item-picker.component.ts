@@ -5,7 +5,8 @@ import { matchesAll, tokenize } from '../../../../shared/utils/arabic-search.uti
 import { formatInteger, formatMoney } from '../../../../shared/utils/format.util';
 import { ItemLookup } from '../../../warehouses/models/stock.model';
 
-const MAX_RESULTS = 8;
+/** Rows rendered at once; the footer says how many more match. */
+const MAX_RESULTS = 50;
 
 /**
  * Add-a-line search box: matches code, barcode and name (Arabic-aware).
@@ -23,16 +24,24 @@ const MAX_RESULTS = 8;
       <div class="input-icon ip__box">
         <app-icon class="input-icon__glyph" name="search" [size]="16" />
         <input #box class="ui-input" type="search" autocomplete="off" [disabled]="disabled()"
-          [placeholder]="loading() ? 'جارٍ تحميل الأصناف…' : 'أضف صنفًا: اكتب الاسم أو الكود أو امسح الباركود…'"
-          [value]="term()" (input)="onType($any($event.target).value)" (focus)="open.set(!!term())"
-          (keydown.arrowDown)="move(1, $event)" (keydown.arrowUp)="move(-1, $event)"
+          [placeholder]="loading() ? 'جارٍ تحميل الأصناف…' : 'اختر صنفًا من القائمة، أو اكتب الاسم / الكود، أو امسح الباركود…'"
+          [value]="term()" (input)="onType($any($event.target).value)" (focus)="openList()" (click)="openList()"
+          (keydown.arrowDown)="open() ? move(1, $event) : openList()" (keydown.arrowUp)="move(-1, $event)"
           (keydown.enter)="choose(results()[active()], $event)" (keydown.escape)="open.set(false)"
-          role="combobox" aria-label="بحث عن صنف" [attr.aria-expanded]="open() && !!term()" aria-controls="ip-list" />
+          role="combobox" aria-label="بحث عن صنف" aria-autocomplete="list" [attr.aria-expanded]="open()" aria-controls="ip-list" />
         <span class="ip__kbd" aria-hidden="true"><app-icon name="barcode" [size]="15" /></span>
+        <button type="button" class="ip__toggle" [class.is-open]="open()" [disabled]="disabled()" tabindex="-1"
+          [attr.aria-label]="open() ? 'إغلاق قائمة الأصناف' : 'عرض كل الأصناف'" (mousedown)="$event.preventDefault()"
+          (click)="toggleList()">
+          <app-icon name="chevron-down" [size]="16" />
+        </button>
       </div>
 
-      @if (open() && term()) {
+      @if (open()) {
         <ul id="ip-list" class="ip__list" role="listbox">
+          <li class="ip__head" aria-hidden="true">
+            {{ term() ? 'نتائج البحث' : 'كل الأصناف' }} · {{ int(results().length + hiddenCount()) }}
+          </li>
           @for (it of results(); track it.id; let i = $index) {
             <li role="option" [attr.aria-selected]="i === active()" [class.is-active]="i === active()"
               (mouseenter)="active.set(i)" (mousedown)="choose(it, $event)">
@@ -47,7 +56,14 @@ const MAX_RESULTS = 8;
               </div>
             </li>
           } @empty {
-            <li class="ip__empty">لا يوجد صنف مطابق لـ«{{ term() }}»</li>
+            <li class="ip__empty">
+              {{ term() ? 'لا يوجد صنف مطابق لـ«' + term() + '»' : loading() ? 'جارٍ تحميل الأصناف…' : 'لا توجد أصناف متاحة في هذا المخزن' }}
+            </li>
+          }
+          @if (hiddenCount() > 0) {
+            <li class="ip__more" aria-hidden="true">
+              يتم عرض {{ int(results().length) }} من {{ int(results().length + hiddenCount()) }} — اكتب جزءًا من الاسم أو الكود للتضييق
+            </li>
           }
         </ul>
       }
@@ -57,8 +73,23 @@ const MAX_RESULTS = 8;
     `
       :host { display: block; }
       .ip { position: relative; }
-      .ip__box .ui-input { padding-inline: 38px 40px; height: 44px; }
-      .ip__kbd { position: absolute; inset-inline-end: 12px; top: 50%; transform: translateY(-50%); color: var(--txt3); }
+      .ip__box .ui-input { padding-inline: 38px 72px; height: 44px; }
+      .ip__kbd { position: absolute; inset-inline-end: 44px; top: 50%; transform: translateY(-50%); color: var(--txt3); }
+      .ip__toggle {
+        position: absolute; inset-inline-end: 6px; top: 50%; transform: translateY(-50%);
+        display: grid; place-items: center; width: 32px; height: 32px; border: 0; border-radius: 9px;
+        background: transparent; color: var(--txt3); cursor: pointer; transition: background var(--dur-fast), color var(--dur-fast);
+      }
+      .ip__toggle:hover:not(:disabled) { background: var(--bg3); color: var(--txt); }
+      .ip__toggle app-icon { transition: transform var(--dur-fast); }
+      .ip__toggle.is-open app-icon { transform: rotate(180deg); }
+      .ip__list li.ip__head {
+        cursor: default; padding: 4px 10px 8px; font-size: 11px; font-weight: 600; color: var(--txt3);
+      }
+      .ip__list li.ip__more {
+        cursor: default; justify-content: center; margin-top: 4px; padding: 10px; border-top: 1px dashed var(--brd);
+        border-radius: 0; font-size: 11.5px; color: var(--txt3); text-align: center;
+      }
       .ip__list {
         position: absolute; z-index: 30; inset-inline: 0; top: calc(100% + 6px); margin: 0; padding: 6px;
         list-style: none; background: var(--bg-elevated); border: 1px solid var(--brd2); border-radius: 14px;
@@ -97,18 +128,33 @@ export class ItemPickerComponent {
   protected readonly money = formatMoney;
   protected readonly int = formatInteger;
 
-  protected readonly results = computed(() => {
+  /** Every match (all items while the box is empty): in stock first, then by name. */
+  private readonly matches = computed(() => {
     const tokens = tokenize(this.term());
-    if (!tokens.length) return [];
-    return this.items()
-      .filter((i) => matchesAll([i.name, i.code, i.barcode, i.brand, i.groupName], tokens))
-      .slice(0, MAX_RESULTS);
+    const list = tokens.length
+      ? this.items().filter((i) => matchesAll([i.name, i.code, i.barcode, i.brand, i.groupName], tokens))
+      : this.items();
+    return [...list].sort((a, b) => Number(b.available > 0) - Number(a.available > 0) || a.name.localeCompare(b.name, 'ar'));
   });
+  /** Rendered rows — capped so a large catalogue stays fast; typing narrows it. */
+  protected readonly results = computed(() => this.matches().slice(0, MAX_RESULTS));
+  protected readonly hiddenCount = computed(() => this.matches().length - this.results().length);
+
+  protected openList(): void {
+    if (this.disabled()) return;
+    this.open.set(true);
+  }
+
+  protected toggleList(): void {
+    if (this.disabled()) return;
+    this.open.update((o) => !o);
+    this.box().nativeElement.focus();
+  }
 
   protected onType(value: string): void {
     this.term.set(value);
     this.active.set(0);
-    this.open.set(!!value.trim());
+    this.open.set(true);
     // Scanner / exact code: add immediately.
     const exact = value.trim().toLowerCase();
     const hit = exact.length >= 5 ? this.items().find((i) => i.barcode === exact || i.code.toLowerCase() === exact) : undefined;
@@ -126,8 +172,9 @@ export class ItemPickerComponent {
     if (!item) return;
     this.picked.emit(item);
     this.term.set('');
-    this.open.set(false);
+    this.active.set(0);
     this.box().nativeElement.value = '';
+    // Keep the list open: several lines are usually added in a row.
     this.box().nativeElement.focus();
   }
 }

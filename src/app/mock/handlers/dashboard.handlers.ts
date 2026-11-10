@@ -1,4 +1,3 @@
-import { DASHBOARD_ENDPOINTS } from '../../features/dashboard/services/dashboard.service';
 import {
   ChannelSales,
   DashboardOverview,
@@ -12,6 +11,7 @@ import {
 } from '../../features/dashboard/models/dashboard.model';
 import { MockContext, MockRoute, ok } from '../mock-http';
 import { kpi, pctChange, seeded, startOfDay, sum, walk } from '../mock-utils';
+import { API_ENDPOINTS } from '../../core/constants/api-endpoints.const';
 
 /**
  * Deterministic, plausible numbers for an auto-parts retailer. Seeded per
@@ -164,5 +164,5 @@ function buildTopProducts(days: number, rand: () => number): TopProduct[] {
 }
 
 export const DASHBOARD_MOCK_ROUTES: MockRoute[] = [
-  { method: 'GET', path: DASHBOARD_ENDPOINTS.overview, protected: true, handle: overview },
+  { method: 'GET', path: API_ENDPOINTS.dashboard.overview, protected: true, handle: overview },
 ];

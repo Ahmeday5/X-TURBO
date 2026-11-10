@@ -6,8 +6,6 @@ import {
   SystemSettingsPayload,
 } from '../../features/admin/models/settings.model';
 import { AdminUser, USER_ROLES, UserPayload, UserStats } from '../../features/admin/models/user.model';
-import { SETTINGS_ENDPOINTS } from '../../features/admin/services/settings.service';
-import { USERS_ENDPOINTS } from '../../features/admin/services/users.service';
 import { actorName } from '../db/db-utils';
 import { setSystemSettings, systemSettings } from '../db/settings.db';
 import {
@@ -23,6 +21,7 @@ import {
 import { warehouseRows } from '../db/warehouses.db';
 import { bodyOf, CollectionOptions, filterCollection, queryCollection } from '../mock-collection';
 import { fail, MockContext, MockRoute, ok } from '../mock-http';
+import { API_ENDPOINTS } from '../../core/constants/api-endpoints.const';
 
 // ── Users ──
 
@@ -168,19 +167,19 @@ function saveSettings({ req, userId }: MockContext) {
   return ok(systemSettings());
 }
 
-const BY_ID = `${USERS_ENDPOINTS.list}/:id`;
+const BY_ID = `${API_ENDPOINTS.users.list}/:id`;
 
 // Literal paths before `users/:id` (first match wins).
 export const ADMIN_MOCK_ROUTES: MockRoute[] = [
-  { method: 'GET', path: USERS_ENDPOINTS.stats, protected: true, handle: stats },
-  { method: 'GET', path: USERS_ENDPOINTS.list, protected: true, handle: list },
-  { method: 'POST', path: USERS_ENDPOINTS.list, protected: true, handle: create },
+  { method: 'GET', path: API_ENDPOINTS.users.stats, protected: true, handle: stats },
+  { method: 'GET', path: API_ENDPOINTS.users.list, protected: true, handle: list },
+  { method: 'POST', path: API_ENDPOINTS.users.list, protected: true, handle: create },
   { method: 'GET', path: BY_ID, protected: true, handle: get },
   { method: 'PUT', path: BY_ID, protected: true, handle: update },
   { method: 'DELETE', path: BY_ID, protected: true, handle: remove },
   { method: 'POST', path: `${BY_ID}/status`, protected: true, handle: setStatus },
   { method: 'POST', path: `${BY_ID}/reset-password`, protected: true, handle: resetPassword },
-  { method: 'GET', path: SETTINGS_ENDPOINTS.settings, protected: true, handle: getSettings },
-  { method: 'PUT', path: SETTINGS_ENDPOINTS.settings, protected: true, handle: saveSettings },
+  { method: 'GET', path: API_ENDPOINTS.settings.root, protected: true, handle: getSettings },
+  { method: 'PUT', path: API_ENDPOINTS.settings.root, protected: true, handle: saveSettings },
 ];
 

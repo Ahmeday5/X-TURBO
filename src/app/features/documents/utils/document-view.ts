@@ -23,7 +23,7 @@ export function tracksPayment(cfg: DocKindConfig): boolean {
 
 /** Kinds that take stock out of the source warehouse (availability matters). */
 export function isOutgoing(cfg: DocKindConfig): boolean {
-  return cfg.stock === 'out' || cfg.stock === 'move' || cfg.stock === 'ship' || cfg.stock === 'reserve';
+  return cfg.stock === 'out' || cfg.stock === 'move' || cfg.stock === 'reserve';
 }
 
 export function partyLabel(cfg: DocKindConfig): string {

@@ -91,6 +91,20 @@ export function canCancelOrder(status: OrderStatus): boolean {
   return status === 'pending' || status === 'processing';
 }
 
+/** Business-rule codes the orders API answers with (409). */
+export const ORDER_ERROR_CODES = {
+  /** Status change not allowed from the order's CURRENT status (it may have moved meanwhile). */
+  invalidTransition: 'ORDER_INVALID_TRANSITION',
+} as const;
+
+/**
+ * Mobile-app orders: every status change pushes a notification to the
+ * customer's phone (processing / shipped / delivered / cancelled).
+ */
+export function notifiesCustomer(channel: OrderChannel): boolean {
+  return channel === 'online';
+}
+
 /** Verb for the button that moves an order to `status`. */
 export const ORDER_ADVANCE_LABEL: Partial<Record<OrderStatus, string>> = {
   processing: 'بدء التجهيز',

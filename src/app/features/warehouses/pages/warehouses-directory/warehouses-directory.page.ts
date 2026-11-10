@@ -16,7 +16,16 @@ import { createQueryResource } from '../../../../shared/list/query-resource';
 import { UrlListState } from '../../../../shared/list/url-list-state';
 import { formatCompact, formatInteger, formatMoney, formatMoneyCompact } from '../../../../shared/utils/format.util';
 import { WarehouseCardComponent } from '../../components/warehouse-card/warehouse-card.component';
-import { usageTone, Warehouse, WarehousePayload, WAREHOUSE_TYPES, WAREHOUSE_TYPE_VIEW } from '../../models/warehouse.model';
+import {
+  toWarehousePayload,
+  usageTone,
+  Warehouse,
+  WAREHOUSE_ERROR_CODES,
+  WAREHOUSE_TYPES,
+  WAREHOUSE_TYPE_VIEW,
+} from '../../models/warehouse.model';
+import { ApiError } from '../../../../core/models/api-response.model';
+import { hasErrorCode } from '../../../../core/http/api-error-codes';
 import { WarehousesService } from '../../services/warehouses.service';
 
 /** Every warehouse with capacity usage and stock figures; filters and view mirrored to the URL. */
@@ -126,7 +135,7 @@ export class WarehousesDirectoryPage {
       type: 'info',
     });
     if (!confirmed) return;
-    this.api.update(w.id, { ...this.payloadOf(w), isDefault: true, isActive: true }).subscribe(() => {
+    this.api.update(w.id, toWarehousePayload(w, { isDefault: true, isActive: true })).subscribe(() => {
       this.toast.success(`أصبح «${w.name}» المخزن الافتراضي`);
       this.reload();
     });
@@ -140,9 +149,15 @@ export class WarehousesDirectoryPage {
       type: 'danger',
     });
     if (!confirmed) return;
-    this.api.delete(w.id).subscribe(() => {
-      this.toast.success('تم حذف المخزن');
-      this.reload();
+    this.api.delete(w.id).subscribe({
+      next: () => {
+        this.toast.success('تم حذف المخزن');
+        this.reload();
+      },
+      error: (err: ApiError) => {
+        if (hasErrorCode(err, WAREHOUSE_ERROR_CODES.hasStock)) void this.resolveHasStock(w, err.message);
+        else this.toast.error(err.message);
+      },
     });
   }
 
@@ -151,8 +166,38 @@ export class WarehousesDirectoryPage {
     this.all.reload();
   }
 
-  private payloadOf(w: Warehouse): WarehousePayload {
-    const { name, type, city, address, manager, phone, capacity, allowNegative, isDefault, isActive, notes } = w;
-    return { name, type, city, address, manager, phone, capacity, allowNegative, isDefault, isActive, notes };
+  /**
+   * A warehouse holding stock can't be deleted. Offer the API's way out:
+   * deactivate it (hidden from new documents, history kept). The default
+   * warehouse must stay active, so for it we point to its balances instead.
+   */
+  private async resolveHasStock(w: Warehouse, serverMessage: string): Promise<void> {
+    const reason = serverMessage || `«${w.name}» به أرصدة ولا يمكن حذفه.`;
+
+    if (w.isDefault || !w.isActive) {
+      const hint = w.isDefault
+        ? 'المخزن الافتراضي لا يمكن إيقافه — عيّن مخزنًا افتراضيًا آخر أولًا، أو انقل أرصدته.'
+        : 'المخزن موقوف بالفعل — انقل أرصدته لمخزن آخر لتتمكن من حذفه.';
+      const show = await this.dialog.confirm({
+        title: 'لا يمكن حذف المخزن',
+        message: `${reason}\n${hint}`,
+        confirmText: 'عرض الأرصدة',
+        type: 'warning',
+      });
+      if (show) this.openStock(w);
+      return;
+    }
+
+    const deactivate = await this.dialog.confirm({
+      title: 'لا يمكن حذف المخزن',
+      message: `${reason}\nهل تريد إيقافه بدلًا من ذلك؟ لن يظهر في المستندات ونقطة البيع، وستبقى أرصدته وحركاته كما هي.`,
+      confirmText: 'إيقاف المخزن',
+      type: 'warning',
+    });
+    if (!deactivate) return;
+    this.api.update(w.id, toWarehousePayload(w, { isActive: false })).subscribe(() => {
+      this.toast.success(`تم إيقاف «${w.name}»`);
+      this.reload();
+    });
   }
 }

@@ -35,6 +35,18 @@ export type WarehousePayload = Pick<
   'name' | 'type' | 'city' | 'address' | 'manager' | 'phone' | 'capacity' | 'allowNegative' | 'isDefault' | 'isActive' | 'notes'
 >;
 
+/** Business-rule codes the warehouses API answers with (409). */
+export const WAREHOUSE_ERROR_CODES = {
+  /** Warehouse still holds stock — can't be deleted; empty it or deactivate it. */
+  hasStock: 'WAREHOUSE_HAS_STOCK',
+} as const;
+
+/** Full update payload from a loaded warehouse (e.g. to toggle a flag). */
+export function toWarehousePayload(w: Warehouse, patch: Partial<WarehousePayload> = {}): WarehousePayload {
+  const { name, type, city, address, manager, phone, capacity, allowNegative, isDefault, isActive, notes } = w;
+  return { name, type, city, address, manager, phone, capacity, allowNegative, isDefault, isActive, notes, ...patch };
+}
+
 /** Minimal shape for selects and filters. */
 export interface WarehouseOption {
   id: string;

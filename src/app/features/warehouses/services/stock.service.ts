@@ -5,14 +5,7 @@ import { withSkipLoader } from '../../../core/http/http-context.tokens';
 import { PagedResponse } from '../../../core/models/api-response.model';
 import { ListQuery, toListParams } from '../../../core/models/list-query.model';
 import { ItemLookup, ItemStockDetails, StockRow, StockSummary } from '../models/stock.model';
-
-export const STOCK_ENDPOINTS = {
-  list: 'stock',
-  summary: 'stock/summary',
-  item: (itemId: string) => `stock/items/${encodeURIComponent(itemId)}`,
-  /** Lives under `items/` but is served with stock data (per-warehouse balance). */
-  itemLookup: 'items/lookup',
-} as const;
+import { API_ENDPOINTS } from '../../../core/constants/api-endpoints.const';
 
 @Injectable({ providedIn: 'root' })
 export class StockService {
@@ -20,16 +13,16 @@ export class StockService {
 
   /** Filters: `warehouseId`, `groupId`, `level` (ok | low | out). */
   list(query: ListQuery): Observable<PagedResponse<StockRow>> {
-    return this.api.get<PagedResponse<StockRow>>(STOCK_ENDPOINTS.list, { params: toListParams(query), context: withSkipLoader() });
+    return this.api.get<PagedResponse<StockRow>>(API_ENDPOINTS.stock.list, { params: toListParams(query), context: withSkipLoader() });
   }
 
   /** Totals for the same search + filters as `list`. */
   summary(query: ListQuery): Observable<StockSummary> {
-    return this.api.get<StockSummary>(STOCK_ENDPOINTS.summary, { params: toListParams(query), context: withSkipLoader() });
+    return this.api.get<StockSummary>(API_ENDPOINTS.stock.summary, { params: toListParams(query), context: withSkipLoader() });
   }
 
   item(itemId: string): Observable<ItemStockDetails> {
-    return this.api.get<ItemStockDetails>(STOCK_ENDPOINTS.item(itemId), { context: withSkipLoader() });
+    return this.api.get<ItemStockDetails>(API_ENDPOINTS.stock.item(itemId), { context: withSkipLoader() });
   }
 
   /**
@@ -37,7 +30,7 @@ export class StockService {
    * warehouse's balance; otherwise totals across warehouses.
    */
   itemLookup(warehouseId?: string | null): Observable<ItemLookup[]> {
-    return this.api.get<ItemLookup[]>(STOCK_ENDPOINTS.itemLookup, {
+    return this.api.get<ItemLookup[]>(API_ENDPOINTS.items.lookup, {
       params: { warehouseId: warehouseId ?? undefined },
       context: withSkipLoader(),
     });

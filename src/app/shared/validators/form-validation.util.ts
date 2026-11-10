@@ -1,13 +1,22 @@
 import { AbstractControl, ValidationErrors, ValidatorFn } from '@angular/forms';
+import { isDevMode } from '@angular/core';
 
 /**
- * Maps a control's first failing validator into a human-readable message.
+ * Turns a control's errors into ONE user-facing Arabic message that says what
+ * is wrong AND what is expected (limits, formats, examples).
  *
  * Use via `<app-form-error [control]="form.controls.email" label="البريد الإلكتروني" />`
  * or directly: `firstError(ctrl, 'الحقل')`.
  *
- * Order matters — `required` is checked first so an empty field never gets
- * a "wrong format" message.
+ * Precedence:
+ *   1. `custom` overrides (per call site)
+ *   2. `required` — an empty field never gets a "wrong format" message
+ *   3. any error whose payload is already a sentence (string) — format
+ *      validators (`AppValidators`), cross-field rules, server 422 messages
+ *   4. Angular's built-in validators, worded with the limit and the actual value
+ *
+ * For formats, use `AppValidators` (shared/validators/app-validators.ts)
+ * rather than `Validators.pattern`: a regex can't be explained to a user.
  */
 export function firstError(
   control: AbstractControl | null | undefined,
@@ -31,84 +40,66 @@ export function firstErrorAlways(
   return resolveMessage(control.errors, label, custom);
 }
 
+interface LengthError {
+  requiredLength: number;
+  actualLength: number;
+}
+
 function resolveMessage(
   errors: ValidationErrors,
   label: string,
   custom?: Record<string, (e: unknown) => string>,
 ): string {
-  // Custom keys always win.
+  // 1. Call-site overrides always win.
   if (custom) {
     for (const key of Object.keys(custom)) {
       if (errors[key] !== undefined) return custom[key](errors[key]);
     }
   }
 
-  if (errors['required'] !== undefined) {
-    return `${label} مطلوب`;
+  // 2. Empty first.
+  if (errors['required'] !== undefined) return `${label} مطلوب`;
+
+  // 3. Validators that already explain themselves.
+  for (const value of Object.values(errors)) {
+    if (typeof value === 'string' && value.trim()) return value;
   }
-  if (errors['email'] !== undefined) {
-    return `صيغة ${label} غير صحيحة`;
-  }
+
+  // 4. Angular built-ins.
   if (errors['minlength']) {
-    const req = errors['minlength'].requiredLength;
-    return `${label} يجب ألا يقل عن ${req} أحرف`;
+    const { requiredLength, actualLength } = errors['minlength'] as LengthError;
+    return `${label} يجب ألا يقل عن ${requiredLength} أحرف (المكتوب ${actualLength})`;
   }
   if (errors['maxlength']) {
-    const req = errors['maxlength'].requiredLength;
-    return `${label} يجب ألا يزيد عن ${req} حرفًا`;
+    const { requiredLength, actualLength } = errors['maxlength'] as LengthError;
+    return `${label} يجب ألا يزيد عن ${requiredLength} حرفًا (المكتوب ${actualLength}) — اختصر ${actualLength - requiredLength} حرفًا`;
   }
   if (errors['min'] !== undefined) {
-    return `${label} يجب أن يكون ${errors['min'].min} أو أكثر`;
+    const { min } = errors['min'] as { min: number };
+    return min === 0 ? `${label} لا يقبل قيمة سالبة — أقل قيمة 0` : `${label} يجب أن يكون ${min} أو أكثر`;
   }
   if (errors['max'] !== undefined) {
-    return `${label} يجب أن يكون ${errors['max'].max} أو أقل`;
+    const { max } = errors['max'] as { max: number };
+    return `${label} يجب ألا يزيد عن ${max}`;
   }
-  if (errors['strongPassword'] !== undefined) {
-    return `${label} يجب أن تحتوي على 8 أحرف على الأقل، منها حرف كبير وحرف صغير ورقم`;
-  }
-  if (errors['phone'] !== undefined) {
-    return `رقم الهاتف غير صحيح`;
+  if (errors['email'] !== undefined) {
+    return `صيغة ${label} غير صحيحة — مثال: name@company.com`;
   }
   if (errors['mismatch'] !== undefined) {
     return `${label} غير متطابق`;
   }
+  if (errors['pattern'] !== undefined) {
+    if (isDevMode()) {
+      // eslint-disable-next-line no-console
+      console.warn(`[validation] "${label}" uses Validators.pattern — add a descriptive validator to AppValidators instead.`);
+    }
+    return `صيغة ${label} غير صحيحة`;
+  }
 
-  // Unknown validator — a string payload is already a message.
-  const firstKey = Object.keys(errors)[0];
-  const value = errors[firstKey];
-  if (typeof value === 'string') return value;
-  return `${label} غير صالح`;
+  return `قيمة ${label} غير صحيحة`;
 }
 
-// ─────────────────────── reusable validators ───────────────────────
-
-/** Requires at least one uppercase, one lowercase, one digit, min length 8. */
-export function strongPasswordValidator(): ValidatorFn {
-  return (control: AbstractControl): ValidationErrors | null => {
-    const value = control.value as string | null;
-    if (!value) return null;
-    const hasUpper = /[A-Z]/.test(value);
-    const hasLower = /[a-z]/.test(value);
-    const hasDigit = /\d/.test(value);
-    const longEnough = value.length >= 8;
-    return hasUpper && hasLower && hasDigit && longEnough
-      ? null
-      : { strongPassword: true };
-  };
-}
-
-/** Basic phone number validator — digits, spaces, `+`, `-`, `()`, 7–15 digits total. */
-export function phoneValidator(): ValidatorFn {
-  return (control: AbstractControl): ValidationErrors | null => {
-    const value = control.value as string | null;
-    if (!value) return null;
-    const digits = value.replace(/\D/g, '');
-    const pattern = /^[\d+\-()\s]+$/;
-    return pattern.test(value) && digits.length >= 7 && digits.length <= 15
-      ? null
-      : { phone: true };
-  };
-}
+// ─────────────────────── cross-field validators ───────────────────────
 
 /**
  * Cross-field validator: requires `controlName` and `matchControlName` to be

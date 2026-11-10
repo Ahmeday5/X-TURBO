@@ -16,14 +16,35 @@ export interface Item {
   minStock: number;
   stock: number;
   description: string;
+  /** Free-text compatibility ("تويوتا كورولا 2014–2019، ياريس 2016"), ≤ 500 chars. Searchable. Separate from fitments. */
+  compatibleWith: string | null;
   isActive: boolean;
   createdAt: string;
+
+  // ── Computed by the server (read-only) ──
+  /** Average of VISIBLE reviews, 1 decimal; 0 = no reviews. */
+  averageRating: number;
+  /** Number of visible reviews. */
+  reviewsCount: number;
 }
 
 export type ItemPayload = Pick<
   Item,
-  'name' | 'groupId' | 'unit' | 'barcode' | 'brand' | 'purchasePrice' | 'salePrice' | 'minStock' | 'description' | 'isActive'
+  | 'name'
+  | 'groupId'
+  | 'unit'
+  | 'barcode'
+  | 'brand'
+  | 'purchasePrice'
+  | 'salePrice'
+  | 'minStock'
+  | 'description'
+  | 'compatibleWith'
+  | 'isActive'
 >;
+
+/** Max length of `compatibleWith` (server returns 422 beyond it). */
+export const COMPATIBLE_WITH_MAX = 500;
 
 /** Business-rule codes the items API answers with (409). */
 export const ITEM_ERROR_CODES = {
@@ -35,8 +56,8 @@ export const ITEM_ERROR_CODES = {
 
 /** Full update payload from a loaded item (e.g. to toggle `isActive`). */
 export function toItemPayload(item: Item, patch: Partial<ItemPayload> = {}): ItemPayload {
-  const { name, groupId, unit, barcode, brand, purchasePrice, salePrice, minStock, description, isActive } = item;
-  return { name, groupId, unit, barcode, brand, purchasePrice, salePrice, minStock, description, isActive, ...patch };
+  const { name, groupId, unit, barcode, brand, purchasePrice, salePrice, minStock, description, compatibleWith, isActive } = item;
+  return { name, groupId, unit, barcode, brand, purchasePrice, salePrice, minStock, description, compatibleWith, isActive, ...patch };
 }
 
 export const ITEM_UNITS =['قطعة', 'طقم', 'لتر', 'علبة', 'كرتونة', 'متر', 'زوج'] as const;

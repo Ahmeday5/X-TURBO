@@ -4,14 +4,16 @@ import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angula
 import { Router, RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
 import { ToastService } from '../../../../core/services/toast.service';
+import { ApiError } from '../../../../core/models/api-response.model';
+import { applyServerErrors } from '../../../../core/utils/api-error.util';
 import { FormErrorComponent } from '../../../../shared/components/form-error/form-error.component';
+import { AppValidators } from '../../../../shared/validators/app-validators';
 import { IconComponent } from '../../../../shared/components/icon/icon.component';
 import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
 import { WarehouseCardComponent, WarehouseCardData } from '../../components/warehouse-card/warehouse-card.component';
 import { Warehouse, WarehousePayload, WAREHOUSE_TYPES, WAREHOUSE_TYPE_VIEW, WarehouseType } from '../../models/warehouse.model';
 import { WarehousesService } from '../../services/warehouses.service';
 
-const PHONE_PATTERN = /^0\d{8,10}$/;
 
 /**
  * Create / edit a warehouse. `?id=` switches to edit mode (bound from the
@@ -42,7 +44,7 @@ export class WarehouseFormPage {
     name: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(80)]],
     type: ['branch' as WarehouseType, Validators.required],
     manager: ['', Validators.maxLength(60)],
-    phone: ['', Validators.pattern(PHONE_PATTERN)],
+    phone: ['', AppValidators.phone()],
     city: ['', [Validators.required, Validators.maxLength(60)]],
     address: ['', Validators.maxLength(200)],
     capacity: [0, [Validators.required, Validators.min(0)]],
@@ -112,10 +114,13 @@ export class WarehouseFormPage {
     this.saving.set(mode);
     (id ? this.api.update(id, payload) : this.api.create(payload))
       .pipe(finalize(() => this.saving.set(null)))
-      .subscribe((w) => {
-        this.toast.success(id ? 'تم تحديث بيانات المخزن' : `تم إضافة المخزن ${w.code}`);
-        if (mode === 'saveNew') this.resetForCreate();
-        else this.router.navigate(['/warehouses']);
+      .subscribe({
+        next: (w) => {
+          this.toast.success(id ? 'تم تحديث بيانات المخزن' : `تم إضافة المخزن ${w.code}`);
+          if (mode === 'saveNew') this.resetForCreate();
+          else this.router.navigate(['/warehouses']);
+        },
+        error: (err: ApiError) => applyServerErrors(this.form, err),
       });
   }
 

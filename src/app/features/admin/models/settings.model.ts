@@ -104,7 +104,24 @@ export const MONTHS_AR: readonly string[] = [
   'ديسمبر',
 ];
 
+/**
+ * Numbering kinds the API still returns but this dashboard no longer issues
+ * (goods issue / receipt screens were removed). Hidden from the settings
+ * screen, yet kept in the form so `PUT /settings` sends them back untouched.
+ */
+export const HIDDEN_NUMBERING_KINDS: ReadonlySet<string> = new Set(['goods-issue', 'goods-receipt']);
+
+/**
+ * The prefix rule as a regex (1–5 capital English letters) — for the dev mock.
+ * Forms use `AppValidators.docPrefix()`, which explains the rule to the user.
+ */
 export const PREFIX_PATTERN = /^[A-Z]{1,5}$/;
+
+/** Business-rule codes the settings API answers with (409). */
+export const SETTINGS_ERROR_CODES = {
+  /** The new prefix / next number would issue a document number that already exists. */
+  numberCollision: 'NUMBER_COLLISION',
+} as const;
 
 /** `SI-000124`. */
 export function previewNumber(prefix: string, next: number, digits: number): string {

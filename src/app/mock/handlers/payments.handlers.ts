@@ -10,7 +10,6 @@ import {
   STORE_PAYMENT_STATUSES,
   StorePaymentStatus,
 } from '../../features/payments/models/payment.model';
-import { PAYMENTS_ENDPOINTS } from '../../features/payments/services/payments.service';
 import { actorName, inRange, round2, todayIso } from '../db/db-utils';
 import {
   confirmPayment,
@@ -24,6 +23,7 @@ import {
 } from '../db/payments.db';
 import { bodyOf, CollectionOptions, filterCollection, queryCollection } from '../mock-collection';
 import { MockContext, MockRoute, ok } from '../mock-http';
+import { API_ENDPOINTS } from '../../core/constants/api-endpoints.const';
 
 const LIST_OPTIONS: CollectionOptions<PaymentSummary> = {
   searchFields: ['number', 'orderNumber', 'customerName', 'customerPhone', 'reference', 'provider', 'settlementBatch', 'city'],
@@ -117,8 +117,8 @@ const BY_ID = 'payments/:id';
 
 export const PAYMENTS_MOCK_ROUTES: MockRoute[] = [
   // `stats` before `:id` so it isn't captured as an id.
-  { method: 'GET', path: PAYMENTS_ENDPOINTS.stats, protected: true, handle: stats },
-  { method: 'GET', path: PAYMENTS_ENDPOINTS.list, protected: true, handle: list },
+  { method: 'GET', path: API_ENDPOINTS.payments.stats, protected: true, handle: stats },
+  { method: 'GET', path: API_ENDPOINTS.payments.list, protected: true, handle: list },
   { method: 'GET', path: BY_ID, protected: true, handle: get },
   { method: 'POST', path: `${BY_ID}/confirm`, protected: true, handle: confirm },
   { method: 'POST', path: `${BY_ID}/fail`, protected: true, handle: markFailed },

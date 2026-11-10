@@ -3,6 +3,8 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { finalize } from 'rxjs';
 import { ToastService } from '../../../../../core/services/toast.service';
+import { ApiError } from '../../../../../core/models/api-response.model';
+import { applyServerErrors } from '../../../../../core/utils/api-error.util';
 import { DrawerComponent } from '../../../../../shared/components/drawer/drawer.component';
 import { FormErrorComponent } from '../../../../../shared/components/form-error/form-error.component';
 import { IconComponent } from '../../../../../shared/components/icon/icon.component';
@@ -121,10 +123,15 @@ export class CostCenterEditorComponent {
     };
     const id = this.center()?.id;
     this.saving.set(true);
-    (id ? this.api.update(id, payload) : this.api.create(payload)).pipe(finalize(() => this.saving.set(false))).subscribe((cc) => {
-      this.toast.success(id ? 'تم تحديث مركز التكلفة' : `تم إضافة المركز ${cc.code} — ${cc.name}`);
-      this.saved.emit(cc);
-    });
+    (id ? this.api.update(id, payload) : this.api.create(payload))
+      .pipe(finalize(() => this.saving.set(false)))
+      .subscribe({
+        next: (cc) => {
+          this.toast.success(id ? 'تم تحديث مركز التكلفة' : `تم إضافة المركز ${cc.code} — ${cc.name}`);
+          this.saved.emit(cc);
+        },
+        error: (err: ApiError) => applyServerErrors(this.form, err),
+      });
   }
 
   private reset(c: CostCenter | null): void {

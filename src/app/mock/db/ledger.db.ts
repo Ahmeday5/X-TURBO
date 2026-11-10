@@ -185,18 +185,6 @@ function docPostings(doc: Document): GlPosting[] {
       add(SYSTEM_ACCOUNTS.vat, 0, doc.tax);
       break;
     }
-    case 'goods-issue': {
-      const value = round2(doc.lines.reduce((s, l) => s + l.qty * l.price, 0));
-      add(SYSTEM_ACCOUNTS.cogs, value, 0);
-      add(SYSTEM_ACCOUNTS.inventory, 0, value);
-      break;
-    }
-    case 'goods-receipt': {
-      const value = round2(doc.lines.reduce((s, l) => s + l.qty * l.price, 0));
-      add(SYSTEM_ACCOUNTS.inventory, value, 0);
-      add(doc.reason === 'opening' ? 'acc-3102' : 'acc-4103', 0, value);
-      break;
-    }
   }
   return out;
 }

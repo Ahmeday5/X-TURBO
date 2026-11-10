@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
-import { toIsoDate } from '../../utils/date-iso.util';
+import { addDaysIso, startOfMonthIso, startOfYearIso, todayIsoDate } from '../../utils/date-iso.util';
 
 export interface DateRange {
   from: string | null;
@@ -12,29 +12,15 @@ interface Preset {
   range: () => DateRange;
 }
 
-const shift = (days: number): string => {
-  const d = new Date();
-  d.setDate(d.getDate() - days);
-  return toIsoDate(d);
-};
+/** Cairo today minus `days`. */
+const daysAgo = (days: number): string => addDaysIso(todayIsoDate(), -days);
 
 const PRESETS: readonly Preset[] = [
-  { key: 'today', label: 'اليوم', range: () => ({ from: shift(0), to: shift(0) }) },
-  { key: '7d', label: '7 أيام', range: () => ({ from: shift(6), to: null }) },
-  { key: '30d', label: '30 يومًا', range: () => ({ from: shift(29), to: null }) },
-  {
-    key: 'month',
-    label: 'هذا الشهر',
-    range: () => {
-      const d = new Date();
-      return { from: toIsoDate(new Date(d.getFullYear(), d.getMonth(), 1)), to: null };
-    },
-  },
-  {
-    key: 'year',
-    label: 'هذا العام',
-    range: () => ({ from: `${new Date().getFullYear()}-01-01`, to: null }),
-  },
+  { key: 'today', label: 'اليوم', range: () => ({ from: daysAgo(0), to: daysAgo(0) }) },
+  { key: '7d', label: '7 أيام', range: () => ({ from: daysAgo(6), to: null }) },
+  { key: '30d', label: '30 يومًا', range: () => ({ from: daysAgo(29), to: null }) },
+  { key: 'month', label: 'هذا الشهر', range: () => ({ from: startOfMonthIso(todayIsoDate()), to: null }) },
+  { key: 'year', label: 'هذا العام', range: () => ({ from: startOfYearIso(todayIsoDate()), to: null }) },
 ];
 
 /**

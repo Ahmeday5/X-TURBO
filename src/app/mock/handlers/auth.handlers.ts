@@ -1,4 +1,3 @@
-import { AUTH_ENDPOINTS } from '../../core/auth/auth.config';
 import {
   AuthResponseData,
   LoginRequest,
@@ -8,6 +7,7 @@ import {
 import { fail, MockContext, MockRoute, ok } from '../mock-http';
 import { issueTokens, verifyRefreshToken } from '../mock-tokens';
 import { findUserByEmail, findUserById, MockUser } from '../mock-users';
+import { API_ENDPOINTS } from '../../core/constants/api-endpoints.const';
 
 function login({ req }: MockContext) {
   const body = req.body as LoginRequest;
@@ -50,9 +50,9 @@ function toAuthResponse(user: MockUser, remember: boolean): AuthResponseData {
 }
 
 export const AUTH_MOCK_ROUTES: MockRoute[] = [
-  { method: 'POST', path: AUTH_ENDPOINTS.login, protected: false, handle: login },
-  { method: 'POST', path: AUTH_ENDPOINTS.refresh, protected: false, handle: refresh },
+  { method: 'POST', path: API_ENDPOINTS.auth.login, protected: false, handle: login },
+  { method: 'POST', path: API_ENDPOINTS.auth.refresh, protected: false, handle: refresh },
   // The auth interceptor sends logout without a Bearer header (by design).
-  { method: 'POST', path: AUTH_ENDPOINTS.logout, protected: false, handle: () => ok(null) },
-  { method: 'GET', path: AUTH_ENDPOINTS.me, protected: true, handle: me },
+  { method: 'POST', path: API_ENDPOINTS.auth.logout, protected: false, handle: () => ok(null) },
+  { method: 'GET', path: API_ENDPOINTS.auth.me, protected: true, handle: me },
 ];

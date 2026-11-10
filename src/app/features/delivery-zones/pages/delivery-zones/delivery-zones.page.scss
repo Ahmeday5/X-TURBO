@@ -1,0 +1,150 @@
+:host {
+  display: block;
+}
+
+.dz {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 320px);
+  align-items: start;
+  gap: 16px;
+
+  @media (max-width: 1199.98px) {
+    grid-template-columns: 1fr;
+  }
+
+  &__zones,
+  &__gaps {
+    min-width: 0;
+  }
+
+  &__table-wrap {
+    overflow-x: auto;
+  }
+
+  &__table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+
+    th {
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--brd);
+      font-size: 11.5px;
+      font-weight: 600;
+      color: var(--txt3);
+      text-align: start;
+      white-space: nowrap;
+    }
+    td {
+      padding: 9px 10px;
+      border-bottom: 1px solid var(--brd);
+      color: var(--txt);
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+    strong {
+      font-weight: 600;
+    }
+    tr.is-off td {
+      color: var(--txt3);
+    }
+  }
+
+  &__c {
+    text-align: center !important;
+  }
+
+  &__switch {
+    justify-content: center;
+  }
+
+  &__acts {
+    white-space: nowrap;
+  }
+
+  /* ── Gaps ── */
+
+  &__gaps-title {
+    margin: 12px 0 8px;
+    font-size: 11.5px;
+    font-weight: 700;
+    color: var(--txt3);
+
+    &:first-of-type {
+      margin-top: 0;
+    }
+  }
+
+  &__chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  &__chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 5px 10px;
+    border: 1px dashed var(--brd2);
+    border-radius: 999px;
+    background: var(--bg2);
+    color: var(--txt2);
+    font: inherit;
+    font-size: 12px;
+    cursor: pointer;
+    transition: border-color var(--dur-fast), color var(--dur-fast), background var(--dur-fast);
+
+    &:hover {
+      border-color: var(--primary);
+      background: var(--primary-soft);
+      color: var(--primary-strong);
+    }
+    &:focus-visible {
+      outline: none;
+      box-shadow: var(--focus-ring);
+    }
+
+    &--off {
+      border-style: solid;
+      background: var(--am-l);
+      color: var(--am);
+    }
+  }
+
+  &__all {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--gr);
+  }
+
+  &__state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding: 36px 12px;
+    color: var(--txt3);
+    text-align: center;
+
+    p {
+      margin: 0;
+      font-size: 13px;
+    }
+  }
+
+  &__skeleton {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+
+    .skeleton {
+      height: 42px;
+      border-radius: var(--rl);
+    }
+  }
+}

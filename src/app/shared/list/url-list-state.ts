@@ -89,6 +89,11 @@ export class UrlListState {
     this.patch({ [key]: value || null });
   }
 
+  /** Several filters in ONE navigation (e.g. a date range's from + to). */
+  setFilters(changes: Readonly<Record<string, string | null>>): void {
+    this.patch(Object.fromEntries(Object.entries(changes).map(([k, v]) => [k, v || null])));
+  }
+
   clearFilters(): void {
     this.patch(Object.fromEntries([Q.search, ...this.filterKeys].map((k) => [k, null])));
   }

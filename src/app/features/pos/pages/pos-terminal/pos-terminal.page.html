@@ -208,9 +208,9 @@
     </label>
     <label class="ui-field">
       <span class="ui-label is-required">الموبايل</span>
-      <input class="ui-input ltr" name="phone" inputmode="tel" placeholder="01xxxxxxxxx" [ngModel]="quickPhone()"
-        (ngModelChange)="quickPhone.set($event)" />
-      @if (quickPhone() && !quickPhoneValid()) {<span class="pt-err">رقم موبايل مصري غير صحيح</span>}
+      <input class="ui-input ltr" name="phone" inputmode="tel" maxlength="11" placeholder="01012345678" [ngModel]="quickPhone()"
+        (ngModelChange)="quickPhone.set($event)" [class.is-invalid]="!!quickPhoneError()" [attr.aria-invalid]="!!quickPhoneError()" />
+      @if (quickPhoneError(); as msg) {<span class="pt-err" role="alert">{{ msg }}</span>}
     </label>
     <p class="ui-hint">يُسجَّل كعميل خارجي ويمكن استكمال بياناته لاحقًا.</p>
   </form>

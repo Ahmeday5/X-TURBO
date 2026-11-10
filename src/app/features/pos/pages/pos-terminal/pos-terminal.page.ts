@@ -38,11 +38,12 @@ import { WarehousesService } from '../../../warehouses/services/warehouses.servi
 import { ReceiptComponent, ReceiptData } from '../../components/receipt/receipt.component';
 import { CartLine, toCartLine } from '../../models/pos-cart.model';
 import { POS_PAYMENT_METHODS, PosPaymentMethod } from '../../models/pos-settings.model';
+import { ApiError } from '../../../../core/models/api-response.model';
+import { AppValidators, validationMessage } from '../../../../shared/validators/app-validators';
 import { HeldCartsService } from '../../services/held-carts.service';
 import { PosSettingsService } from '../../services/pos-settings.service';
 
 const ITEMS_PLURAL = { one: 'صنف واحد', two: 'صنفان', few: '# أصناف', other: '# صنف' };
-const PHONE = /^01[0125]\d{8}$/;
 const WALK_IN = '';
 
 /**
@@ -74,7 +75,19 @@ export class PosTerminalPage {
 
   // ── Settings & sources ──
 
-  protected readonly settings = toSignal(inject(PosSettingsService).get());
+  /**
+   * Re-fetched after a rejected checkout: the server enforces the CURRENT
+   * settings (discount cap, enabled payment methods), which an admin may have
+   * changed since this terminal opened.
+   */
+  private readonly reloadSettings$ = new Subject<void>();
+  private readonly posSettings = inject(PosSettingsService);
+  protected readonly settings = toSignal(
+    this.reloadSettings$.pipe(
+      startWith(undefined),
+      switchMap(() => this.posSettings.get()),
+    ),
+  );
   private readonly warehouses = toSignal(inject(WarehousesService).lookup(), { initialValue: [] });
 
   protected readonly warehouse = computed(() => {
@@ -164,6 +177,10 @@ export class PosTerminalPage {
   protected readonly problems = computed<string[]>(() => {
     const out: string[] = [];
     if (!this.cart().length) return out;
+    if (this.settings() && !this.warehouse()) {
+      out.push('لا يوجد مخزن نشط لنقطة البيع — عرّف مخزنًا أو حدده في إعدادات نقطة البيع');
+    }
+    if (!this.methods().includes(this.method())) out.push('طريقة الدفع المختارة لم تعد مفعّلة في إعدادات نقطة البيع');
     for (const l of this.cart()) {
       if (l.qty > l.available) out.push(`«${l.name}»: المتاح ${Math.max(l.available, 0)} ${l.unit} فقط`);
       if (l.discountPct > this.maxDiscount()) out.push(`خصم «${l.name}» يتجاوز الحد المسموح ${this.maxDiscount()}%`);
@@ -185,7 +202,9 @@ export class PosTerminalPage {
   protected readonly quickName = signal('');
   protected readonly quickPhone = signal('');
   protected readonly quickSaving = signal(false);
-  protected readonly quickPhoneValid = computed(() => PHONE.test(this.quickPhone().trim()));
+  /** Same rule and wording as every other mobile field (AppValidators.mobile). */
+  protected readonly quickPhoneError = computed(() => validationMessage(AppValidators.mobile(), this.quickPhone()));
+  protected readonly quickPhoneValid = computed(() => !!this.quickPhone().trim() && !this.quickPhoneError());
 
   protected readonly receipt = signal<ReceiptData | null>(null);
   protected readonly heldOpen = signal(false);
@@ -345,7 +364,7 @@ export class PosTerminalPage {
   protected saveQuick(): void {
     const name = this.quickName().trim();
     const phone = this.quickPhone().trim();
-    if (name.length < 2 || !PHONE.test(phone)) return;
+    if (name.length < 2 || !this.quickPhoneValid()) return;
     this.quickSaving.set(true);
     this.parties
       .create({
@@ -418,32 +437,43 @@ export class PosTerminalPage {
         notes: '',
       })
       .pipe(finalize(() => this.checkingOut.set(false)))
-      .subscribe((doc) => {
-        const s = this.settings();
-        this.receipt.set({
-          header: s?.receiptHeader ?? '',
-          footer: s?.receiptFooter ?? '',
-          number: doc.number,
-          at: doc.createdAt,
-          cashier: this.auth.currentUser()?.name ?? doc.createdBy,
-          customer: doc.partyName,
-          warehouse: doc.warehouseName,
-          lines: doc.lines.map(({ name, qty, price, discountPct, total }) => ({ name, qty, price, discountPct, total })),
-          subtotal: doc.subtotal,
-          discount: doc.discount,
-          taxPct: doc.taxPct,
-          tax: doc.tax,
-          total: doc.total,
-          paid: doc.paid,
-          change: method === 'cash' ? this.change() : 0,
-          remaining: doc.remaining,
-          methodLabel: DOC_PAYMENT_LABEL[method],
-          paperWidth: s?.paperWidth ?? 80,
-        });
-        this.clearCart();
-        this.items.reload();
-        if (customer) this.refreshCustomers$.next();
-        if (s?.autoPrint) afterNextRender(() => this.receiptView()?.print(), { injector: this.injector });
+      .subscribe({
+        // The interceptor already toasted the server's reason (discount over
+        // the cap, payment method disabled, credit limit, stock…). Refresh what
+        // the server judged against so the terminal reflects it; the cart is kept.
+        error: (err: ApiError) => {
+          if (err.status === 409 || err.status === 422) {
+            this.reloadSettings$.next();
+            this.items.reload();
+          }
+        },
+        next: (doc) => {
+          const s = this.settings();
+          this.receipt.set({
+            header: s?.receiptHeader ?? '',
+            footer: s?.receiptFooter ?? '',
+            number: doc.number,
+            at: doc.createdAt,
+            cashier: this.auth.currentUser()?.name ?? doc.createdBy,
+            customer: doc.partyName,
+            warehouse: doc.warehouseName,
+            lines: doc.lines.map(({ name, qty, price, discountPct, total }) => ({ name, qty, price, discountPct, total })),
+            subtotal: doc.subtotal,
+            discount: doc.discount,
+            taxPct: doc.taxPct,
+            tax: doc.tax,
+            total: doc.total,
+            paid: doc.paid,
+            change: method === 'cash' ? this.change() : 0,
+            remaining: doc.remaining,
+            methodLabel: DOC_PAYMENT_LABEL[method],
+            paperWidth: s?.paperWidth ?? 80,
+          });
+          this.clearCart();
+          this.items.reload();
+          if (customer) this.refreshCustomers$.next();
+          if (s?.autoPrint) afterNextRender(() => this.receiptView()?.print(), { injector: this.injector });
+        },
       });
   }
 

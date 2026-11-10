@@ -1,0 +1,119 @@
+@if (loadError(); as err) {
+<div class="ift-state">
+  <app-icon name="alert" [size]="22" />
+  <p>{{ err }}</p>
+  <button type="button" class="ui-btn ui-btn--ghost ui-btn--sm" (click)="load()">إعادة المحاولة</button>
+</div>
+} @else {
+<section class="ift" [class.is-loading]="loading()">
+  <header class="ift__head">
+    <div>
+      <h2>التوافق مع السيارات</h2>
+      <p>الموديلات اللي القطعة دي بتركب عليها — بتظهر للعميل في التطبيق عند البحث بسيارته. السنين الفاضية = كل سنين الموديل.</p>
+    </div>
+    <span class="ift__count">{{ draft().length }} توافق</span>
+  </header>
+
+  <!-- ── Add ── -->
+  @if (makes.value() && !activeMakes().length) {
+  <div class="ift-note">
+    <app-icon name="car" [size]="16" />
+    <span>لا توجد ماركات نشطة بعد — أضفها أولًا من
+      <a routerLink="/items/cars">ماركات وموديلات السيارات</a>.</span>
+  </div>
+  } @else {
+  <form class="ift-add" (submit)="$event.preventDefault(); add()" novalidate>
+    <label class="ui-field">
+      <span class="ui-label is-required">الماركة</span>
+      <select class="ui-input" [value]="makeId()" (change)="selectMake($any($event.target).value)" aria-label="الماركة">
+        <option value="" disabled>اختر الماركة</option>
+        @for (m of activeMakes(); track m.id) {<option [value]="m.id">{{ m.name }}</option>}
+      </select>
+      @if (attempted() && problems().make; as msg) {<small class="ui-field-error" role="alert">{{ msg }}</small>}
+    </label>
+
+    <label class="ui-field">
+      <span class="ui-label is-required">الموديل</span>
+      <select class="ui-input" [value]="modelId()" [disabled]="!makeId() || models.loading()"
+        (change)="selectModel($any($event.target).value)" aria-label="الموديل">
+        <option value="" disabled>{{ models.loading() ? 'جارٍ التحميل…' : makeId() ? 'اختر الموديل' : 'اختر الماركة أولًا' }}</option>
+        @for (m of activeModels(); track m.id) {
+        <option [value]="m.id">{{ m.name }} ({{ spanLabel(m.yearFrom, m.yearTo) }})</option>
+        }
+      </select>
+      @if (makeId() && models.value() && !activeModels().length) {
+      <small class="ui-hint">لا توجد موديلات نشطة لهذه الماركة — <a routerLink="/items/cars">أضف موديل</a></small>
+      }
+      @if (attempted() && problems().model; as msg) {<small class="ui-field-error" role="alert">{{ msg }}</small>}
+    </label>
+
+    <label class="ui-field">
+      <span class="ui-label">من سنة</span>
+      <input class="ui-input ltr" type="number" inputmode="numeric" step="1" [disabled]="!model()"
+        [min]="model()?.yearFrom ?? null" [max]="model()?.yearTo ?? null"
+        [placeholder]="model() ? model()!.yearFrom : '—'" [value]="yearFromRaw()"
+        (input)="yearFromRaw.set($any($event.target).value); attempted.set(true)"
+        [class.is-invalid]="attempted() && !!problems().yearFrom" aria-label="من سنة" />
+      @if (attempted() && problems().yearFrom; as msg) {<small class="ui-field-error" role="alert">{{ msg }}</small>}
+    </label>
+
+    <label class="ui-field">
+      <span class="ui-label">إلى سنة</span>
+      <input class="ui-input ltr" type="number" inputmode="numeric" step="1" [disabled]="!model()"
+        [min]="model()?.yearFrom ?? null" [max]="model()?.yearTo ?? null"
+        [placeholder]="model() ? (model()!.yearTo ?? 'حتى الآن') : '—'" [value]="yearToRaw()"
+        (input)="yearToRaw.set($any($event.target).value); attempted.set(true)"
+        [class.is-invalid]="attempted() && !!problems().yearTo" aria-label="إلى سنة" />
+      @if (attempted() && problems().yearTo; as msg) {<small class="ui-field-error" role="alert">{{ msg }}</small>}
+    </label>
+
+    <button type="submit" class="ui-btn ui-btn--primary ift-add__btn" [disabled]="attempted() && !canAdd()">
+      <app-icon name="plus" [size]="15" /> إضافة
+    </button>
+
+    @if (attempted() && problems().row; as msg) {<p class="ift-add__row-error" role="alert"><app-icon name="alert" [size]="13" /> {{ msg }}</p>}
+    @if (model()) {
+    <p class="ui-hint ift-add__hint">سنين إنتاج {{ model()!.name }}: {{ spanLabel(model()!.yearFrom, model()!.yearTo) }} — اترك السنين فارغة لكل السنين.</p>
+    }
+  </form>
+  }
+
+  <!-- ── List ── -->
+  @if (loading() && !draft().length) {
+  <div class="ift-skeleton">@for (i of [1, 2, 3]; track i) {<span class="skeleton"></span>}</div>
+  } @else if (!draft().length) {
+  <div class="ift-state"><app-icon name="car" [size]="26" /><p>لم تتم إضافة أي توافق لهذا الصنف بعد</p></div>
+  } @else {
+  <div class="ift-table-wrap">
+    <table class="ift-table">
+      <thead>
+        <tr><th>الماركة</th><th>الموديل</th><th>السنوات</th><th class="ift-c" aria-label="إجراءات"></th></tr>
+      </thead>
+      <tbody>
+        @for (f of draft(); track $index) {
+        <tr>
+          <td>{{ f.makeName }}</td>
+          <td><strong>{{ f.modelName }}</strong></td>
+          <td><span class="ltr ift-years">{{ yearsLabel(f) }}</span></td>
+          <td class="ift-c">
+            <button type="button" class="ui-icon-btn ui-icon-btn--danger" title="حذف"
+              [attr.aria-label]="'حذف توافق ' + f.makeName + ' ' + f.modelName" (click)="remove(f)">
+              <app-icon name="trash" [size]="15" />
+            </button>
+          </td>
+        </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+  }
+
+  <footer class="ift__actions">
+    @if (dirty()) {<span class="ift__unsaved"><app-icon name="alert" [size]="13" /> تغييرات غير محفوظة</span>}
+    <button type="button" class="ui-btn ui-btn--ghost" [disabled]="!dirty() || saving()" (click)="revert()">تراجع</button>
+    <button type="button" class="ui-btn ui-btn--primary" [class.is-loading]="saving()" [disabled]="!dirty() || saving()" (click)="save()">
+      <app-icon name="check" [size]="16" /> حفظ التوافقات
+    </button>
+  </footer>
+</section>
+}

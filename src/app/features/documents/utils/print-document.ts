@@ -1,13 +1,12 @@
 import { environment } from '../../../../environments/environment';
-import { formatInteger, formatMoney } from '../../../shared/utils/format.util';
-import { DOC_KIND_CONFIG, DOC_PAYMENT_LABEL, DOC_REASON_LABEL, Document, docStatusView } from '../models/document.model';
+import { formatFullDate, formatInteger, formatMoney } from '../../../shared/utils/format.util';
+import { DOC_KIND_CONFIG, DOC_PAYMENT_LABEL, Document, docStatusView } from '../models/document.model';
 import { partyLabel, tracksPayment } from './document-view';
 
 const esc = (value: unknown): string =>
   String(value ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
 
-const longDate = new Intl.DateTimeFormat('ar-EG-u-nu-latn', { day: 'numeric', month: 'long', year: 'numeric' });
-const date = (iso: string | null) => (iso ? longDate.format(new Date(`${iso.slice(0, 10)}T12:00:00`)) : '—');
+const date = (iso: string | null) => (iso ? formatFullDate(iso.slice(0, 10)) : '—');
 
 /**
  * Prints a clean A4 copy of a document in its own window, so nothing of the
@@ -26,7 +25,6 @@ export function printDocument(doc: Document): void {
   meta.push([cfg.transfer ? 'من مخزن' : 'المخزن', doc.warehouseName]);
   if (cfg.transfer) meta.push(['إلى مخزن', doc.toWarehouseName ?? '—']);
   if (cfg.dueDateLabel && doc.dueDate) meta.push([cfg.dueDateLabel, date(doc.dueDate)]);
-  if (doc.reason) meta.push(['السبب', DOC_REASON_LABEL[doc.reason]]);
   if (doc.reference) meta.push(['المرجع', doc.reference]);
   if (tracksPayment(cfg) && doc.paymentMethod) meta.push(['طريقة الدفع', DOC_PAYMENT_LABEL[doc.paymentMethod]]);
   meta.push(['الحالة', docStatusView(doc.kind, doc.status).label]);

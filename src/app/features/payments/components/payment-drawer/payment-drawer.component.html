@@ -185,6 +185,7 @@
     </label>
   </div>
   }
+  <p class="pd-modal-notify" role="note"><app-icon name="bell" [size]="13" /> سيصل للعميل إشعار «تم استرداد مبلغ» على تطبيق الموبايل.</p>
   <div modal-footer class="pd-modal-actions">
     <button type="button" class="ui-btn ui-btn--ghost" (click)="modal.set(null)">تراجع</button>
     @if (current(); as p) {
@@ -233,6 +234,7 @@
       <input class="ui-input" type="text" [value]="confirmNote()" (input)="confirmNote.set($any($event.target).value)" />
     </label>
   </div>
+  <p class="pd-modal-notify" role="note"><app-icon name="bell" [size]="13" /> سيصل للعميل إشعار «تم تأكيد الدفع» على تطبيق الموبايل.</p>
   }
   <div modal-footer class="pd-modal-actions">
     <button type="button" class="ui-btn ui-btn--ghost" (click)="modal.set(null)">تراجع</button>

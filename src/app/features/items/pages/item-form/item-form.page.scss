@@ -65,7 +65,7 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: 18px;
+  margin-bottom: 14px;
 
   h2 {
     margin: 0;
@@ -92,23 +92,16 @@
   transition: background var(--dur), color var(--dur), transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
+/* Same density rules as the shared form page (`.fp__grid`, styles/_form-page.scss). */
 .if__grid {
+  --fp-field-min: 200px;
+  container-type: inline-size;
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
-
-  &--3 {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
-  @media (max-width: 767.98px) {
-    &,
-    &--3 {
-      grid-template-columns: minmax(0, 1fr);
-    }
-  }
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--fp-field-min)), 1fr));
+  gap: 14px 16px;
 }
 
+/* Name / description take the whole row. */
 .if__span-2 {
   grid-column: 1 / -1;
 }
@@ -234,5 +227,39 @@
   .if__preview,
   .if__warn {
     animation: none;
+  }
+}
+
+/* Edit mode: details / images / store / fitments. */
+.if-tabs {
+  margin: 4px 0 16px;
+  flex-wrap: wrap;
+}
+
+.if-note {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 14px;
+  font-size: 12px;
+  color: var(--txt3);
+}
+
+/* Label with a live character counter on the opposite side. */
+.if__label-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.if__counter {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--txt3);
+  font-variant-numeric: tabular-nums;
+
+  &.is-over {
+    color: var(--re);
   }
 }

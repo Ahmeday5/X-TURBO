@@ -1,0 +1,153 @@
+<app-page-header [navId]="navId()">
+  <button type="button" class="refresh-btn" [class.is-spinning]="makes.loading() || models.loading()"
+    [disabled]="makes.loading()" title="تحديث" aria-label="تحديث" (click)="refresh()">
+    <app-icon name="refresh" [size]="16" />
+  </button>
+  <button type="button" class="ui-btn ui-btn--primary" (click)="newMake()">
+    <app-icon name="plus" [size]="16" /> ماركة جديدة
+  </button>
+</app-page-header>
+
+<div class="cc">
+  <!-- ── Makes ── -->
+  <section class="panel cc__makes" aria-label="الماركات">
+    <header class="panel__head">
+      <div>
+        <h3 class="panel__title">الماركات</h3>
+        <p class="panel__sub">{{ int(makes.value()?.length ?? 0) }} ماركة</p>
+      </div>
+    </header>
+
+    <label class="cc__search">
+      <app-icon name="search" [size]="15" />
+      <input class="ui-input" type="search" placeholder="ابحث بالاسم…" [value]="makeSearch()"
+        (input)="makeSearch.set($any($event.target).value)" aria-label="بحث في الماركات" />
+    </label>
+
+    @if (makes.error(); as err) {
+    <div class="cc__state">
+      <app-icon name="alert" [size]="22" />
+      <p>{{ err }}</p>
+      <button type="button" class="ui-btn ui-btn--ghost ui-btn--sm" (click)="makes.reload()">إعادة المحاولة</button>
+    </div>
+    } @else if (!makes.value() && makes.loading()) {
+    <div class="cc__skeleton">@for (i of [1, 2, 3, 4, 5]; track i) {<span class="skeleton"></span>}</div>
+    } @else if (!visibleMakes().length) {
+    <div class="cc__state">
+      <app-icon name="car" [size]="26" />
+      <p>{{ makeSearch() ? 'لا توجد ماركة مطابقة' : 'لا توجد ماركات بعد' }}</p>
+      @if (!makeSearch()) {
+      <button type="button" class="ui-btn ui-btn--primary ui-btn--sm" (click)="newMake()">
+        <app-icon name="plus" [size]="14" /> أضف أول ماركة
+      </button>
+      }
+    </div>
+    } @else {
+    <ul class="cc__list" role="listbox" aria-label="اختر ماركة">
+      @for (m of visibleMakes(); track m.id) {
+      <li class="cc__make" role="option" [attr.aria-selected]="m.id === selectedMakeId()" [class.is-selected]="m.id === selectedMakeId()"
+        [class.is-inactive]="!m.isActive" tabindex="0" (click)="selectMake(m)" (keydown.enter)="selectMake(m)">
+        <span class="cc__make-icon"><app-icon name="car" [size]="16" /></span>
+        <div class="cc__make-text">
+          <strong>{{ m.name }}</strong>
+          <small>
+            @if (m.nameEn) {<span class="ltr">{{ m.nameEn }}</span> · }
+            {{ int(m.modelsCount) }} موديل
+            @if (!m.isActive) { · <span class="cc__off">موقوفة</span> }
+          </small>
+        </div>
+        <div class="cc__make-acts">
+          <button type="button" class="ui-icon-btn" title="تعديل" [attr.aria-label]="'تعديل ' + m.name"
+            (click)="$event.stopPropagation(); editMake(m)">
+            <app-icon name="edit" [size]="15" />
+          </button>
+          <button type="button" class="ui-icon-btn ui-icon-btn--danger" title="حذف" [attr.aria-label]="'حذف ' + m.name"
+            [disabled]="busyId() === m.id" (click)="$event.stopPropagation(); removeMake(m)">
+            <app-icon name="trash" [size]="15" />
+          </button>
+        </div>
+      </li>
+      }
+    </ul>
+    }
+  </section>
+
+  <!-- ── Models of the selected make ── -->
+  <section class="panel cc__models" aria-live="polite">
+    <header class="panel__head">
+      <div>
+        <h3 class="panel__title">{{ selectedMake() ? 'موديلات ' + selectedMake()!.name : 'الموديلات' }}</h3>
+        <p class="panel__sub">{{ selectedMake() ? int(currentModels().length) + ' موديل' : 'اختر ماركة لعرض موديلاتها' }}</p>
+      </div>
+      @if (selectedMake()) {
+      <button type="button" class="ui-btn ui-btn--ghost ui-btn--sm" (click)="newModel()">
+        <app-icon name="plus" [size]="14" /> موديل جديد
+      </button>
+      }
+    </header>
+
+    @if (!selectedMake()) {
+    <div class="cc__state"><app-icon name="car" [size]="26" /><p>اختر ماركة من القائمة</p></div>
+    } @else if (models.error()) {
+    <div class="cc__state">
+      <app-icon name="alert" [size]="22" />
+      <p>{{ models.error() }}</p>
+      <button type="button" class="ui-btn ui-btn--ghost ui-btn--sm" (click)="models.reload()">إعادة المحاولة</button>
+    </div>
+    } @else if (models.loading() && !currentModels().length) {
+    <div class="cc__skeleton">@for (i of [1, 2, 3, 4]; track i) {<span class="skeleton"></span>}</div>
+    } @else if (!currentModels().length) {
+    <div class="cc__state">
+      <app-icon name="car" [size]="26" />
+      <p>لا توجد موديلات لـ{{ selectedMake()!.name }} بعد</p>
+      <button type="button" class="ui-btn ui-btn--primary ui-btn--sm" (click)="newModel()">
+        <app-icon name="plus" [size]="14" /> أضف موديل
+      </button>
+    </div>
+    } @else {
+    <div class="cc__table-wrap">
+      <table class="cc__table">
+        <thead>
+          <tr>
+            <th>الموديل</th>
+            <th>سنوات الإنتاج</th>
+            <th class="cc__c">الحالة</th>
+            <th class="cc__c" aria-label="إجراءات"></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (m of currentModels(); track m.id) {
+          <tr [class.is-inactive]="!m.isActive">
+            <td>
+              <strong>{{ m.name }}</strong>
+              @if (m.nameEn) {<small class="ltr">{{ m.nameEn }}</small>}
+            </td>
+            <td><span class="ltr cc__years">{{ years(m) }}</span></td>
+            <td class="cc__c">
+              <span class="status-pill" [class.status-pill--good]="m.isActive" [class.status-pill--neutral]="!m.isActive">
+                {{ m.isActive ? 'نشط' : 'موقوف' }}
+              </span>
+            </td>
+            <td class="cc__c cc__row-acts">
+              <button type="button" class="ui-icon-btn" title="تعديل" [attr.aria-label]="'تعديل ' + m.name" (click)="editModel(m)">
+                <app-icon name="edit" [size]="15" />
+              </button>
+              <button type="button" class="ui-icon-btn ui-icon-btn--danger" title="حذف" [attr.aria-label]="'حذف ' + m.name"
+                [disabled]="busyId() === m.id" (click)="removeModel(m)">
+                <app-icon name="trash" [size]="15" />
+              </button>
+            </td>
+          </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    }
+  </section>
+</div>
+
+<app-car-make-dialog [open]="makeDialogOpen()" [make]="editingMake()" [nextSortOrder]="nextSortOrder()"
+  (closed)="makeDialogOpen.set(false)" (saved)="onMakeSaved($event)" />
+
+<app-car-model-dialog [open]="modelDialogOpen()" [model]="editingModel()" [makes]="makes.value() ?? []"
+  [defaultMakeId]="selectedMakeId()" (closed)="modelDialogOpen.set(false)" (saved)="onModelSaved($event)" />
