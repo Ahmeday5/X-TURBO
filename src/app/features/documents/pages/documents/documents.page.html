@@ -57,14 +57,12 @@
 <ng-template #statusCell [appRowOf]="list.items()" let-d><app-status-pill [view]="statusView(d.kind, d.status)" /></ng-template>
 
 <ng-template #actions [appRowOf]="list.items()" let-d>
-  <button type="button" class="ui-icon-btn" title="عرض" [attr.aria-label]="'عرض ' + d.number" (click)="open(d)">
-    <app-icon name="eye" [size]="16" />
-  </button>
-  @if (d.status === 'draft') {
-  <button type="button" class="ui-icon-btn" title="تعديل" [attr.aria-label]="'تعديل ' + d.number" (click)="edit(d.id)">
-    <app-icon name="edit" [size]="16" />
-  </button>
-  }
+  <div class="row-actions">
+    <app-row-menu [actions]="actionsOf(d)" [quick]="true" [label]="'إجراءات ' + d.number" (run)="act(d, $event)" />
+    <button type="button" class="ui-icon-btn" title="عرض" [attr.aria-label]="'عرض ' + d.number" (click)="open(d)">
+      <app-icon name="eye" [size]="16" />
+    </button>
+  </div>
 </ng-template>
 
 <ng-template #card [appRowOf]="list.items()" let-d>
@@ -155,7 +153,7 @@
   }
 </div>
 
-<app-data-table [columns]="columns()" [data]="list.items()" [view]="state.view()" [sort]="state.query().sort"
+<app-data-table [rowClickable]="true" (rowClick)="open($event)" [columns]="columns()" [data]="list.items()" [view]="state.view()" [sort]="state.query().sort"
   [loading]="list.loading()" [initialLoading]="list.initialLoading()" [error]="list.error()"
   [skeletonCount]="state.query().pageSize" [cardTemplate]="card" [actionsTemplate]="actions" [emptyIcon]="cfg().icon"
   [emptyTitle]="'لا توجد ' + cfg().title + ' مطابقة'" emptyText="جرّب تعديل البحث أو الفترة أو الفلاتر."
@@ -170,5 +168,5 @@
   [disabled]="list.loading()" (pageChange)="state.setPage($event)" (pageSizeChange)="state.setPageSize($event)" />
 }
 
-<app-document-drawer [docId]="viewing() || null" (closed)="state.setParam('view', null)" (changed)="refresh()"
-  (edit)="edit($event)" />
+<app-document-drawer [docId]="viewing() || null" [intent]="intent()" (intentDone)="state.setParam('do', null)"
+  (closed)="state.setParams({ view: null, do: null })" (changed)="refresh()" (edit)="edit($event)" />

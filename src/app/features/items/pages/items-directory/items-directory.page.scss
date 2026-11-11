@@ -71,3 +71,18 @@
     font-style: normal;
   }
 }
+
+.id-codes {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+
+  small {
+    font-size: 10.5px;
+    color: var(--txt3);
+  }
+}
+
+.id-price small.id-price__discount {
+  color: var(--gr);
+}

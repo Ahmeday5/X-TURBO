@@ -18,6 +18,9 @@ import { UrlListState } from '../../../../shared/list/url-list-state';
 import { formatMoney, formatRelative } from '../../../../shared/utils/format.util';
 import { Party, PartyPayload } from '../../../parties/models/party.model';
 import { PartiesService } from '../../../parties/services/parties.service';
+import { DetailsDrawerComponent } from '../../../../shared/components/details-drawer/details-drawer.component';
+import { toPartyDetails } from '../../../parties/utils/party-details';
+import { createQueryResource } from '../../../../shared/list/query-resource';
 
 
 /** Walk-in customers registered from the POS: quick form beside the list. */
@@ -26,6 +29,7 @@ import { PartiesService } from '../../../parties/services/parties.service';
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    DetailsDrawerComponent,
     ReactiveFormsModule,
     PageHeaderComponent,
     ListToolbarComponent,
@@ -47,6 +51,17 @@ export class ExternalCustomersPage {
   private readonly router = inject(Router);
 
   readonly navId = input.required<string>();
+
+  // ── Details drawer (👁) — fetched by id, so it shows the server's current state ──
+  protected readonly viewId = signal<string | null>(null);
+  protected readonly viewed = createQueryResource(this.viewId, (id) => this.api.get(id!), {
+    enabled: (id) => !!id,
+    errorMessage: 'تعذّر تحميل التفاصيل',
+  });
+  protected readonly details = computed(() => {
+    const x = this.viewed.value();
+    return x && x.id === this.viewId() ? toPartyDetails(x) : null;
+  });
 
   protected readonly state = new UrlListState({ pageSize: 10, defaultSort: { key: 'createdAt', dir: 'desc' } });
   protected readonly list = createListResource(this.state.query, (q) =>

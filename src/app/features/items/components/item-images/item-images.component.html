@@ -4,8 +4,8 @@
       <h2>صور الصنف</h2>
       <p>الصورة الرئيسية (★) هي اللي بتظهر على كارت المنتج في تطبيق الموبايل. اسحب الصور لتغيير ترتيبها.</p>
     </div>
-    <span class="ii__count" [class.is-full]="images().length >= rules.maxPerItem">
-      {{ images().length }} / {{ rules.maxPerItem }}
+    <span class="ii__count" [class.is-full]="imageCount() >= rules.maxPerItem">
+      {{ imageCount() }} / {{ rules.maxPerItem }}
     </span>
   </header>
 
@@ -69,10 +69,46 @@
   }
 
   <!-- Gallery -->
-  @if (loadError(); as err) {
+  @if (draftMode()) {
+  <p class="ii__draft-note" role="note">
+    <app-icon name="upload" [size]="14" /> سيتم رفع الصور بعد حفظ الصنف، بنفس هذا الترتيب — الصورة الأولى هي الرئيسية.
+  </p>
+  @if (!draft!.images().length) {
+  <div class="ii__state"><app-icon name="image" [size]="26" /><p>لم تُضف صور بعد</p></div>
+  } @else {
+  <ol class="ii__grid" aria-label="الصور المختارة بالترتيب">
+    @for (img of draft!.images(); track img.key; let i = $index, first = $first, last = $last) {
+    <li class="ii__tile" [class.is-primary]="first">
+      <img [src]="img.previewUrl" [alt]="'صورة ' + (i + 1)" />
+      <span class="ii__order">{{ i + 1 }}</span>
+      @if (first) {<span class="ii__badge"><app-icon name="star" [size]="12" /> الرئيسية</span>}
+      <div class="ii__tile-acts">
+        <button type="button" class="ii__btn" [disabled]="first" title="تعيين كصورة رئيسية"
+          [attr.aria-label]="'تعيين الصورة ' + (i + 1) + ' كرئيسية'" (click)="makeDraftPrimary(i)">
+          <app-icon name="star" [size]="15" />
+        </button>
+        <button type="button" class="ii__btn" [disabled]="first" title="تقديم" [attr.aria-label]="'تقديم الصورة ' + (i + 1)"
+          (click)="shiftDraft(i, -1)">
+          <app-icon name="chevron-left" [size]="15" />
+        </button>
+        <button type="button" class="ii__btn" [disabled]="last" title="تأخير" [attr.aria-label]="'تأخير الصورة ' + (i + 1)"
+          (click)="shiftDraft(i, 1)">
+          <app-icon name="chevron-left" [size]="15" class="ii__flip" />
+        </button>
+        <button type="button" class="ii__btn ii__btn--danger" title="إزالة" [attr.aria-label]="'إزالة الصورة ' + (i + 1)"
+          (click)="removeDraft(img.key)">
+          <app-icon name="trash" [size]="15" />
+        </button>
+      </div>
+      <small class="ii__meta ltr">{{ fileSize(img.file.size) }}</small>
+    </li>
+    }
+  </ol>
+  }
+  } @else if (loadError()) {
   <div class="ii__state">
     <app-icon name="alert" [size]="22" />
-    <p>{{ err }}</p>
+    <p>{{ loadError() }}</p>
     <button type="button" class="ui-btn ui-btn--ghost ui-btn--sm" (click)="load()">إعادة المحاولة</button>
   </div>
   } @else if (loading() && !images().length) {

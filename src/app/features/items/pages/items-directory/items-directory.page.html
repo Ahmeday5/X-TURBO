@@ -1,5 +1,10 @@
 <!-- Cell / card templates (static, so view-child signals resolve on first pass) -->
-<ng-template #codeCell let-item><span class="ui-code">{{ item.code }}</span></ng-template>
+<ng-template #codeCell let-item>
+  <div class="id-codes">
+    <span class="ui-code">{{ item.code }}</span>
+    @if (item.sku) {<small class="ltr" title="رقم SKU">SKU {{ item.sku }}</small>}
+  </div>
+</ng-template>
 
 <ng-template #nameCell let-item>
   <div class="id-name">
@@ -11,7 +16,11 @@
 <ng-template #priceCell let-item>
   <div class="id-price">
     <strong>{{ money(item.salePrice) }}</strong>
+    @if (item.discountPercent) {
+    <small class="id-price__discount">خصم {{ item.discountPercent }}% ← {{ money(discounted(item.salePrice, item.discountPercent)) }}</small>
+    } @else {
     <small>هامش {{ margin(item.purchasePrice, item.salePrice) }}%</small>
+    }
   </div>
 </ng-template>
 
@@ -83,7 +92,7 @@
   </select>
 </app-list-toolbar>
 
-<app-data-table [columns]="columns()" [data]="list.items()" [view]="state.view()" [sort]="state.query().sort"
+<app-data-table [rowClickable]="true" (rowClick)="viewId.set($event.id)" [columns]="columns()" [data]="list.items()" [view]="state.view()" [sort]="state.query().sort"
   [loading]="list.loading()" [initialLoading]="list.initialLoading()" [error]="list.error()"
   [skeletonCount]="state.query().pageSize" [cardTemplate]="card" [actionsTemplate]="actions" emptyIcon="box"
   emptyTitle="لا توجد أصناف مطابقة" emptyText="جرّب تعديل البحث أو الفلاتر، أو أضف صنفًا جديدًا."
@@ -96,12 +105,18 @@
 <app-details-drawer [open]="!!viewId()" label="تفاصيل الصنف" [details]="details()" [loading]="viewed.loading()"
   [error]="viewed.error()" (retry)="viewed.reload()" (closed)="viewId.set(null)">
   @if (details()) {
-  <button drawer-actions type="button" class="ui-btn ui-btn--ghost" (click)="openReviews(viewed.value()!)">
-    <app-icon name="star" [size]="15" /> التقييمات
-  </button>
-  <button drawer-actions type="button" class="ui-btn ui-btn--primary" (click)="edit(viewed.value()!)">
-    <app-icon name="edit" [size]="15" /> تعديل
-  </button>
+  <!-- One root node per @if so both buttons reach the actions slot. -->
+  <ng-container ngProjectAs="[drawer-actions]">
+    <a class="ui-btn ui-btn--ghost" routerLink="/items/barcode-labels" [queryParams]="{ items: viewed.value()!.id }">
+      <app-icon name="barcode" [size]="15" /> ملصق باركود
+    </a>
+    <button type="button" class="ui-btn ui-btn--ghost" (click)="openReviews(viewed.value()!)">
+      <app-icon name="star" [size]="15" /> التقييمات
+    </button>
+    <button type="button" class="ui-btn ui-btn--primary" (click)="edit(viewed.value()!)">
+      <app-icon name="edit" [size]="15" /> تعديل
+    </button>
+  </ng-container>
   }
 </app-details-drawer>
 

@@ -35,6 +35,10 @@
 </ng-template>
 
 <ng-template #actions [appRowOf]="list.items()" let-u>
+  <button type="button" class="ui-icon-btn" title="عرض التفاصيل" [attr.aria-label]="'عرض تفاصيل ' + u.name"
+    (click)="viewId.set(u.id)">
+    <app-icon name="eye" [size]="16" />
+  </button>
   <button type="button" class="ui-icon-btn" title="تعديل" [attr.aria-label]="'تعديل ' + u.name" (click)="edit(u)">
     <app-icon name="edit" [size]="16" />
   </button>
@@ -107,7 +111,7 @@
     [value]="state.query().filters['status']" (valueChange)="state.setFilter('status', $event)" />
 </app-list-toolbar>
 
-<app-data-table [columns]="columns()" [data]="list.items()" [view]="state.view()" [sort]="state.query().sort"
+<app-data-table [rowClickable]="true" (rowClick)="viewId.set($event.id)" [columns]="columns()" [data]="list.items()" [view]="state.view()" [sort]="state.query().sort"
   [loading]="list.loading()" [initialLoading]="list.initialLoading()" [error]="list.error()"
   [skeletonCount]="state.query().pageSize" [cardTemplate]="card" [actionsTemplate]="actions" emptyIcon="users"
   emptyTitle="لا يوجد مستخدمون مطابقون" emptyText="جرّب تعديل البحث أو الفلاتر، أو أضف مستخدمًا جديدًا."
@@ -129,3 +133,13 @@
   (closed)="closeDrawer()" (saved)="onSaved()" />
 
 <app-reset-password-modal [user]="resetting()" (closed)="resetting.set(null)" />
+
+<!-- Details (👁) — fetched by id -->
+<app-details-drawer [open]="!!viewId()" label="تفاصيل المستخدم" [details]="details()" [loading]="viewed.loading()"
+  [error]="viewed.error()" (retry)="viewed.reload()" (closed)="viewId.set(null)">
+  @if (viewed.value(); as x) {
+  <button drawer-actions type="button" class="ui-btn ui-btn--primary" (click)="viewId.set(null); edit(x)">
+    <app-icon name="edit" [size]="15" /> تعديل
+  </button>
+  }
+</app-details-drawer>

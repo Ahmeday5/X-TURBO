@@ -19,6 +19,8 @@ import {
   ORDER_ERROR_CODES,
   ORDER_ITEMS_PLURAL,
   ORDER_STATUS_VIEW,
+  OrderAction,
+  orderActions,
   OrderStatus,
   PAYMENT_METHOD_LABEL,
   PAYMENT_STATUS_VIEW,
@@ -27,6 +29,7 @@ import { OrdersService } from '../../services/orders.service';
 import { OrderProgressComponent } from '../order-progress/order-progress.component';
 import { ApiError } from '../../../../core/models/api-response.model';
 import { hasErrorCode } from '../../../../core/http/api-error-codes';
+import { runDrawerIntent } from '../../../../shared/utils/drawer-intent.util';
 
 /** Full order view in a side drawer, with the next fulfilment action and cancel. */
 @Component({
@@ -47,8 +50,26 @@ export class OrderDetailsDrawerComponent {
   readonly closed = output<void>();
   /** Emitted after a status change (or a stale-status conflict) so the page can refresh its list. */
   readonly changed = output<void>();
+  /** Action requested from the table row — run once the order has loaded. */
+  readonly intent = input<OrderAction | null>(null);
+  readonly intentDone = output<void>();
 
-  protected readonly order = createQueryResource(this.orderId, (id) => this.orders.get(id!), {
+  constructor() {
+    runDrawerIntent(this.current, this.intent, (o, action) => this.runAction(o, action), () => this.intentDone.emit());
+  }
+
+  /** Single entry for an action, from a table row (the footer calls the same methods). */
+  private runAction(order: Order, action: OrderAction): void {
+    if (!orderActions(order).some((a) => a.key === action)) {
+      this.toast.info(`لم يعد هذا الإجراء متاحًا — حالة الطلب ${order.number} الآن «${ORDER_STATUS_VIEW[order.status].label}»`);
+      return;
+    }
+    if (action === 'advance') this.advance(order);
+    else void this.cancel(order);
+  }
+
+  /** `orderId` may be an id or an order number (dashboard / shared links) — both open the order. */
+  protected readonly order = createQueryResource(this.orderId, (key) => this.orders.resolve(key!), {
     enabled: (id) => !!id,
     errorMessage: 'تعذّر تحميل الطلب',
   });
@@ -57,7 +78,8 @@ export class OrderDetailsDrawerComponent {
   /** Shows the old order only while it is the one requested (no flash of the previous order). */
   protected readonly current = computed(() => {
     const o = this.order.value();
-    return o && o.id === this.orderId() ? o : null;
+    const key = this.orderId();
+    return o && (o.id === key || o.number === key) ? o : null;
   });
   protected readonly next = computed(() => {
     const o = this.current();

@@ -15,6 +15,8 @@ import { StatusPillComponent } from '../../../../shared/components/status-pill/s
 import { StatusTab, StatusTabsComponent } from '../../../../shared/components/status-tabs/status-tabs.component';
 import { SummaryTile, SummaryTilesComponent } from '../../../../shared/components/summary-tiles/summary-tiles.component';
 import { RowTemplateDirective } from '../../../../shared/directives/row-template.directive';
+import { RowMenuComponent } from '../../../../shared/components/row-menu/row-menu.component';
+import { PaymentAction, paymentActions } from '../../utils/payment-actions';
 import { createListResource } from '../../../../shared/list/list-resource';
 import { createQueryResource } from '../../../../shared/list/query-resource';
 import { UrlListState } from '../../../../shared/list/url-list-state';
@@ -54,6 +56,7 @@ const FILTERS = ['status', 'method', 'settlement', 'from', 'to', 'orderId'] as c
     PageHeaderComponent,
     PaginationComponent,
     PaymentDrawerComponent,
+    RowMenuComponent,
     RowTemplateDirective,
     StatusPillComponent,
     StatusTabsComponent,
@@ -85,6 +88,10 @@ export class PaymentsPage {
   protected readonly stats = createQueryResource(this.statsQuery, (q) => this.payments.stats(q));
 
   protected readonly viewing = this.state.param('view');
+  private readonly doParam = this.state.param('do');
+  /** Row action waiting for the drawer to run it. */
+  protected readonly intent = computed(() => (this.doParam() as PaymentAction) || null);
+  protected readonly actionsOf = paymentActions;
   protected readonly exporting = signal(false);
 
   protected readonly tiles = computed<SummaryTile[]>(() => {
@@ -171,6 +178,11 @@ export class PaymentsPage {
 
   protected open(p: PaymentSummary): void {
     this.state.setParam('view', p.id);
+  }
+
+  /** Row action → the drawer runs it (its forms, confirms and rules — one implementation). */
+  protected act(p: PaymentSummary, action: PaymentAction): void {
+    this.state.setParams({ view: p.id, do: action });
   }
 
   protected setRange(range: DateRange): void {

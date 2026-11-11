@@ -21,6 +21,8 @@ import { CostCenter } from '../../models/cost-center.model';
 import { CostCentersService } from '../../services/cost-centers.service';
 import { CostCenterEditorComponent } from './cost-center-editor/cost-center-editor.component';
 import { todayIsoDate } from '../../../../shared/utils/date-iso.util';
+import { DetailsDrawerComponent } from '../../../../shared/components/details-drawer/details-drawer.component';
+import { toCostCenterDetails } from '../../utils/accounts-details';
 
 export interface BudgetUsage {
   /** % of the annual budget spent, `null` when there is no budget. */
@@ -45,6 +47,7 @@ export function budgetUsage(c: Pick<CostCenter, 'annualBudget' | 'actualSpend'>)
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    DetailsDrawerComponent,
     CostCenterEditorComponent,
     DataTableComponent,
     IconComponent,
@@ -64,6 +67,17 @@ export class CostCentersPage {
   private readonly toast = inject(ToastService);
 
   readonly navId = input.required<string>();
+
+  // ── Details drawer (👁) — fetched by id, so it shows the server's current state ──
+  protected readonly viewId = signal<string | null>(null);
+  protected readonly viewed = createQueryResource(this.viewId, (id) => this.api.get(id!), {
+    enabled: (id) => !!id,
+    errorMessage: 'تعذّر تحميل التفاصيل',
+  });
+  protected readonly details = computed(() => {
+    const x = this.viewed.value();
+    return x && x.id === this.viewId() ? toCostCenterDetails(x) : null;
+  });
 
   protected readonly state = new UrlListState({
     pageSize: 12,

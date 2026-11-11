@@ -27,6 +27,8 @@ import {
 import { ApiError } from '../../../../core/models/api-response.model';
 import { hasErrorCode } from '../../../../core/http/api-error-codes';
 import { WarehousesService } from '../../services/warehouses.service';
+import { DetailsDrawerComponent } from '../../../../shared/components/details-drawer/details-drawer.component';
+import { toWarehouseDetails } from '../../utils/warehouse-details';
 
 /** Every warehouse with capacity usage and stock figures; filters and view mirrored to the URL. */
 @Component({
@@ -34,6 +36,7 @@ import { WarehousesService } from '../../services/warehouses.service';
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    DetailsDrawerComponent,
     RouterLink,
     PageHeaderComponent,
     SummaryTilesComponent,
@@ -57,6 +60,17 @@ export class WarehousesDirectoryPage {
 
   /** Bound from route data. */
   readonly navId = input.required<string>();
+
+  // ── Details drawer (👁) — fetched by id, so it shows the server's current state ──
+  protected readonly viewId = signal<string | null>(null);
+  protected readonly viewed = createQueryResource(this.viewId, (id) => this.api.get(id!), {
+    enabled: (id) => !!id,
+    errorMessage: 'تعذّر تحميل التفاصيل',
+  });
+  protected readonly details = computed(() => {
+    const x = this.viewed.value();
+    return x && x.id === this.viewId() ? toWarehouseDetails(x) : null;
+  });
 
   protected readonly state = new UrlListState({
     pageSize: 12,

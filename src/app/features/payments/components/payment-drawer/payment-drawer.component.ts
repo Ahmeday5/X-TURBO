@@ -25,6 +25,8 @@ import {
   STORE_PAYMENT_STATUS_VIEW,
 } from '../../models/payment.model';
 import { PaymentsService } from '../../services/payments.service';
+import { PaymentAction, paymentActions } from '../../utils/payment-actions';
+import { runDrawerIntent } from '../../../../shared/utils/drawer-intent.util';
 
 type Busy = 'confirm' | 'fail' | 'retry' | 'refund' | 'settle' | null;
 type ModalKind = 'refund' | 'fail' | 'confirm' | null;
@@ -49,6 +51,9 @@ export class PaymentDrawerComponent {
   readonly closed = output<void>();
   /** Something changed — the list and totals should reload. */
   readonly changed = output<void>();
+  /** Action requested from the table row — run once the payment has loaded. */
+  readonly intent = input<PaymentAction | null>(null);
+  readonly intentDone = output<void>();
 
   protected readonly payment = createQueryResource(this.paymentId, (id) => this.payments.get(id!), {
     enabled: (id) => !!id,
@@ -96,6 +101,36 @@ export class PaymentDrawerComponent {
   protected readonly canRetry = canRetry;
   protected readonly refundable = refundable;
   protected readonly overdue = (p: Payment) => isSettlementOverdue(p, todayIsoDate());
+
+  /** The footer renders the same list as the table row's menu. */
+  protected readonly actions = computed(() => {
+    const p = this.current();
+    return p ? paymentActions(p) : [];
+  });
+
+  constructor() {
+    runDrawerIntent(this.current, this.intent, (p, action) => this.runAction(p, action), () => this.intentDone.emit());
+  }
+
+  /** Single entry for every action — footer button or table row. */
+  protected runAction(p: Payment, action: PaymentAction): void {
+    if (!this.actions().some((a) => a.key === action)) {
+      this.toast.info(`لم يعد هذا الإجراء متاحًا — حالة ${p.number} الآن «${STORE_PAYMENT_STATUS_VIEW[p.status].label}»`);
+      return;
+    }
+    switch (action) {
+      case 'confirm':
+        return this.openConfirm();
+      case 'fail':
+        return this.openFail();
+      case 'retry':
+        return void this.retry(p);
+      case 'settle':
+        return void this.settle(p);
+      case 'refund':
+        return this.openRefund();
+    }
+  }
 
   protected openOrder(p: Payment): void {
     this.router.navigate(['/orders'], { queryParams: { order: p.orderId } });

@@ -1,0 +1,120 @@
+<form class="cc" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+  <div class="cc__main">
+    <!-- Message -->
+    <section class="fp__section cc__section" style="--i: 0">
+      <header class="fp__section-head">
+        <span class="fp__section-icon"><app-icon name="mail" [size]="17" /></span>
+        <div>
+          <h2>نص الإشعار</h2>
+          <p>عنوان قصير ونص واضح — يظهر على شاشة موبايل العميل</p>
+        </div>
+      </header>
+
+      <label class="ui-field">
+        <span class="ui-label is-required cc__label-row">
+          العنوان
+          <small [class.is-over]="form.controls.title.value.length > rules.titleMax">
+            {{ form.controls.title.value.length }} / {{ rules.titleMax }}
+          </small>
+        </span>
+        <input class="ui-input" formControlName="title" [attr.maxlength]="rules.titleMax"
+          placeholder="مثال: خصم 20% على تيل الفرامل" />
+        <app-form-error [control]="form.controls.title" label="العنوان" />
+      </label>
+
+      <label class="ui-field">
+        <span class="ui-label is-required cc__label-row">
+          النص
+          <small [class.is-over]="form.controls.body.value.length > rules.bodyMax">
+            {{ form.controls.body.value.length }} / {{ rules.bodyMax }}
+          </small>
+        </span>
+        <textarea class="ui-input" rows="4" formControlName="body" [attr.maxlength]="rules.bodyMax"
+          placeholder="مثال: لفترة محدودة على كل تيل الفرامل — اطلب الآن من التطبيق"></textarea>
+        <app-form-error [control]="form.controls.body" label="النص" />
+      </label>
+    </section>
+
+    <!-- Link -->
+    <section class="fp__section cc__section" style="--i: 1">
+      <header class="fp__section-head">
+        <span class="fp__section-icon"><app-icon name="arrow-right" [size]="17" /></span>
+        <div>
+          <h2>عند الضغط على الإشعار</h2>
+          <p>اختياري — افتح منتجًا أو تصنيفًا أو طلبًا داخل التطبيق</p>
+        </div>
+      </header>
+
+      <div class="seg cc__seg" role="radiogroup" aria-label="نوع الرابط">
+        <label class="seg__btn" [attr.aria-pressed]="!form.controls.refType.value">
+          <input type="radio" class="cc__radio" formControlName="refType" value="" /> بدون رابط
+        </label>
+        @for (t of refTypes; track t) {
+        <label class="seg__btn" [attr.aria-pressed]="form.controls.refType.value === t">
+          <input type="radio" class="cc__radio" formControlName="refType" [value]="t" /> {{ refLabel[t] }}
+        </label>
+        }
+      </div>
+
+      @if (refType(); as type) {
+      <div class="ui-field">
+        <span class="ui-label is-required">{{ refLabel[type] }}</span>
+        <app-searchable-select formControlName="refId" [options]="options.value() ?? []"
+          [isDisabled]="options.loading()" [placeholder]="options.loading() ? 'جارٍ التحميل…' : refPlaceholder[type]"
+          searchPlaceholder="ابحث…" />
+        @if (options.error(); as error) {
+        <span class="ui-hint cc__error">{{ error }} — <button type="button" class="cc__link" (click)="options.reload()">إعادة المحاولة</button></span>
+        }
+        @if (type === 'order') {<span class="ui-hint">آخر طلبات التطبيق — الأحدث أولًا.</span>}
+        <app-form-error [control]="form.controls.refId" [label]="refLabel[type]" />
+      </div>
+      }
+    </section>
+
+    <!-- Audience -->
+    <section class="fp__section cc__section" style="--i: 2">
+      <header class="fp__section-head">
+        <span class="fp__section-icon"><app-icon name="users" [size]="17" /></span>
+        <div>
+          <h2>المستلمون</h2>
+          <p>كل عملاء التطبيق، أو عملاء تختارهم (حتى {{ rules.maxRecipients }})</p>
+        </div>
+      </header>
+
+      <div class="cc__targets" role="radiogroup" aria-label="المستلمون">
+        <label class="cc__target" [class.is-active]="target() === 'all'">
+          <input type="radio" formControlName="target" value="all" />
+          <app-icon name="users" [size]="18" />
+          <span><strong>كل العملاء</strong><small>كل عميل مفعّل في التطبيق</small></span>
+        </label>
+        <label class="cc__target" [class.is-active]="target() === 'customers'">
+          <input type="radio" formControlName="target" value="customers" />
+          <app-icon name="user-check" [size]="18" />
+          <span><strong>عملاء محددون</strong><small>اختيار من جدول بالبحث والتصفية</small></span>
+        </label>
+      </div>
+
+      @if (target() === 'customers') {
+      <app-recipient-picker [(selected)]="recipients" />
+      <app-form-error [control]="form.controls.customerIds" label="المستلمون" />
+      }
+    </section>
+  </div>
+
+  <!-- Preview -->
+  <aside class="cc__aside">
+    <div class="cc__preview">
+      <span class="cc__preview-label"><app-icon name="eye" [size]="14" /> معاينة على الموبايل</span>
+      <app-phone-preview [title]="form.controls.title.value" [body]="form.controls.body.value" [link]="linkLabel()" />
+    </div>
+  </aside>
+
+  <footer class="fp__actions cc__actions">
+    <p class="cc__note"><app-icon name="bell" [size]="13" /> يصل الإشعار فورًا لمن لديه موبايل مسجّل، ويظهر للباقين داخل التطبيق.</p>
+    <button type="button" class="ui-btn ui-btn--ghost" [disabled]="!!step()" (click)="reset()">مسح</button>
+    <button type="submit" class="ui-btn ui-btn--primary" [class.is-loading]="!!step()" [disabled]="!!step()">
+      <app-icon name="bell" [size]="16" />
+      {{ step() === 'counting' ? 'جارٍ حساب المستلمين…' : target() === 'all' ? 'إرسال لكل العملاء' : 'إرسال (' + recipients().length + ')' }}
+    </button>
+  </footer>
+</form>

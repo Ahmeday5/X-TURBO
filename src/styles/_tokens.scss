@@ -141,6 +141,18 @@
   --shadow-lg: 0 24px 60px rgba(0, 0, 0, 0.55), 0 2px 8px rgba(0, 0, 0, 0.35);
 }
 
+/* ── Layering scale — every overlay takes its z-index from here ──
+   Anything opened FROM a drawer (quote / reject / cancel dialogs, confirms)
+   must sit above it, so modals rank above drawers and the top bar. */
+:root {
+  --z-sidebar: 1000;
+  --z-drawer: 1080;
+  --z-topbar-popover: 1200;
+  --z-modal: 1300;
+  --z-loader: 9999;
+  --z-toast: 10000;
+}
+
 /* ── Bootstrap bridge: make Bootstrap's own components follow our tokens ── */
 :root,
 :root[data-theme='dark'] {

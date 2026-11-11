@@ -1,0 +1,104 @@
+<!-- Cell / card templates -->
+<ng-template #numberCell [appRowOf]="list.items()" let-r>
+  <div class="prp-number">
+    <span class="ui-code ltr">{{ r.number }}</span>
+    <small><app-icon name="clock" [size]="11" /> {{ relative(r.createdAt) }}</small>
+  </div>
+</ng-template>
+
+<ng-template #customerCell [appRowOf]="list.items()" let-r>
+  <div class="prp-customer">
+    <app-avatar [name]="r.customerName" [size]="32" />
+    <div>
+      <strong>{{ r.customerName }}</strong>
+      <small>{{ r.governorate || '—' }}</small>
+    </div>
+  </div>
+</ng-template>
+
+<ng-template #partCell [appRowOf]="list.items()" let-r>
+  <div class="prp-stack">
+    <strong>{{ r.partName }}</strong>
+    <small>
+      @if (r.carText) {<span>{{ r.carText }} ·</span>}
+      <app-icon name="image" [size]="11" /> {{ r.imagesCount }}
+    </small>
+  </div>
+</ng-template>
+
+<ng-template #quoteCell [appRowOf]="list.items()" let-r>
+  @if (r.quotedPrice !== null) {<strong class="prp-price">{{ money(r.quotedPrice) }}</strong>}
+  @else {<span class="prp-muted">—</span>}
+</ng-template>
+
+<ng-template #statusCell [appRowOf]="list.items()" let-r>
+  <app-status-pill [view]="statusView[r.status]" />
+</ng-template>
+
+<ng-template #actions [appRowOf]="list.items()" let-r>
+  <div class="row-actions">
+    <app-row-menu [actions]="actionsOf(r)" [quick]="true" [label]="'إجراءات ' + r.number" (run)="act(r, $event)" />
+    <button type="button" class="ui-icon-btn" title="التفاصيل" [attr.aria-label]="'تفاصيل ' + r.number" (click)="open(r)">
+      <app-icon name="eye" [size]="16" />
+    </button>
+  </div>
+</ng-template>
+
+<ng-template #card [appRowOf]="list.items()" let-r>
+  <article class="prp-card" [class.is-accepted]="r.status === 'accepted'">
+    <header>
+      <span class="ui-code ltr">{{ r.number }}</span>
+      <app-status-pill [view]="statusView[r.status]" />
+    </header>
+    <strong class="prp-card__part">{{ r.partName }}</strong>
+    @if (r.carText) {<span class="prp-card__car">{{ r.carText }}</span>}
+    <footer>
+      <span><app-icon name="user" [size]="12" /> {{ r.customerName }}</span>
+      <span><app-icon name="image" [size]="12" /> {{ r.imagesCount }}</span>
+      <span><app-icon name="clock" [size]="12" /> {{ relative(r.createdAt) }}</span>
+    </footer>
+  </article>
+</ng-template>
+
+<!-- Page -->
+<app-page-header [navId]="navId()" subtitle="طلبات «دوّرلي على القطعة» المرسلة بالصور من تطبيق الموبايل">
+  <button type="button" class="refresh-btn" [class.is-spinning]="list.loading()" [disabled]="list.loading()"
+    title="تحديث" aria-label="تحديث الطلبات" (click)="list.reload()">
+    <app-icon name="refresh" [size]="16" />
+  </button>
+</app-page-header>
+
+<div class="prp-chips" role="group" aria-label="تصفية سريعة بالحالة">
+  <button type="button" class="prp-chip" [class.is-active]="!activeStatus()" (click)="setStatus(null)">الكل</button>
+  @for (s of quickStatuses; track s) {
+  <button type="button" class="prp-chip" [class.is-active]="activeStatus() === s" [style.--c]="statusView[s].color"
+    [attr.aria-pressed]="activeStatus() === s" [title]="statusView[s].hint" (click)="toggleQuick(s)">
+    <span class="prp-chip__dot"></span> {{ statusView[s].label }}
+  </button>
+  }
+</div>
+
+<app-list-toolbar placeholder="ابحث برقم الطلب أو اسم القطعة أو العميل أو الهاتف…" [search]="state.query().search"
+  [view]="state.view()" [sort]="state.query().sort" [sortOptions]="sortOptions" [count]="list.count()"
+  [activeFilters]="state.activeFilters()" (searchChange)="state.setSearch($event)" (sortChange)="state.setSort($event)"
+  (viewChange)="state.setView($event)" (clearFilters)="state.clearFilters()">
+  <app-filter-select filters label="الحالة" allLabel="كل الحالات" [options]="statusOptions"
+    [value]="state.query().filters['status']" (valueChange)="setStatus($event)" />
+</app-list-toolbar>
+
+<app-data-table [columns]="columns()" [data]="list.items()" [view]="state.view()" [sort]="state.query().sort"
+  [loading]="list.loading()" [initialLoading]="list.initialLoading()" [error]="list.error()"
+  [skeletonCount]="state.query().pageSize" [cardTemplate]="card" [actionsTemplate]="actions" [rowClickable]="true"
+  emptyIcon="image" emptyTitle="لا توجد طلبات قطع مطابقة" emptyText="الطلبات تصل هنا عندما يرسل العميل صورة قطعة من التطبيق."
+  (rowClick)="open($event)" (sortChange)="state.toggleSort($event)" (retry)="list.reload()">
+  <button empty-actions type="button" class="ui-btn ui-btn--ghost" (click)="state.clearFilters()">
+    <app-icon name="x" [size]="15" /> مسح الفلاتر
+  </button>
+</app-data-table>
+
+<app-pagination class="prp-pager" [pageIndex]="state.query().pageIndex" [pageSize]="state.query().pageSize"
+  [count]="list.count()" [totalPages]="list.totalPages()" [pageSizeOptions]="[12, 24, 48, 96]"
+  [disabled]="list.loading()" (pageChange)="state.setPage($event)" (pageSizeChange)="state.setPageSize($event)" />
+
+<app-part-request-drawer [requestId]="openId() || null" [intent]="intent()" (intentDone)="state.setParam('do', null)"
+  (closed)="closeDrawer()" (changed)="list.reload()" />

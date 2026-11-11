@@ -45,6 +45,15 @@ export const NAV_SECTIONS: readonly NavSection[] = [
         keywords: ['اوردرات', 'طلبيات', 'طلبية'],
       },
       {
+        id: 'part-requests',
+        label: 'طلبات القطع بالصورة',
+        route: '/part-requests',
+        icon: 'image',
+        permissions: [P.orders],
+        description: 'طلبات «دوّرلي على القطعة» من تطبيق الموبايل — إرسال عرض سعر أو رفض',
+        keywords: ['طلب قطعة', 'صورة', 'تسعير', 'عرض سعر', 'موبايل'],
+      },
+      {
         id: 'erp-invoices',
         label: 'الفواتير',
         icon: 'receipt',
@@ -179,6 +188,14 @@ export const NAV_SECTIONS: readonly NavSection[] = [
             keywords: ['منتجات', 'قطع غيار'],
           },
           {
+            id: 'items.barcode-labels',
+            label: 'طباعة ملصقات الباركود',
+            route: '/items/barcode-labels',
+            icon: 'barcode',
+            description: 'ملصقات باركود للأصناف على رول حراري أو ورق A4 — يدويًا أو من فاتورة مشتريات',
+            keywords: ['باركود', 'ملصق', 'ستيكر', 'ليبل', 'label', 'sku', 'طباعة'],
+          },
+          {
             id: 'items.cars',
             label: 'ماركات وموديلات السيارات',
             route: '/items/cars',
@@ -274,6 +291,15 @@ export const NAV_SECTIONS: readonly NavSection[] = [
             keywords: ['مديونية', 'رصيد'],
           },
         ],
+      },
+      {
+        id: 'mobile-notifications',
+        label: 'إشعارات التطبيق',
+        route: '/mobile-notifications',
+        icon: 'bell',
+        permissions: [P.customers],
+        description: 'إرسال إشعارات لعملاء تطبيق الموبايل ومتابعة وصولها وقراءتها',
+        keywords: ['إشعار', 'نوتيفيكيشن', 'push', 'حملة', 'موبايل'],
       },
       {
         id: 'erp-vouchers',

@@ -15,6 +15,8 @@ import { StatusPillComponent } from '../../../../shared/components/status-pill/s
 import { StatusTab, StatusTabsComponent } from '../../../../shared/components/status-tabs/status-tabs.component';
 import { SummaryTile, SummaryTilesComponent } from '../../../../shared/components/summary-tiles/summary-tiles.component';
 import { RowTemplateDirective } from '../../../../shared/directives/row-template.directive';
+import { RowMenuComponent } from '../../../../shared/components/row-menu/row-menu.component';
+import { VoucherAction, voucherActions } from '../../utils/voucher-actions';
 import { createListResource } from '../../../../shared/list/list-resource';
 import { createQueryResource } from '../../../../shared/list/query-resource';
 import { UrlListState } from '../../../../shared/list/url-list-state';
@@ -69,6 +71,7 @@ const FILTERS = ['status', 'from', 'to', 'method', 'cashAccountId', 'partyId', '
     PageHeaderComponent,
     PaginationComponent,
     PrintStylesComponent,
+    RowMenuComponent,
     RowTemplateDirective,
     StatusPillComponent,
     StatusTabsComponent,
@@ -113,6 +116,10 @@ export class VouchersPage {
   /** `new` | voucher id → editor replaces the list. */
   protected readonly editing = this.state.param('voucher');
   protected readonly viewing = this.state.param('view');
+  private readonly doParam = this.state.param('do');
+  /** Row action waiting for the drawer to run it. */
+  protected readonly intent = computed(() => (this.doParam() as VoucherAction) || null);
+  protected readonly actionsOf = voucherActions;
   protected readonly exporting = signal(false);
   /** Voucher being printed (rendered `.print-only`). */
   protected readonly printing = signal<Voucher | null>(null);
@@ -205,6 +212,12 @@ export class VouchersPage {
 
   protected open(v: { id: string }): void {
     this.state.setParam('view', v.id);
+  }
+
+  /** Row action → the drawer runs it (one implementation); editing opens the editor directly. */
+  protected act(v: { id: string }, action: VoucherAction): void {
+    if (action === 'edit') return this.edit(v.id);
+    this.state.setParams({ view: v.id, do: action });
   }
 
   protected edit(id: string): void {

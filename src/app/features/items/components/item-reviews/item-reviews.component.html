@@ -1,0 +1,153 @@
+<!-- ── Cell templates ── -->
+<ng-template #ratingCell let-r>
+  <span class="ir-stars"><app-rating-stars [value]="r.rating" [size]="13" /> <strong>{{ r.rating }}</strong></span>
+</ng-template>
+
+<ng-template #commentCell let-r>
+  <div class="ir-comment" [class.is-hidden]="r.isHidden">
+    @if (r.comment) {<p>{{ r.comment }}</p>} @else {<p class="ir-comment__none">بدون تعليق</p>}
+    <div class="ir-badges">
+      @if (r.isVerifiedPurchase) {<span class="status-pill status-pill--good"><app-icon name="check" [size]="11" /> شراء مؤكد</span>}
+      @if (r.isHidden) {
+      <span class="status-pill status-pill--neutral" [title]="hiddenHint">مخفي{{ r.hiddenReason ? ' — ' + r.hiddenReason : '' }}</span>
+      }
+    </div>
+  </div>
+</ng-template>
+
+<ng-template #customerCell let-r>
+  <div class="ir-customer">
+    <strong>{{ r.customerName }}</strong>
+    <small class="ltr">{{ r.customerPhone }}</small>
+  </div>
+</ng-template>
+
+<ng-template #orderCell let-r>
+  @if (r.orderId) {
+  <a class="ir-order ltr" routerLink="/orders" [queryParams]="{ order: r.orderId }">{{ r.orderNumber }}</a>
+  } @else {—}
+</ng-template>
+
+<ng-template #dateCell let-r>
+  <span class="ir-date">{{ dateTime(r.createdAt) }}@if (edited(r)) { <small [title]="'آخر تعديل ' + dateTime(r.updatedAt)">(معدّل)</small>}</span>
+</ng-template>
+
+<ng-template #actions let-r>
+  @if (r.isHidden) {
+  <button type="button" class="ui-icon-btn" [title]="'إظهار — ' + hiddenHint" aria-label="إظهار التقييم"
+    [disabled]="busyId() === r.id" (click)="show(r)">
+    <app-icon name="eye" [size]="16" />
+  </button>
+  } @else {
+  <button type="button" class="ui-icon-btn ui-icon-btn--danger" [title]="'إخفاء — ' + hiddenHint" aria-label="إخفاء التقييم"
+    [disabled]="busyId() === r.id" (click)="openHide(r)">
+    <app-icon name="eye-off" [size]="16" />
+  </button>
+  }
+</ng-template>
+
+<ng-template #card let-r>
+  <article class="ir-card" [class.is-hidden]="r.isHidden">
+    <header>
+      <span class="ir-stars"><app-rating-stars [value]="r.rating" [size]="14" /> <strong>{{ r.rating }}</strong></span>
+      <span class="ir-date">{{ dateTime(r.createdAt) }}@if (edited(r)) { <small>(معدّل)</small>}</span>
+    </header>
+    @if (r.comment) {<p>{{ r.comment }}</p>} @else {<p class="ir-comment__none">بدون تعليق</p>}
+    <footer>
+      <div class="ir-customer"><strong>{{ r.customerName }}</strong><small class="ltr">{{ r.customerPhone }}</small></div>
+      <div class="ir-badges">
+        @if (r.isVerifiedPurchase) {<span class="status-pill status-pill--good">شراء مؤكد</span>}
+        @if (r.isHidden) {<span class="status-pill status-pill--neutral" [title]="hiddenHint">مخفي</span>}
+        @if (r.orderId) {<a class="ir-order ltr" routerLink="/orders" [queryParams]="{ order: r.orderId }">{{ r.orderNumber }}</a>}
+      </div>
+    </footer>
+    @if (r.isHidden && r.hiddenReason) {<small class="ir-card__reason">سبب الإخفاء: {{ r.hiddenReason }}</small>}
+  </article>
+</ng-template>
+
+<!-- ── Summary (whole item, ignores filters) ── -->
+<section class="ir-summary" [class.is-loading]="data.loading() && !summary()">
+  <div class="ir-avg">
+    <strong>{{ summary() ? summary()!.averageRating.toFixed(1) : '—' }}</strong>
+    <app-rating-stars [value]="summary()?.averageRating ?? 0" [size]="18" />
+    <small>{{ int(summary()?.reviewsCount ?? 0) }} تقييم ظاهر</small>
+  </div>
+
+  <div class="ir-dist" role="group" aria-label="توزيع النجوم — اضغط للتصفية">
+    @for (b of bars(); track b.rating) {
+    <button type="button" class="ir-bar" [class.is-active]="activeStars(b.rating)" [attr.aria-pressed]="activeStars(b.rating)"
+      [attr.aria-label]="b.rating + ' نجوم: ' + b.count + ' تقييم'" (click)="toggleStars(b.rating)">
+      <span class="ir-bar__label ltr">{{ b.rating }}★</span>
+      <span class="ir-bar__track"><span [style.width.%]="b.pct"></span></span>
+      <span class="ir-bar__count">{{ int(b.count) }} <small>({{ b.pct }}%)</small></span>
+    </button>
+    }
+  </div>
+
+  <div class="ir-chips">
+    <button type="button" class="ir-chip" [class.is-active]="state.query().filters['visibility'] === 'hidden'"
+      [title]="hiddenHint" (click)="state.setFilter('visibility', state.query().filters['visibility'] === 'hidden' ? null : 'hidden')">
+      <app-icon name="eye-off" [size]="13" /> مخفي: {{ int(summary()?.hiddenCount ?? 0) }}
+    </button>
+    <button type="button" class="ir-chip" [class.is-active]="state.query().filters['hasComment'] === 'true'"
+      (click)="setHasComment(state.query().filters['hasComment'] !== 'true')">
+      <app-icon name="file-lines" [size]="13" /> بتعليق: {{ int(summary()?.withCommentCount ?? 0) }}
+    </button>
+  </div>
+</section>
+
+<!-- ── Filters ── -->
+<app-list-toolbar placeholder="ابحث باسم العميل أو موبايله أو نص التعليق…" [search]="state.query().search"
+  [view]="state.view()" [sort]="state.query().sort" [sortOptions]="sortOptions" [count]="count()"
+  [activeFilters]="state.activeFilters()" (searchChange)="state.setSearch($event)" (sortChange)="state.setSort($event)"
+  (viewChange)="state.setView($event)" (clearFilters)="clearAll()">
+  <app-filter-select filters label="النجوم" allLabel="كل النجوم" [options]="starOptions"
+    [value]="state.query().filters['stars']" (valueChange)="state.setFilter('stars', $event)" />
+  <app-filter-select filters label="الحالة" allLabel="الكل" [options]="visibilityOptions"
+    [value]="state.query().filters['visibility']" (valueChange)="state.setFilter('visibility', $event)" />
+  <label filters class="ir-check">
+    <input type="checkbox" [checked]="state.query().filters['hasComment'] === 'true'"
+      (change)="setHasComment($any($event.target).checked)" />
+    فيه تعليق
+  </label>
+</app-list-toolbar>
+
+<app-date-range class="ir-range" [from]="state.query().filters['from'] || null" [to]="state.query().filters['to'] || null"
+  (rangeChange)="setRange($event)" />
+
+<!-- ── List ── -->
+<app-data-table [columns]="columns()" [data]="rows()" [view]="state.view()" [sort]="state.query().sort"
+  [loading]="data.loading()" [initialLoading]="data.loading() && !data.value()" [error]="data.error()"
+  [skeletonCount]="state.query().pageSize" [cardTemplate]="card" [actionsTemplate]="actions" emptyIcon="star"
+  [emptyTitle]="noReviewsAtAll() ? 'لا توجد تقييمات لهذا الصنف بعد' : 'لا توجد نتائج مطابقة للفلاتر'"
+  [emptyText]="noReviewsAtAll() ? 'تظهر هنا تقييمات العملاء من تطبيق الموبايل بعد استلام طلباتهم.' : 'جرّب تعديل البحث أو الفلاتر.'"
+  (sortChange)="state.toggleSort($event)" (retry)="data.reload()">
+  @if (!noReviewsAtAll() && hasFilters()) {
+  <button empty-actions type="button" class="ui-btn ui-btn--ghost" (click)="clearAll()">
+    <app-icon name="x" [size]="15" /> مسح الفلاتر
+  </button>
+  }
+</app-data-table>
+
+<app-pagination class="ir-pager" [pageIndex]="state.query().pageIndex" [pageSize]="state.query().pageSize"
+  [count]="count()" [totalPages]="totalPages()" [pageSizeOptions]="[10, 25, 50, 100]" [disabled]="data.loading()"
+  (pageChange)="state.setPage($event)" (pageSizeChange)="state.setPageSize($event)" />
+
+<!-- ── Hide dialog ── -->
+<app-modal [open]="!!hiding()" title="إخفاء التقييم" size="sm" (closed)="hiding.set(null)">
+  <p class="ir-modal-text">{{ hiddenHint }}. يمكنك إظهاره مرة أخرى في أي وقت.</p>
+  <label class="ui-field">
+    <span class="ui-label ir-label-row">
+      سبب الإخفاء (اختياري)
+      <small>{{ hideReason().length }} / {{ reasonMax }}</small>
+    </span>
+    <textarea class="ui-input" rows="3" [attr.maxlength]="reasonMax" [value]="hideReason()"
+      (input)="hideReason.set($any($event.target).value)" placeholder="مثال: تعليق غير لائق"></textarea>
+  </label>
+  <div modal-footer class="ir-modal-actions">
+    <button type="button" class="ui-btn ui-btn--ghost" (click)="hiding.set(null)">تراجع</button>
+    <button type="button" class="ui-btn ui-btn--danger" (click)="confirmHide()">
+      <app-icon name="eye-off" [size]="15" /> إخفاء التقييم
+    </button>
+  </div>
+</app-modal>

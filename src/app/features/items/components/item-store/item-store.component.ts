@@ -12,6 +12,7 @@ import { AppValidators } from '../../../../shared/validators/app-validators';
 import { ItemStore, ItemStorePayload, MIN_TIER_QTY, PriceTier, priceBands, tierIssues } from '../../models/item-store.model';
 import { ItemImagesService } from '../../services/item-images.service';
 import { ItemStoreService } from '../../services/item-store.service';
+import { ItemDraftService } from '../../services/item-draft.service';
 
 /** Tier quantity floor, explained: one unit always sells at the base price. */
 function minTierQty(control: AbstractControl): ValidationErrors | null {
@@ -48,9 +49,14 @@ export class ItemStoreComponent {
   private readonly images = inject(ItemImagesService);
   private readonly toast = inject(ToastService);
 
-  readonly itemId = input.required<string>();
+  /** `null` = a new, unsaved item: settings go to the draft and are saved right after the item. */
+  readonly itemId = input<string | null>(null);
   /** The item's sale price — what one unit costs, and the ceiling for every tier. */
   readonly basePrice = input.required<number>();
+
+  /** Provided by the item screen; holds a new item's pending store settings. */
+  private readonly setup = inject(ItemDraftService, { optional: true });
+  protected readonly draftMode = computed(() => !this.itemId() && !!this.setup);
 
   protected readonly money = formatMoney;
   protected readonly minQty = MIN_TIER_QTY;
@@ -85,16 +91,38 @@ export class ItemStoreComponent {
     ),
   );
 
-  protected readonly publishedWithoutImages = computed(() => !!this.draft().isPublished && this.imagesCount() === 0);
+  protected readonly publishedWithoutImages = computed(
+    () => !!this.draft().isPublished && (this.draftMode() ? this.setup!.images().length === 0 : this.imagesCount() === 0),
+  );
 
   constructor() {
     effect(() => {
       const id = this.itemId();
-      untracked(() => this.load(id));
+      untracked(() => {
+        if (id) this.load(id);
+        else if (this.setup) this.restoreDraft();
+      });
+    });
+
+    // New item: every edit is mirrored into the draft, with whether it's valid
+    // (the item can't be saved while the tiers have errors).
+    effect(() => {
+      if (!this.draftMode()) return;
+      this.draft();
+      const issues = this.issues();
+      untracked(() => this.setup!.setStore(this.payload(), this.form.valid && !issues.size));
     });
   }
 
+  /** Back on this tab while creating: show what was entered before. */
+  private restoreDraft(): void {
+    const s = this.setup!.store();
+    this.apply({ itemId: '', isPublished: s?.isPublished ?? false, isFastDelivery: s?.isFastDelivery ?? false, priceTiers: s?.priceTiers ?? [] });
+    this.submitted.set(!this.setup!.storeValid());
+  }
+
   protected load(itemId = this.itemId()): void {
+    if (!itemId) return;
     this.loading.set(true);
     this.loadError.set(null);
     this.api
@@ -126,22 +154,16 @@ export class ItemStoreComponent {
 
   protected submit(): void {
     this.submitted.set(true);
+    if (this.draftMode()) return; // saved together with the new item
     if (this.form.invalid || this.issues().size) {
       this.form.markAllAsTouched();
       this.toast.warning('راجع شرائح الأسعار — الأخطاء موضحة تحت كل شريحة');
       return;
     }
-    const v = this.form.getRawValue();
-    const payload: ItemStorePayload = {
-      isPublished: v.isPublished,
-      isFastDelivery: v.isFastDelivery,
-      priceTiers: v.priceTiers
-        .map((t) => ({ minQty: Math.floor(Number(t.minQty)), unitPrice: Math.round(Number(t.unitPrice) * 100) / 100 }))
-        .sort((a, b) => a.minQty - b.minQty),
-    };
+    const payload = this.payload();
     this.saving.set(true);
     this.api
-      .save(this.itemId(), payload)
+      .save(this.itemId()!, payload)
       .pipe(finalize(() => this.saving.set(false)))
       .subscribe({
         next: (s) => {
@@ -151,6 +173,19 @@ export class ItemStoreComponent {
         // 422 `priceTiers[1].unitPrice` etc. → under that tier's field.
         error: (err: ApiError) => applyServerErrors(this.form, err),
       });
+  }
+
+  /** Form → API payload (tiers rounded and sorted by quantity). */
+  private payload(): ItemStorePayload {
+    const v = this.form.getRawValue();
+    return {
+      isPublished: v.isPublished,
+      isFastDelivery: v.isFastDelivery,
+      priceTiers: v.priceTiers
+        .filter((t) => t.minQty !== null && t.unitPrice !== null)
+        .map((t) => ({ minQty: Math.floor(Number(t.minQty)), unitPrice: Math.round(Number(t.unitPrice) * 100) / 100 }))
+        .sort((a, b) => a.minQty - b.minQty),
+    };
   }
 
   private apply(s: ItemStore): void {

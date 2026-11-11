@@ -1,3 +1,4 @@
+import { RowAction } from '../../../shared/models/row-action.model';
 import { StatusView } from '../../../shared/models/status-tone.model';
 import { ArabicPluralForms } from '../../../shared/utils/plural.util';
 
@@ -111,6 +112,19 @@ export const ORDER_ADVANCE_LABEL: Partial<Record<OrderStatus, string>> = {
   shipped: 'تأكيد الشحن',
   delivered: 'تأكيد التسليم',
 };
+
+export type OrderAction = 'advance' | 'cancel';
+
+/** What can be done to an order now — the same list for its table row and its drawer. */
+export function orderActions(o: Pick<OrderSummary, 'status'>): RowAction<OrderAction>[] {
+  const next = nextOrderStatus(o.status);
+  const actions: RowAction<OrderAction>[] = [];
+  if (next && ORDER_ADVANCE_LABEL[next]) {
+    actions.push({ key: 'advance', label: ORDER_ADVANCE_LABEL[next]!, icon: 'check', tone: 'primary' });
+  }
+  if (canCancelOrder(o.status)) actions.push({ key: 'cancel', label: 'إلغاء الطلب', icon: 'x', tone: 'danger', separated: true });
+  return actions;
+}
 
 export const ORDER_CHANNELS: readonly OrderChannel[] = ['online', 'pos', 'wholesale'];
 export const CHANNEL_LABEL: Record<OrderChannel, string> = {

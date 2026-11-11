@@ -124,32 +124,11 @@
 
   <div drawer-footer class="pd-actions">
     @if (current(); as p) {
-    @if (p.status === 'pending') {
-    <button type="button" class="ui-btn ui-btn--primary" [class.is-loading]="busy() === 'confirm'" [disabled]="!!busy()"
-      (click)="openConfirm()">
-      <app-icon name="check" [size]="16" /> {{ p.method === 'cod' ? 'تأكيد التحصيل' : 'تأكيد السداد' }}
-    </button>
-    <button type="button" class="ui-btn ui-btn--danger" [class.is-loading]="busy() === 'fail'" [disabled]="!!busy()"
-      (click)="openFail()">
-      <app-icon name="x" [size]="16" /> تعذّر التحصيل
-    </button>
-    }
-    @if (canRetry(p)) {
-    <button type="button" class="ui-btn ui-btn--primary" [class.is-loading]="busy() === 'retry'" [disabled]="!!busy()"
-      (click)="retry(p)">
-      <app-icon name="refresh" [size]="16" /> إعادة محاولة التحصيل
-    </button>
-    }
-    @if (canSettle(p)) {
-    <button type="button" class="ui-btn ui-btn--primary" [class.is-loading]="busy() === 'settle'" [disabled]="!!busy()"
-      (click)="settle(p)">
-      <app-icon name="scale" [size]="16" /> تأكيد التسوية
-    </button>
-    }
-    @if (canRefund(p)) {
-    <button type="button" class="ui-btn ui-btn--ghost" [class.is-loading]="busy() === 'refund'" [disabled]="!!busy()"
-      (click)="openRefund()">
-      <app-icon name="return" [size]="16" /> استرداد
+    @for (a of actions(); track a.key) {
+    <button type="button" class="ui-btn" [class.ui-btn--primary]="a.tone === 'primary'"
+      [class.ui-btn--danger]="a.tone === 'danger'" [class.ui-btn--ghost]="!a.tone" [class.is-loading]="busy() === a.key"
+      [disabled]="!!busy()" (click)="runAction(p, a.key)">
+      <app-icon [name]="a.icon" [size]="16" /> {{ a.label }}
     </button>
     }
     }

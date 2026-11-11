@@ -73,6 +73,18 @@
   line-height: 1.6;
 }
 
+.ist-note {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 14px 0 0;
+  padding: 10px 12px;
+  border-radius: var(--rl);
+  background: var(--primary-soft);
+  color: var(--primary-strong);
+  font-size: 12px;
+}
+
 /* ── Preview ── */
 
 .ist-bands {

@@ -33,6 +33,12 @@ export class RevenuePanelComponent {
   protected readonly formatInteger = formatInteger;
   protected readonly formatDayMonth = formatDayMonth;
 
+  /** Nothing sold in the period — explain instead of drawing a flat line at 0. */
+  protected readonly isEmpty = computed(() => {
+    const r = this.revenue();
+    return !r.total && r.series.every((p) => !p.revenue && !p.orders);
+  });
+
   protected readonly points = computed<ChartPoint[]>(() =>
     this.revenue().series.map((p) => ({ label: formatDayMonth(p.date), value: p.revenue })),
   );

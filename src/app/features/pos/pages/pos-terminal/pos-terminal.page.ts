@@ -17,6 +17,7 @@ import { finalize, startWith, Subject, switchMap } from 'rxjs';
 import { AuthService } from '../../../../core/auth/services/auth.service';
 import { ToastService } from '../../../../core/services/toast.service';
 import { IconComponent } from '../../../../shared/components/icon/icon.component';
+import { SCAN_HINT, SCAN_PLACEHOLDER } from '../../../../shared/barcode/scan-hint.const';
 import { ModalComponent } from '../../../../shared/components/modal/modal.component';
 import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
 import {
@@ -60,6 +61,8 @@ const WALK_IN = '';
   styleUrl: './pos-terminal.page.scss',
 })
 export class PosTerminalPage {
+  protected readonly scanHint = SCAN_HINT;
+  protected readonly scanPlaceholder = SCAN_PLACEHOLDER;
   private readonly stock = inject(StockService);
   private readonly docs = inject(DocumentsService);
   private readonly parties = inject(PartiesService);
@@ -245,7 +248,10 @@ export class PosTerminalPage {
     e.preventDefault();
     const raw = this.term().trim();
     if (!raw) return;
-    const exact = (this.items.value() ?? []).find((i) => i.barcode === raw || normalizeArabic(i.code) === normalizeArabic(raw));
+    const lower = raw.toLowerCase();
+    const exact = (this.items.value() ?? []).find(
+      (i) => i.barcode?.toLowerCase() === lower || normalizeArabic(i.code) === normalizeArabic(raw),
+    );
     const target = exact ?? (this.visibleItems().length === 1 ? this.visibleItems()[0] : null);
     if (target) {
       if (this.add(target)) this.term.set('');

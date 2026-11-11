@@ -4,6 +4,7 @@ import { SortState } from '../../../core/models/list-query.model';
 import { ViewportService } from '../../../core/services/viewport.service';
 import { ViewMode } from '../../list/url-list-state';
 import { IconComponent, IconName } from '../icon/icon.component';
+import { shouldActivateRow } from '../../utils/row-activation.util';
 
 export interface TableColumn<T = any> {
   key: string;
@@ -58,6 +59,15 @@ export class DataTableComponent<T extends Record<string, any>> {
 
   readonly sortChange = output<string>();
   readonly rowClick = output<T>();
+
+  /**
+   * Row / card activation (click or Enter) → `rowClick`. Ignored when the row
+   * isn't clickable, when the click landed on something interactive inside a
+   * cell (a link, button, input…), or when the user was selecting text to copy.
+   */
+  protected activate(row: T, event: Event): void {
+    if (this.rowClickable() && shouldActivateRow(event)) this.rowClick.emit(row);
+  }
   readonly retry = output<void>();
 
   /** Phones always get cards — a wide table is unusable there. */

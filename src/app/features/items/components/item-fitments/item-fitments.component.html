@@ -108,6 +108,11 @@
   </div>
   }
 
+  @if (draftMode()) {
+  <p class="ift__draft-note" role="note">
+    <app-icon name="check" [size]="14" /> تُحفظ التوافقات تلقائيًا مع الصنف عند الضغط على «حفظ الصنف».
+  </p>
+  } @else {
   <footer class="ift__actions">
     @if (dirty()) {<span class="ift__unsaved"><app-icon name="alert" [size]="13" /> تغييرات غير محفوظة</span>}
     <button type="button" class="ui-btn ui-btn--ghost" [disabled]="!dirty() || saving()" (click)="revert()">تراجع</button>
@@ -115,5 +120,6 @@
       <app-icon name="check" [size]="16" /> حفظ التوافقات
     </button>
   </footer>
+  }
 </section>
 }

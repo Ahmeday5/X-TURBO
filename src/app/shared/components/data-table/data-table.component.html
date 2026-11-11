@@ -81,7 +81,9 @@
       </thead>
       <tbody>
         @for (row of data(); track rowKey(row); let i = $index) {
-        <tr class="dt__row" [class.is-clickable]="rowClickable()" [style.--i]="i" (click)="rowClick.emit(row)">
+        <tr class="dt__row" [class.is-clickable]="rowClickable()" [style.--i]="i"
+          [attr.tabindex]="rowClickable() ? 0 : null" [attr.aria-label]="rowClickable() ? 'عرض التفاصيل' : null"
+          (click)="activate(row, $event)" (keydown.enter)="activate(row, $event)">
           @for (col of columns(); track col.key) {
           <td [style.text-align]="col.align ?? 'start'">
             @if (col.cellTemplate) {
@@ -105,7 +107,8 @@
   <!-- Cards -->
   <div class="dt__cards">
     @for (row of data(); track rowKey(row); let i = $index) {
-    <article class="dt__card" [class.is-clickable]="rowClickable()" [style.--i]="i" (click)="rowClick.emit(row)">
+    <article class="dt__card" [class.is-clickable]="rowClickable()" [style.--i]="i"
+      [attr.tabindex]="rowClickable() ? 0 : null" (click)="activate(row, $event)" (keydown.enter)="activate(row, $event)">
       @if (cardTemplate(); as card) {
       <ng-container *ngTemplateOutlet="card; context: { $implicit: row }" />
       } @else {

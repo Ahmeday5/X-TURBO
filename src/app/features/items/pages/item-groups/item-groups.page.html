@@ -2,7 +2,11 @@
 
 <ng-template #nameCell let-g>
   <div class="ig-name">
+    @if (g.imageUrl) {
+    <img class="ig-name__img" [src]="g.imageUrl" alt="" loading="lazy" [style.--chip]="g.color" />
+    } @else {
     <span class="ig-name__dot" [style.--chip]="g.color"><app-icon name="folder" [size]="15" /></span>
+    }
     <div>
       <strong>{{ g.name }}</strong>
       @if (g.description) {<small>{{ g.description }}</small>}
@@ -39,7 +43,11 @@
   <div class="ig-card" [style.--chip]="g.color">
     <span class="ig-card__glow" aria-hidden="true"></span>
     <header class="ig-card__head">
+      @if (g.imageUrl) {
+      <img class="ig-card__icon ig-card__img" [src]="g.imageUrl" alt="" loading="lazy" />
+      } @else {
       <span class="ig-card__icon"><app-icon name="folder" [size]="22" /></span>
+      }
       <span class="status-pill" [class.status-pill--good]="g.isActive" [class.status-pill--neutral]="!g.isActive">
         {{ g.isActive ? 'نشطة' : 'موقوفة' }}
       </span>
@@ -59,11 +67,87 @@
 
 <!-- Page -->
 <app-page-header [navId]="navId()">
-  <button type="button" class="ui-btn ui-btn--primary" (click)="editing.set(null)">
-    <app-icon name="plus" [size]="16" /> مجموعة جديدة
+  <div class="seg ig-mode" role="tablist" aria-label="طريقة العرض">
+    <button type="button" class="seg__btn" role="tab" [attr.aria-pressed]="mode() === 'tree'"
+      [attr.aria-selected]="mode() === 'tree'" (click)="setMode('tree')">
+      <app-icon name="sitemap" [size]="15" /> شجرة
+    </button>
+    <button type="button" class="seg__btn" role="tab" [attr.aria-pressed]="mode() === 'list'"
+      [attr.aria-selected]="mode() === 'list'" (click)="setMode('list')">
+      <app-icon name="table" [size]="15" /> قائمة
+    </button>
+  </div>
+  <button type="button" class="ui-btn ui-btn--primary" (click)="create()">
+    <app-icon name="plus" [size]="16" /> مجموعة رئيسية
   </button>
 </app-page-header>
 
+@if (mode() === 'tree') {
+<div class="ig-tree-bar">
+  <label class="ui-affix ig-tree-bar__search">
+    <span class="ui-affix__text"><app-icon name="search" [size]="15" /></span>
+    <input class="ui-input" type="search" placeholder="ابحث في الشجرة بالاسم أو الكود…" [value]="treeSearch()"
+      (input)="treeSearch.set($any($event.target).value)" aria-label="بحث في شجرة المجموعات" />
+  </label>
+  @if (tree.value()) {
+  <span class="ig-tree-bar__stats">
+    {{ treeStats().groups }} مجموعة · {{ treeStats().roots }} رئيسية · {{ treeStats().leaves }} فرع نهائي
+  </span>
+  }
+  <button type="button" class="ui-btn ui-btn--ghost" (click)="expandAll()">فتح الكل</button>
+  <button type="button" class="ui-btn ui-btn--ghost" (click)="collapseAll()">طي الكل</button>
+  <button type="button" class="refresh-btn" [class.is-spinning]="tree.loading()" [disabled]="tree.loading()"
+    title="تحديث" aria-label="تحديث الشجرة" (click)="tree.reload()">
+    <app-icon name="refresh" [size]="16" />
+  </button>
+</div>
+
+<p class="ig-tree-hint">
+  <app-icon name="alert" [size]="13" /> اضغط على مجموعة رئيسية لعرض فروعها، وعلى الفرع لعرض أصنافه. الأصناف تكون تحت المجموعات الفرعية فقط.
+</p>
+
+@if (misplaced().length) {
+<div class="ig-fix" role="alert">
+  <app-icon name="alert" [size]="18" />
+  <div class="ig-fix__text">
+    <strong>{{ misplaced().length }} مجموعة رئيسية تحتوي على أصناف مباشرة</strong>
+    <span>الأصناف لازم تكون تحت مجموعات فرعية — حوّل كل مجموعة منها لفرعية تحت مجموعة رئيسية، وتنتقل أصنافها معها.</span>
+    <div class="ig-fix__chips">
+      @for (g of misplaced(); track g.id) {
+      <button type="button" class="ig-fix__chip" (click)="makeSub(g)">
+        {{ g.name }} ({{ g.itemsCount }} صنف) — تحويل لفرعية
+      </button>
+      }
+    </div>
+  </div>
+</div>
+}
+
+@if (tree.value(); as nodes) {
+@if (nodes.length) {
+<app-group-tree [nodes]="nodes" [search]="treeSearch()" (view)="viewId.set($event.id)" (edit)="editNode($event)"
+  (addChild)="create($event.id)" (remove)="removeNode($event)" (makeSub)="makeSub($event)" />
+} @else {
+<div class="page-state">
+  <span class="page-state__icon"><app-icon name="folder" [size]="22" /></span>
+  <p class="panel__title">لا توجد مجموعات بعد</p>
+  <button type="button" class="ui-btn ui-btn--primary" (click)="create()">
+    <app-icon name="plus" [size]="16" /> أول مجموعة رئيسية
+  </button>
+</div>
+}
+} @else if (tree.error()) {
+<div class="page-state">
+  <span class="page-state__icon"><app-icon name="alert" [size]="22" /></span>
+  <p class="panel__title">{{ tree.error() }}</p>
+  <button type="button" class="ui-btn ui-btn--ghost" (click)="tree.reload()">
+    <app-icon name="refresh" [size]="15" /> إعادة المحاولة
+  </button>
+</div>
+} @else {
+@for (h of [52, 52, 52, 52, 52]; track $index) {<span class="skeleton ig-tree-skeleton" [style.height.px]="h"></span>}
+}
+} @else {
 <app-list-toolbar placeholder="ابحث باسم المجموعة أو الكود…" [search]="state.query().search" [view]="state.view()"
   [sort]="state.query().sort" [sortOptions]="sortOptions" [count]="list.count()" [activeFilters]="state.activeFilters()"
   (searchChange)="state.setSearch($event)" (sortChange)="state.setSort($event)" (viewChange)="state.setView($event)"
@@ -75,12 +159,12 @@
   </select>
 </app-list-toolbar>
 
-<app-data-table [columns]="columns()" [data]="list.items()" [view]="state.view()" [sort]="state.query().sort"
+<app-data-table [rowClickable]="true" (rowClick)="viewId.set($event.id)" [columns]="columns()" [data]="list.items()" [view]="state.view()" [sort]="state.query().sort"
   [loading]="list.loading()" [initialLoading]="list.initialLoading()" [error]="list.error()"
   [skeletonCount]="state.query().pageSize" [cardTemplate]="card" [actionsTemplate]="actions" emptyIcon="folder"
   emptyTitle="لا توجد مجموعات مطابقة" emptyText="جرّب بحثًا آخر أو أضف مجموعة جديدة."
   (sortChange)="state.toggleSort($event)" (retry)="list.reload()">
-  <button empty-actions type="button" class="ui-btn ui-btn--primary" (click)="editing.set(null)">
+  <button empty-actions type="button" class="ui-btn ui-btn--primary" (click)="create()">
     <app-icon name="plus" [size]="16" /> مجموعة جديدة
   </button>
 </app-data-table>
@@ -88,18 +172,22 @@
 <app-pagination class="ig-pager" [pageIndex]="state.query().pageIndex" [pageSize]="state.query().pageSize"
   [count]="list.count()" [totalPages]="list.totalPages()" [pageSizeOptions]="[12, 24, 48]" [disabled]="list.loading()"
   (pageChange)="state.setPage($event)" (pageSizeChange)="state.setPageSize($event)" />
+}
 
 <app-details-drawer [open]="!!viewId()" label="تفاصيل المجموعة" [details]="details()" [loading]="viewed.loading()"
   [error]="viewed.error()" (retry)="viewed.reload()" (closed)="viewId.set(null)">
   @if (viewed.value(); as g) {
-  <button drawer-actions type="button" class="ui-btn ui-btn--ghost" (click)="viewId.set(null); openItems(g)">
-    <app-icon name="table" [size]="15" /> أصناف المجموعة
-  </button>
-  <button drawer-actions type="button" class="ui-btn ui-btn--primary" (click)="viewId.set(null); editing.set(g)">
-    <app-icon name="edit" [size]="15" /> تعديل
-  </button>
+  <!-- One root node per @if so both buttons reach the actions slot. -->
+  <ng-container ngProjectAs="[drawer-actions]">
+    <button type="button" class="ui-btn ui-btn--ghost" (click)="viewId.set(null); openItems(g)">
+      <app-icon name="table" [size]="15" /> أصناف المجموعة
+    </button>
+    <button type="button" class="ui-btn ui-btn--primary" (click)="viewId.set(null); editing.set(g)">
+      <app-icon name="edit" [size]="15" /> تعديل
+    </button>
+  </ng-container>
   }
 </app-details-drawer>
 
-<app-group-form-dialog [open]="editing() !== undefined" [group]="editing() ?? null" [parents]="parents()"
-  (closed)="editing.set(undefined)" (saved)="onSaved()" />
+<app-group-form-dialog [open]="editing() !== undefined" [group]="editing() ?? null" [tree]="tree.value() ?? []"
+  [parentId]="newParentId()" [requireParent]="movingToSub()" (closed)="closeDialog()" (saved)="onSaved()" />

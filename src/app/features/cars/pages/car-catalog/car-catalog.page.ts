@@ -4,6 +4,7 @@ import { ApiError } from '../../../../core/models/api-response.model';
 import { DialogService } from '../../../../core/services/dialog.service';
 import { ToastService } from '../../../../core/services/toast.service';
 import { IconComponent } from '../../../../shared/components/icon/icon.component';
+import { shouldActivateRow } from '../../../../shared/utils/row-activation.util';
 import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
 import { createQueryResource } from '../../../../shared/list/query-resource';
 import { matchesAll, tokenize } from '../../../../shared/utils/arabic-search.util';
@@ -19,6 +20,8 @@ import {
   toCarModelPayload,
 } from '../../models/car.model';
 import { CarCatalogService } from '../../services/car-catalog.service';
+import { toCarMakeDetails, toCarModelDetails } from '../../utils/car-details';
+import { DetailsDrawerComponent } from '../../../../shared/components/details-drawer/details-drawer.component';
 
 /**
  * Car makes & models (master–detail): makes on one side, the selected make's
@@ -29,7 +32,7 @@ import { CarCatalogService } from '../../services/car-catalog.service';
   selector: 'app-car-catalog-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [PageHeaderComponent, IconComponent, CarMakeDialogComponent, CarModelDialogComponent],
+  imports: [PageHeaderComponent, IconComponent, CarMakeDialogComponent, CarModelDialogComponent, DetailsDrawerComponent],
   templateUrl: './car-catalog.page.html',
   styleUrl: './car-catalog.page.scss',
 })
@@ -84,6 +87,25 @@ export class CarCatalogPage {
   protected readonly modelDialogOpen = signal(false);
   protected readonly editingModel = signal<CarModel | null>(null);
   protected readonly busyId = signal<string | null>(null);
+
+  // ── Details drawer (👁) — built from the row: the API has no GET by id for makes / models ──
+  protected readonly viewing = signal<{ kind: 'make'; make: CarMake } | { kind: 'model'; model: CarModel } | null>(null);
+
+  /** A click anywhere on a model row opens its details (its buttons keep their own action). */
+  protected openModelRow(model: CarModel, event: Event): void {
+    if (shouldActivateRow(event)) this.viewing.set({ kind: 'model', model });
+  }
+  protected readonly details = computed(() => {
+    const v = this.viewing();
+    return !v ? null : v.kind === 'make' ? toCarMakeDetails(v.make) : toCarModelDetails(v.model);
+  });
+
+  protected editViewed(): void {
+    const v = this.viewing();
+    this.viewing.set(null);
+    if (v?.kind === 'make') this.editMake(v.make);
+    else if (v?.kind === 'model') this.editModel(v.model);
+  }
 
   constructor() {
     // Keep a valid selection: first make by default, and after the selected one is deleted.

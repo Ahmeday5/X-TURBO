@@ -113,49 +113,14 @@
 
   <div drawer-footer class="dd-actions">
     @if (current(); as d) {
-    @switch (d.status) {
-    @case ('draft') {
-    <button type="button" class="ui-btn ui-btn--primary" [class.is-loading]="busy() === 'post'" [disabled]="!!busy()"
-      (click)="post(d)">
-      <app-icon name="check" [size]="16" /> {{ d.kind === 'quotation' ? 'اعتماد' : 'ترحيل' }}
-    </button>
-    <button type="button" class="ui-btn ui-btn--ghost" [disabled]="!!busy()" (click)="edit.emit(d.id)">
-      <app-icon name="edit" [size]="16" /> تعديل
-    </button>
-    <button type="button" class="ui-btn ui-btn--danger" [class.is-loading]="busy() === 'delete'" [disabled]="!!busy()"
-      (click)="remove(d)">
-      <app-icon name="trash" [size]="16" /> حذف
+    @for (a of actions(); track a.key) {
+    <button type="button" class="ui-btn" [class.ui-btn--primary]="a.tone === 'primary'"
+      [class.ui-btn--danger]="a.tone === 'danger'" [class.ui-btn--ghost]="!a.tone"
+      [class.dd-actions__print]="a.key === 'print'" [class.is-loading]="busyFor(a.key)"
+      [disabled]="!!busy() && a.key !== 'print'" (click)="runAction(d, a.key)">
+      <app-icon [name]="a.icon" [size]="16" /> {{ a.label }}
     </button>
     }
-    @case ('posted') {
-    @if (cfg()!.completeAction; as action) {
-    <button type="button" class="ui-btn ui-btn--primary" [class.is-loading]="busy() === 'complete'" [disabled]="!!busy()"
-      (click)="complete(d)">
-      <app-icon [name]="action.icon" [size]="16" /> {{ action.label }}
-    </button>
-    }
-    @for (to of cfg()!.convertTo ?? []; track to) {
-    <button type="button" class="ui-btn" [class.ui-btn--primary]="d.kind === 'quotation'" [class.ui-btn--ghost]="d.kind !== 'quotation'"
-      [class.is-loading]="busy() === 'convert'" [disabled]="!!busy()" (click)="convert(d, to)">
-      <app-icon [name]="kindConfig(to).icon" [size]="16" /> {{ d.kind === 'quotation' ? 'تحويل إلى فاتورة بيع' : 'إنشاء ' + kindConfig(to).singular }}
-    </button>
-    }
-    <button type="button" class="ui-btn ui-btn--danger" [class.is-loading]="busy() === 'cancel'" [disabled]="!!busy()"
-      (click)="openCancel()">
-      <app-icon name="x" [size]="16" /> إلغاء المستند
-    </button>
-    }
-    @case ('completed') {
-    @for (to of d.kind === 'quotation' ? [] : (cfg()!.convertTo ?? []); track to) {
-    <button type="button" class="ui-btn ui-btn--ghost" [disabled]="!!busy()" (click)="convert(d, to)">
-      <app-icon [name]="kindConfig(to).icon" [size]="16" /> إنشاء {{ kindConfig(to).singular }}
-    </button>
-    }
-    }
-    }
-    <button type="button" class="ui-btn ui-btn--ghost dd-actions__print" (click)="print(d)">
-      <app-icon name="file-lines" [size]="16" /> طباعة
-    </button>
     }
   </div>
 </app-drawer>

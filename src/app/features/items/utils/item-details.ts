@@ -1,7 +1,7 @@
 import { EntityDetails } from '../../../shared/components/details-drawer/details-drawer.model';
 import { formatDateTime, formatInteger, formatMoney } from '../../../shared/utils/format.util';
 import { ItemGroup } from '../models/item-group.model';
-import { Item, marginPct, STOCK_LEVEL_LABEL, stockLevel } from '../models/item.model';
+import { discountedPrice, Item, marginPct, STOCK_LEVEL_LABEL, stockLevel } from '../models/item.model';
 
 const LEVEL_TONE = { ok: 'good', low: 'warning', out: 'danger' } as const;
 
@@ -25,6 +25,7 @@ export function toItemDetails(item: Item): EntityDetails {
           { label: 'الوحدة', value: item.unit },
           { label: 'الماركة', value: item.brand },
           { label: 'الباركود', value: item.barcode, ltr: true },
+          { label: 'رقم SKU', value: item.sku, ltr: true },
           { label: 'تاريخ الإضافة', value: formatDateTime(item.createdAt) },
           { label: 'متوافق مع', value: item.compatibleWith, full: true },
           { label: 'الوصف', value: item.description, full: true },
@@ -36,6 +37,10 @@ export function toItemDetails(item: Item): EntityDetails {
         fields: [
           { label: 'سعر الشراء', value: formatMoney(item.purchasePrice) },
           { label: 'سعر البيع', value: formatMoney(item.salePrice) },
+          { label: 'الخصم', value: item.discountPercent ? `${item.discountPercent}%` : 'بدون خصم', tone: item.discountPercent ? 'good' : 'muted' },
+          ...(item.discountPercent
+            ? [{ label: 'السعر بعد الخصم', value: formatMoney(discountedPrice(item.salePrice, item.discountPercent)) }]
+            : []),
           {
             label: 'الهامش',
             value: `${marginPct(item.purchasePrice, item.salePrice)}%`,
@@ -76,6 +81,7 @@ export function toItemGroupDetails(group: ItemGroup): EntityDetails {
       title: group.name,
       subtitle: group.code,
       icon: 'folder',
+      imageUrl: group.imageUrl,
       badge: group.isActive ? { label: 'نشطة', tone: 'good' } : { label: 'موقوفة', tone: 'neutral' },
     },
     sections: [

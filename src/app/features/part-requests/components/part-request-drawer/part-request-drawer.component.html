@@ -1,0 +1,176 @@
+<app-drawer [open]="!!requestId()" label="تفاصيل طلب القطعة" (closed)="closed.emit()">
+  <div drawer-title class="prd-title">
+    @if (current(); as r) {
+    <div class="prd-title__row">
+      <h2 class="ltr">{{ r.number }}</h2>
+      <app-status-pill [view]="statusView[r.status]" />
+    </div>
+    <p>{{ dateTime(r.createdAt) }}</p>
+    } @else {
+    <span class="skeleton" style="width: 140px; height: 20px"></span>
+    <span class="skeleton" style="width: 200px; height: 12px; margin-top: 8px"></span>
+    }
+  </div>
+
+  @if (current(); as r) {
+  <div class="prd" [class.is-refreshing]="request.loading()">
+    <!-- What to do now -->
+    <p class="prd-callout" [class.is-accepted]="r.status === 'accepted'" [style.--c]="statusView[r.status].color"
+      style="--i: 0">
+      <app-icon [name]="r.status === 'accepted' ? 'bell' : 'clock'" [size]="15" />
+      {{ statusView[r.status].hint }}
+    </p>
+
+    <!-- Part -->
+    <section class="prd-block" style="--i: 1">
+      <h3 class="prd-h">القطعة المطلوبة</h3>
+      <strong class="prd-part">{{ r.partName }}</strong>
+      <dl class="prd-facts">
+        @if (r.carText) {<div><dt>السيارة</dt><dd>{{ r.carText }}</dd></div>}
+        @if (r.governorate) {<div><dt>المحافظة</dt><dd>{{ r.governorate }}</dd></div>}
+      </dl>
+      @if (r.details) {<p class="prd-details">{{ r.details }}</p>}
+    </section>
+
+    <!-- Photos -->
+    <section class="prd-block" style="--i: 2">
+      <h3 class="prd-h">صور العميل <span>{{ r.images.length }}</span></h3>
+      <app-part-request-images [requestId]="r.id" [images]="r.images" />
+    </section>
+
+    <!-- Customer -->
+    <section class="prd-block prd-customer" style="--i: 3">
+      <app-avatar [name]="r.customerName" [size]="42" />
+      <div class="prd-customer__info">
+        <strong>{{ r.customerName }}</strong>
+        @if (r.customerPhone) {
+        <a class="ltr" [href]="'tel:' + r.customerPhone"><app-icon name="user" [size]="12" /> {{ r.customerPhone }}</a>
+        }
+        @if (r.contactPhone && r.contactPhone !== r.customerPhone) {
+        <a [href]="'tel:' + r.contactPhone"><app-icon name="bell" [size]="12" /> رقم التواصل: <span class="ltr">{{ r.contactPhone }}</span></a>
+        }
+      </div>
+    </section>
+
+    <!-- Answer -->
+    @if (r.quotedPrice !== null) {
+    <section class="prd-block prd-quote" style="--i: 4">
+      <h3 class="prd-h">عرض السعر المرسل</h3>
+      <strong class="prd-quote__price">{{ money(r.quotedPrice) }}</strong>
+      <dl class="prd-facts">
+        @if (r.quoteValidUntil) {<div><dt>صالح حتى</dt><dd>{{ dateTime(r.quoteValidUntil) }}</dd></div>}
+        @if (r.quotedAt) {<div><dt>أُرسل في</dt><dd>{{ dateTime(r.quotedAt) }}</dd></div>}
+        @if (r.quotedBy) {<div><dt>بواسطة</dt><dd>{{ r.quotedBy }}</dd></div>}
+      </dl>
+      @if (r.quoteNotes) {<p class="prd-details">{{ r.quoteNotes }}</p>}
+    </section>
+    }
+    @if (r.rejectionReason) {
+    <section class="prd-block prd-rejected" style="--i: 4">
+      <h3 class="prd-h">سبب الرفض</h3>
+      <p class="prd-details">{{ r.rejectionReason }}</p>
+    </section>
+    }
+  </div>
+  } @else if (request.error()) {
+  <div class="page-state">
+    <span class="page-state__icon"><app-icon name="alert" [size]="22" /></span>
+    <p class="panel__title">{{ request.error() }}</p>
+    <button type="button" class="ui-btn ui-btn--ghost" (click)="request.reload()">
+      <app-icon name="refresh" [size]="15" /> إعادة المحاولة
+    </button>
+  </div>
+  } @else {
+  <div class="prd">
+    @for (h of [44, 120, 140, 70]; track $index) {
+    <span class="skeleton" [style.height.px]="h"></span>
+    }
+  </div>
+  }
+
+  <!-- Single root per block so content projection into the footer slot works. -->
+  @if (answerable() && current(); as r) {
+  <div drawer-footer class="prd-actions">
+    <p class="prd-actions__hint" role="note">
+      <app-icon name="bell" [size]="13" /> الرد على الطلب يرسل إشعارًا للعميل على تطبيق الموبايل
+    </p>
+    @for (a of actions(); track a.key) {
+    <button type="button" class="ui-btn" [class.ui-btn--primary]="a.tone === 'primary'"
+      [class.ui-btn--ghost]="a.tone !== 'primary'" [class.prd-actions__reject]="a.tone === 'danger'"
+      [disabled]="!!busy()" (click)="runAction(r, a.key)">
+      <app-icon [name]="a.icon" [size]="15" /> {{ a.label }}
+    </button>
+    }
+  </div>
+  }
+</app-drawer>
+
+<!-- Dialogs live outside the drawer so they overlay the whole page. -->
+@if (current(); as r) {
+  <!-- Quote -->
+  <app-modal [open]="dialog() === 'quote'" [title]="'عرض سعر — ' + r.partName" size="sm" (closed)="closeDialog()">
+    <form class="prd-form" [formGroup]="quoteForm" (ngSubmit)="submitQuote(r)" novalidate id="prd-quote-form">
+      <div class="prd-form__row">
+        <label class="ui-field">
+          <span class="ui-label is-required">السعر</span>
+          <div class="ui-affix">
+            <input class="ui-input" type="number" min="0" step="0.01" formControlName="price" placeholder="مثال: 1250" />
+            <span class="ui-affix__text">ج.م</span>
+          </div>
+          <app-form-error [control]="quoteForm.controls.price" label="السعر" />
+        </label>
+        <label class="ui-field">
+          <span class="ui-label is-required">صلاحية العرض</span>
+          <div class="ui-affix">
+            <input class="ui-input" type="number" [min]="rules.minDays" [max]="rules.maxDays" step="1"
+              formControlName="validDays" />
+            <span class="ui-affix__text">يوم</span>
+          </div>
+          <span class="ui-hint">من {{ rules.minDays }} إلى {{ rules.maxDays }} يوم</span>
+          <app-form-error [control]="quoteForm.controls.validDays" label="صلاحية العرض" />
+        </label>
+      </div>
+      <label class="ui-field">
+        <span class="ui-label prd-form__label-row">
+          ملاحظات للعميل (اختياري)
+          <small>{{ quoteForm.controls.notes.value.length }} / {{ rules.maxNotes }}</small>
+        </span>
+        <textarea class="ui-input" rows="3" formControlName="notes" [attr.maxlength]="rules.maxNotes"
+          placeholder="مثال: القطعة أصلية ياباني، متاحة للتسليم خلال يومين"></textarea>
+        <app-form-error [control]="quoteForm.controls.notes" label="الملاحظات" />
+      </label>
+      <p class="prd-form__notice"><app-icon name="bell" [size]="13" /> سيصل للعميل إشعار «وصلك عرض سعر» ويمكنه القبول أو الرفض من التطبيق.</p>
+    </form>
+    <div modal-footer>
+      <button type="button" class="ui-btn ui-btn--ghost" [disabled]="busy() === 'quote'" (click)="closeDialog()">تراجع</button>
+      <button type="submit" form="prd-quote-form" class="ui-btn ui-btn--primary" [class.is-loading]="busy() === 'quote'"
+        [disabled]="busy() === 'quote'">
+        <app-icon name="check" [size]="15" /> إرسال العرض
+      </button>
+    </div>
+  </app-modal>
+
+  <!-- Reject -->
+  <app-modal [open]="dialog() === 'reject'" title="رفض طلب القطعة" size="sm" (closed)="closeDialog()">
+    <form class="prd-form" [formGroup]="rejectForm" (ngSubmit)="submitReject(r)" novalidate id="prd-reject-form">
+      <label class="ui-field">
+        <span class="ui-label is-required prd-form__label-row">
+          سبب الرفض
+          <small>{{ rejectForm.controls.reason.value.length }} / {{ rejectMax }}</small>
+        </span>
+        <textarea class="ui-input" rows="3" formControlName="reason" [attr.maxlength]="rejectMax"
+          placeholder="مثال: القطعة غير متوفرة حاليًا لدى الموردين"></textarea>
+        <span class="ui-hint">يظهر السبب للعميل في التطبيق.</span>
+        <app-form-error [control]="rejectForm.controls.reason" label="سبب الرفض" />
+      </label>
+      <p class="prd-form__notice"><app-icon name="bell" [size]="13" /> سيصل للعميل إشعار «تعذّر توفير القطعة» ولا يمكن التراجع.</p>
+    </form>
+    <div modal-footer>
+      <button type="button" class="ui-btn ui-btn--ghost" [disabled]="busy() === 'reject'" (click)="closeDialog()">تراجع</button>
+      <button type="submit" form="prd-reject-form" class="ui-btn ui-btn--danger" [class.is-loading]="busy() === 'reject'"
+        [disabled]="busy() === 'reject'">
+        <app-icon name="x" [size]="15" /> رفض الطلب
+      </button>
+    </div>
+  </app-modal>
+}

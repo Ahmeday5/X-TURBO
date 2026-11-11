@@ -115,6 +115,13 @@ export class UrlListState {
     this.patch({ [key]: value || null }, resetPage);
   }
 
+  /** Several page-level params in one navigation (separate calls can overwrite each other). */
+  setParams(changes: Readonly<Record<string, string | null>>, resetPage = false): void {
+    const params: Params = {};
+    for (const [key, value] of Object.entries(changes)) params[key] = value || null;
+    this.patch(params, resetPage);
+  }
+
   private read(p: ParamMap): ListQuery {
     const sortKey = p.get(Q.sort);
     const filters: Record<string, string> = {};

@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, ElementRef, input, output, signal, viewChild } from '@angular/core';
 import { IconComponent } from '../../../../shared/components/icon/icon.component';
+import { SCAN_HINT, SCAN_PLACEHOLDER } from '../../../../shared/barcode/scan-hint.const';
 import { ClickOutsideDirective } from '../../../../shared/directives/click-outside.directive';
 import { matchesAll, tokenize } from '../../../../shared/utils/arabic-search.util';
 import { formatInteger, formatMoney } from '../../../../shared/utils/format.util';
@@ -24,12 +25,12 @@ const MAX_RESULTS = 50;
       <div class="input-icon ip__box">
         <app-icon class="input-icon__glyph" name="search" [size]="16" />
         <input #box class="ui-input" type="search" autocomplete="off" [disabled]="disabled()"
-          [placeholder]="loading() ? 'جارٍ تحميل الأصناف…' : 'اختر صنفًا من القائمة، أو اكتب الاسم / الكود، أو امسح الباركود…'"
+          [placeholder]="loading() ? 'جارٍ تحميل الأصناف…' : scanPlaceholder" [title]="scanHint"
           [value]="term()" (input)="onType($any($event.target).value)" (focus)="openList()" (click)="openList()"
           (keydown.arrowDown)="open() ? move(1, $event) : openList()" (keydown.arrowUp)="move(-1, $event)"
           (keydown.enter)="choose(results()[active()], $event)" (keydown.escape)="open.set(false)"
           role="combobox" aria-label="بحث عن صنف" aria-autocomplete="list" [attr.aria-expanded]="open()" aria-controls="ip-list" />
-        <span class="ip__kbd" aria-hidden="true"><app-icon name="barcode" [size]="15" /></span>
+        <span class="ip__kbd" [title]="scanHint"><app-icon name="barcode" [size]="15" /></span>
         <button type="button" class="ip__toggle" [class.is-open]="open()" [disabled]="disabled()" tabindex="-1"
           [attr.aria-label]="open() ? 'إغلاق قائمة الأصناف' : 'عرض كل الأصناف'" (mousedown)="$event.preventDefault()"
           (click)="toggleList()">
@@ -127,6 +128,8 @@ export class ItemPickerComponent {
 
   protected readonly money = formatMoney;
   protected readonly int = formatInteger;
+  protected readonly scanHint = SCAN_HINT;
+  protected readonly scanPlaceholder = SCAN_PLACEHOLDER;
 
   /** Every match (all items while the box is empty): in stock first, then by name. */
   private readonly matches = computed(() => {
@@ -157,7 +160,11 @@ export class ItemPickerComponent {
     this.open.set(true);
     // Scanner / exact code: add immediately.
     const exact = value.trim().toLowerCase();
-    const hit = exact.length >= 5 ? this.items().find((i) => i.barcode === exact || i.code.toLowerCase() === exact) : undefined;
+    // Barcodes may hold letters now — compare case-insensitively, like the code.
+    const hit =
+      exact.length >= 5
+        ? this.items().find((i) => i.barcode?.toLowerCase() === exact || i.code.toLowerCase() === exact)
+        : undefined;
     if (hit) this.choose(hit);
   }
 

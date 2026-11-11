@@ -100,30 +100,14 @@
 
   <div drawer-footer class="vd-actions">
     @if (current(); as v) {
-    @switch (v.status) {
-    @case ('draft') {
-    <button type="button" class="ui-btn ui-btn--primary" [class.is-loading]="busy() === 'post'" [disabled]="!!busy()"
-      (click)="post(v)">
-      <app-icon name="check" [size]="16" /> ترحيل
-    </button>
-    <button type="button" class="ui-btn ui-btn--ghost" [disabled]="!!busy()" (click)="edit.emit(v.id)">
-      <app-icon name="edit" [size]="16" /> تعديل
-    </button>
-    <button type="button" class="ui-btn ui-btn--danger" [class.is-loading]="busy() === 'delete'" [disabled]="!!busy()"
-      (click)="remove(v)">
-      <app-icon name="trash" [size]="16" /> حذف
+    @for (a of actions(); track a.key) {
+    <button type="button" class="ui-btn" [class.ui-btn--primary]="a.tone === 'primary'"
+      [class.ui-btn--danger]="a.tone === 'danger'" [class.ui-btn--ghost]="!a.tone"
+      [class.vd-actions__print]="a.key === 'print'" [class.is-loading]="busy() === a.key"
+      [disabled]="!!busy() && a.key !== 'print'" (click)="runAction(v, a.key)">
+      <app-icon [name]="a.icon" [size]="16" /> {{ a.label }}
     </button>
     }
-    @case ('posted') {
-    <button type="button" class="ui-btn ui-btn--danger" [class.is-loading]="busy() === 'cancel'" [disabled]="!!busy()"
-      (click)="openCancel()">
-      <app-icon name="x" [size]="16" /> إلغاء السند
-    </button>
-    }
-    }
-    <button type="button" class="ui-btn ui-btn--ghost vd-actions__print" (click)="print.emit(v)">
-      <app-icon name="file-lines" [size]="16" /> طباعة
-    </button>
     }
   </div>
 </app-drawer>

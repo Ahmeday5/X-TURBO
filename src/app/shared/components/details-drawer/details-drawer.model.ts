@@ -28,6 +28,8 @@ export interface DetailHeader {
   title: string;
   subtitle?: string;
   icon?: IconName;
+  /** Thumbnail shown instead of the icon (public URL). */
+  imageUrl?: string | null;
   badge?: { label: string; tone: 'good' | 'warning' | 'danger' | 'info' | 'neutral' };
 }
 

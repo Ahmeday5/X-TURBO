@@ -47,6 +47,8 @@ import {
   tracksPayment,
 } from '../../utils/document-view';
 import { todayIsoDate } from '../../../../shared/utils/date-iso.util';
+import { RowMenuComponent } from '../../../../shared/components/row-menu/row-menu.component';
+import { DocAction, documentActions } from '../../utils/document-actions';
 
 const FILTERS = ['status', 'from', 'to', 'warehouseId', 'partyId', 'payment', 'channel', 'overdue'] as const;
 
@@ -71,6 +73,7 @@ const FILTERS = ['status', 'from', 'to', 'warehouseId', 'partyId', 'payment', 'c
     ListToolbarComponent,
     PageHeaderComponent,
     PaginationComponent,
+    RowMenuComponent,
     RowTemplateDirective,
     StatusPillComponent,
     StatusTabsComponent,
@@ -116,6 +119,10 @@ export class DocumentsPage {
   /** `new` | document id → editor replaces the list. */
   protected readonly editing = this.state.param('doc');
   protected readonly viewing = this.state.param('view');
+  private readonly doParam = this.state.param('do');
+  /** Row action waiting for the drawer to run it. */
+  protected readonly intent = computed(() => (this.doParam() as DocAction) || null);
+  protected readonly actionsOf = (d: DocumentSummary) => documentActions(d, d.linesCount > 0);
   protected readonly exporting = signal(false);
 
   // ── Filter options ──
@@ -242,6 +249,17 @@ export class DocumentsPage {
 
   protected open(d: { id: string }): void {
     this.state.setParam('view', d.id);
+  }
+
+  /** Row action → the drawer runs it (its confirm dialogs, rules and errors — one implementation). */
+  protected act(d: DocumentSummary, action: DocAction): void {
+    // Pure navigations go straight there — no drawer round-trip.
+    if (action === 'edit') return this.edit(d.id);
+    if (action === 'labels') {
+      void this.router.navigate(['/items/barcode-labels'], { queryParams: { doc: d.id } });
+      return;
+    }
+    this.state.setParams({ view: d.id, do: action });
   }
 
   protected edit(id: string): void {

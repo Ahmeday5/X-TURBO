@@ -30,9 +30,12 @@
 </ng-template>
 
 <ng-template #actions [appRowOf]="list.items()" let-r>
-  <button type="button" class="ui-icon-btn" title="التفاصيل" [attr.aria-label]="'تفاصيل ' + r.itemName" (click)="open(r)">
-    <app-icon name="eye" [size]="16" />
-  </button>
+  <div class="row-actions">
+    <app-row-menu [actions]="rowActions" [label]="'إجراءات ' + r.itemName" (run)="act(r, $event)" />
+    <button type="button" class="ui-icon-btn" title="التفاصيل" [attr.aria-label]="'تفاصيل ' + r.itemName" (click)="open(r)">
+      <app-icon name="eye" [size]="16" />
+    </button>
+  </div>
 </ng-template>
 
 <ng-template #card [appRowOf]="list.items()" let-r>
@@ -83,7 +86,7 @@
     [value]="state.query().filters['reserved']" (valueChange)="state.setFilter('reserved', $event)" />
 </app-list-toolbar>
 
-<app-data-table [columns]="columns()" [data]="list.items()" [view]="state.view()" [sort]="state.query().sort"
+<app-data-table [rowClickable]="true" (rowClick)="open($event)" [columns]="columns()" [data]="list.items()" [view]="state.view()" [sort]="state.query().sort"
   [loading]="list.loading()" [initialLoading]="list.initialLoading()" [error]="list.error()"
   [skeletonCount]="state.query().pageSize" [cardTemplate]="card" [actionsTemplate]="actions" emptyIcon="layers"
   emptyTitle="لا توجد أرصدة مطابقة" emptyText="جرّب تعديل البحث أو الفلاتر."

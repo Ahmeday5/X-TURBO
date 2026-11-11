@@ -13,6 +13,7 @@ import {
   imageFileProblem,
 } from '../../models/item-image.model';
 import { ItemImagesService } from '../../services/item-images.service';
+import { ItemDraftService } from '../../services/item-draft.service';
 
 type UploadStatus = 'queued' | 'uploading' | 'error';
 
@@ -48,7 +49,12 @@ export class ItemImagesComponent {
   private readonly dialog = inject(DialogService);
   private readonly toast = inject(ToastService);
 
-  readonly itemId = input.required<string>();
+  /** `null` = a new, unsaved item: images are kept in the draft and uploaded after it's created. */
+  readonly itemId = input<string | null>(null);
+
+  /** Provided by the item screen; holds the new item's pending images. */
+  protected readonly draft = inject(ItemDraftService, { optional: true });
+  protected readonly draftMode = computed(() => !this.itemId() && !!this.draft);
 
   protected readonly rules = ITEM_IMAGE_RULES;
   protected readonly fileSize = formatFileSize;
@@ -68,12 +74,17 @@ export class ItemImagesComponent {
     const i = active.findIndex((t) => t.status === 'uploading');
     return i < 0 ? null : { current: i + 1, total: active.length };
   });
-  protected readonly slotsLeft = computed(() => ITEM_IMAGE_RULES.maxPerItem - this.images().length - this.pending());
+  protected readonly slotsLeft = computed(() =>
+    this.draftMode()
+      ? ITEM_IMAGE_RULES.maxPerItem - (this.draft?.images().length ?? 0)
+      : ITEM_IMAGE_RULES.maxPerItem - this.images().length - this.pending(),
+  );
+  protected readonly imageCount = computed(() => (this.draftMode() ? (this.draft?.images().length ?? 0) : this.images().length));
 
   constructor() {
     effect(() => {
       const id = this.itemId();
-      untracked(() => this.load(id));
+      if (id) untracked(() => this.load(id));
     });
     inject(DestroyRef).onDestroy(() => this.queue().forEach((t) => this.revoke(t)));
   }
@@ -81,6 +92,7 @@ export class ItemImagesComponent {
   // ── Load ──
 
   protected load(itemId = this.itemId()): void {
+    if (!itemId) return;
     this.loading.set(true);
     this.loadError.set(null);
     this.api
@@ -113,6 +125,10 @@ export class ItemImagesComponent {
   }
 
   private addFiles(files: File[]): void {
+    if (this.draftMode()) {
+      this.addToDraft(files);
+      return;
+    }
     let slots = this.slotsLeft();
     const tasks = files.map<UploadTask>((file) => {
       const problem = imageFileProblem(file) ?? (slots <= 0 ? `الحد الأقصى ${ITEM_IMAGE_RULES.maxPerItem} صور للصنف` : null);
@@ -135,6 +151,40 @@ export class ItemImagesComponent {
     this.queue.update((q) => q.filter((t) => t.key !== task.key));
   }
 
+  // ── Draft mode (new item): validate and keep locally; uploaded after the item is saved ──
+
+  private addToDraft(files: File[]): void {
+    const rejected: UploadTask[] = [];
+    const valid: File[] = [];
+    for (const file of files) {
+      const problem = imageFileProblem(file);
+      if (problem) rejected.push(this.rejectedTask(file, problem));
+      else valid.push(file);
+    }
+    const accepted = this.draft!.addImages(valid);
+    for (const file of valid.slice(accepted)) {
+      rejected.push(this.rejectedTask(file, `الحد الأقصى ${ITEM_IMAGE_RULES.maxPerItem} صور للصنف`));
+    }
+    if (rejected.length) this.queue.update((q) => [...q, ...rejected]);
+  }
+
+  private rejectedTask(file: File, error: string): UploadTask {
+    return { key: ++taskKey, file, previewUrl: null, status: 'error', percent: null, error };
+  }
+
+  protected removeDraft(key: number): void {
+    this.draft?.removeImage(key);
+  }
+
+  /** The first draft image becomes primary after upload — so "primary" = move it to the front. */
+  protected makeDraftPrimary(index: number): void {
+    this.draft?.moveImage(index, 0);
+  }
+
+  protected shiftDraft(index: number, delta: -1 | 1): void {
+    this.draft?.moveImage(index, index + delta);
+  }
+
   protected retry(task: UploadTask): void {
     if (imageFileProblem(task.file) || this.slotsLeft() <= 0) return;
     this.patchTask(task.key, { status: 'queued', error: null, percent: null, previewUrl: task.previewUrl ?? URL.createObjectURL(task.file) });
@@ -153,7 +203,7 @@ export class ItemImagesComponent {
     }
 
     this.patchTask(next.key, { status: 'uploading' });
-    this.api.upload(this.itemId(), next.file).subscribe({
+    this.api.upload(this.itemId()!, next.file).subscribe({
       next: (event) => {
         if (event.kind === 'progress') {
           this.patchTask(next.key, { percent: event.percent });
@@ -188,7 +238,7 @@ export class ItemImagesComponent {
     if (!ok) return;
     this.busyId.set(image.id);
     this.api
-      .remove(this.itemId(), image.id)
+      .remove(this.itemId()!, image.id)
       .pipe(finalize(() => this.busyId.set(null)))
       .subscribe(() => {
         this.toast.success('تم حذف الصورة');
@@ -202,7 +252,7 @@ export class ItemImagesComponent {
     this.images.set(previous.map((i) => ({ ...i, isPrimary: i.id === image.id })));
     this.busyId.set(image.id);
     this.api
-      .setPrimary(this.itemId(), image.id)
+      .setPrimary(this.itemId()!, image.id)
       .pipe(finalize(() => this.busyId.set(null)))
       .subscribe({
         next: () => this.toast.success('تم تعيين الصورة الرئيسية — تظهر على كارت المنتج في التطبيق'),
@@ -249,7 +299,7 @@ export class ItemImagesComponent {
     const [moved] = next.splice(from, 1);
     next.splice(to, 0, moved);
     this.images.set(next.map((img, i) => ({ ...img, sortOrder: i })));
-    this.api.reorder(this.itemId(), next.map((i) => i.id)).subscribe({
+    this.api.reorder(this.itemId()!, next.map((i) => i.id)).subscribe({
       error: () => this.images.set(previous), // the interceptor already toasted why
     });
   }

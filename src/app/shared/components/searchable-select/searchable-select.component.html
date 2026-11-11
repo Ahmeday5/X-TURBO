@@ -6,7 +6,9 @@
   <!-- closed control -->
   <button
     type="button"
-    class="form-select ss__control"
+    class="ui-input ss__control"
+    [attr.aria-expanded]="open()"
+    aria-haspopup="listbox"
     [class.is-invalid]="isInvalid()"
     [disabled]="disabled()"
     (click)="toggle()"
@@ -27,6 +29,9 @@
     } @else {
       <span class="ss__placeholder">{{ placeholder() }}</span>
     }
+    <svg class="ss__chevron" width="12" height="12" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <path d="M5 7.5 10 12.5 15 7.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+    </svg>
   </button>
 
   <!-- dropdown panel -->
@@ -35,7 +40,7 @@
       <input
         #searchBox
         type="text"
-        class="form-control ss__search"
+        class="ui-input ss__search"
         [placeholder]="searchPlaceholder()"
         [value]="term()"
         (input)="onSearch($event)"

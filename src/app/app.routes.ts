@@ -10,6 +10,8 @@ import { ADMIN_PAGES } from './features/admin/admin.pages';
 import { CARS_PAGES } from './features/cars/cars.pages';
 import { DELIVERY_ZONES_PAGES } from './features/delivery-zones/delivery-zones.pages';
 import { DOCUMENTS_PAGES } from './features/documents/documents.pages';
+import { NOTIFICATIONS_PAGES } from './features/notifications/notifications.pages';
+import { PART_REQUESTS_PAGES } from './features/part-requests/part-requests.pages';
 import { PARTIES_PAGES } from './features/parties/parties.pages';
 import { PAYMENTS_PAGES } from './features/payments/payments.pages';
 import { POS_PAGES } from './features/pos/pos.pages';
@@ -28,7 +30,9 @@ const BUILT_PAGES: PageRegistry = {
   '/orders': () => import('./features/orders/pages/orders/orders.page').then((m) => m.OrdersPage),
   '/reports': () => import('./features/reports/pages/reports/reports.page').then((m) => m.ReportsPage),
   '/items/define': () => import('./features/items/pages/item-form/item-form.page').then((m) => m.ItemFormPage),
-  '/items/groups': () => import('./features/items/pages/item-groups/item-groups.page').then((m) => m.ItemGroupsPage),
+  '/items/barcode-labels': () =>
+    import('./features/items/pages/barcode-labels/barcode-labels.page').then((m) => m.BarcodeLabelsPage),
+  '/items/groups':() => import('./features/items/pages/item-groups/item-groups.page').then((m) => m.ItemGroupsPage),
   '/items/directory': () =>
     import('./features/items/pages/items-directory/items-directory.page').then((m) => m.ItemsDirectoryPage),
   ...WAREHOUSES_PAGES,
@@ -41,6 +45,8 @@ const BUILT_PAGES: PageRegistry = {
   ...ADMIN_PAGES,
   ...CARS_PAGES,
   ...DELIVERY_ZONES_PAGES,
+  ...PART_REQUESTS_PAGES,
+  ...NOTIFICATIONS_PAGES,
 };
 
 const modulePage: LoadComponent = () =>

@@ -37,6 +37,10 @@
 </ng-template>
 
 <ng-template #actions [appRowOf]="list.items()" let-r>
+  <button type="button" class="ui-icon-btn" title="عرض التفاصيل" [attr.aria-label]="'عرض تفاصيل ' + r.name"
+    (click)="viewId.set(r.id)">
+    <app-icon name="eye" [size]="16" />
+  </button>
   <a class="ui-icon-btn" title="كشف الحساب" [attr.aria-label]="'كشف حساب ' + r.name" routerLink="/customers/statement"
     [queryParams]="{ partyId: r.id, to: asOf() || null }">
     <app-icon name="file-lines" [size]="16" />
@@ -113,7 +117,7 @@
   </label>
 </app-list-toolbar>
 
-<app-data-table [columns]="columns()" [data]="list.items()" [view]="state.view()" [sort]="state.query().sort"
+<app-data-table [rowClickable]="true" (rowClick)="viewId.set($event.id)" [columns]="columns()" [data]="list.items()" [view]="state.view()" [sort]="state.query().sort"
   [loading]="list.loading()" [initialLoading]="list.initialLoading()" [error]="list.error()"
   [skeletonCount]="10" [cardTemplate]="card" [actionsTemplate]="actions" emptyIcon="scale"
   emptyTitle="لا توجد أرصدة مطابقة" emptyText="جرّب تغيير التاريخ أو الفلاتر." (sortChange)="state.toggleSort($event)"
@@ -122,3 +126,13 @@
 <app-pagination class="pb-pager" [pageIndex]="state.query().pageIndex" [pageSize]="state.query().pageSize"
   [count]="list.count()" [totalPages]="list.totalPages()" [pageSizeOptions]="[25, 50, 100]"
   [disabled]="list.loading()" (pageChange)="state.setPage($event)" (pageSizeChange)="state.setPageSize($event)" />
+
+<!-- Details (👁) — fetched by id -->
+<app-details-drawer [open]="!!viewId()" label="تفاصيل الحساب" [details]="details()" [loading]="viewed.loading()"
+  [error]="viewed.error()" (retry)="viewed.reload()" (closed)="viewId.set(null)">
+  @if (viewed.value(); as x) {
+  <a drawer-actions class="ui-btn ui-btn--ghost" routerLink="/customers/statement" [queryParams]="{ partyId: x.id }">
+    <app-icon name="file-lines" [size]="15" /> كشف الحساب
+  </a>
+  }
+</app-details-drawer>

@@ -80,7 +80,8 @@
   @let b = balance(a);
   <div class="ac-row" role="row" [class.is-group]="a.isGroup" [class.is-root]="r.depth === 0" [class.is-hit]="r.hit"
     [class.is-inactive]="!a.isActive" [attr.aria-level]="r.depth + 1"
-    [attr.aria-expanded]="r.hasChildren ? r.expanded : null" [style.--tone]="typeView[a.type].color">
+    [attr.aria-expanded]="r.hasChildren ? r.expanded : null" [style.--tone]="typeView[a.type].color"
+    tabindex="0" (click)="openRow(a.id, $event)" (keydown.enter)="openRow(a.id, $event)">
     <div class="ac-name" role="gridcell">
       @for (g of depthGuides(r.depth); track g) {<span class="ac-guide" aria-hidden="true"></span>}
       @if (r.hasChildren) {
@@ -116,6 +117,10 @@
         <app-icon name="plus" [size]="15" />
       </button>
       }
+      <button type="button" class="ui-icon-btn" title="عرض التفاصيل" [attr.aria-label]="'عرض تفاصيل ' + a.name"
+        (click)="viewId.set(a.id)">
+        <app-icon name="eye" [size]="16" />
+      </button>
       <button type="button" class="ui-icon-btn" title="تعديل" [attr.aria-label]="'تعديل ' + a.name" (click)="edit(a)">
         <app-icon name="edit" [size]="15" />
       </button>
@@ -136,3 +141,13 @@
   }
   }
 </section>
+
+<!-- Details (👁) — fetched by id -->
+<app-details-drawer [open]="!!viewId()" label="تفاصيل الحساب" [details]="details()" [loading]="viewed.loading()"
+  [error]="viewed.error()" (retry)="viewed.reload()" (closed)="viewId.set(null)">
+  @if (viewed.value(); as x) {
+  <button drawer-actions type="button" class="ui-btn ui-btn--primary" (click)="viewId.set(null); edit(x)">
+    <app-icon name="edit" [size]="15" /> تعديل
+  </button>
+  }
+</app-details-drawer>

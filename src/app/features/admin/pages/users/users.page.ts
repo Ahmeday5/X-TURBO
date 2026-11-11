@@ -23,6 +23,8 @@ import { RolesOverviewComponent } from '../../components/roles-overview/roles-ov
 import { UserFormDrawerComponent } from '../../components/user-form-drawer/user-form-drawer.component';
 import { AdminUser, ROLE_VIEW, USER_ROLES, USER_STATUS_VIEW } from '../../models/user.model';
 import { UsersService } from '../../services/users.service';
+import { DetailsDrawerComponent } from '../../../../shared/components/details-drawer/details-drawer.component';
+import { toUserDetails } from '../../utils/user-details';
 
 type UsersTab = 'users' | 'roles';
 
@@ -36,6 +38,7 @@ type UsersTab = 'users' | 'roles';
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    DetailsDrawerComponent,
     AvatarComponent,
     DataTableComponent,
     FilterSelectComponent,
@@ -61,6 +64,17 @@ export class UsersPage {
   private readonly toast = inject(ToastService);
 
   readonly navId = input.required<string>();
+
+  // ── Details drawer (👁) — fetched by id, so it shows the server's current state ──
+  protected readonly viewId = signal<string | null>(null);
+  protected readonly viewed = createQueryResource(this.viewId, (id) => this.users.get(id!), {
+    enabled: (id) => !!id,
+    errorMessage: 'تعذّر تحميل التفاصيل',
+  });
+  protected readonly details = computed(() => {
+    const x = this.viewed.value();
+    return x && x.id === this.viewId() ? toUserDetails(x) : null;
+  });
 
   protected readonly state = new UrlListState({
     pageSize: 10,

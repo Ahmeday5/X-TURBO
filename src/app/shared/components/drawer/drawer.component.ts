@@ -49,11 +49,11 @@ import { IconComponent } from '../icon/icon.component';
     `
       :host { display: contents; }
       .dr-backdrop {
-        position: fixed; inset: 0; z-index: 1080; background: var(--overlay);
+        position: fixed; inset: 0; z-index: var(--z-drawer); background: var(--overlay);
         backdrop-filter: blur(3px); animation: dr-fade 0.3s var(--ease-out) both;
       }
       .dr {
-        position: fixed; inset-block: 0; inset-inline-end: 0; z-index: 1081;
+        position: fixed; inset-block: 0; inset-inline-end: 0; z-index: calc(var(--z-drawer) + 1);
         width: min(560px, 100vw); display: flex; flex-direction: column;
         background: var(--bg-elevated); box-shadow: var(--shadow-lg); outline: none;
         border-start-start-radius: var(--rx); border-end-start-radius: var(--rx);

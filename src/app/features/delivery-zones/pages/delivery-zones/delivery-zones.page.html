@@ -51,7 +51,8 @@
         </thead>
         <tbody>
           @for (z of sorted(); track z.id) {
-          <tr [class.is-off]="!z.isActive">
+          <tr class="is-clickable" [class.is-off]="!z.isActive" tabindex="0" (click)="openRow(z, $event)"
+            (keydown.enter)="openRow(z, $event)">
             <td><strong>{{ z.governorate }}</strong></td>
             <td>{{ z.fee === 0 ? 'مجاني' : money(z.fee) }}</td>
             <td>{{ days(z.estimatedDaysMin, z.estimatedDaysMax) }}</td>
@@ -64,6 +65,10 @@
               </label>
             </td>
             <td class="dz__c dz__acts">
+              <button type="button" class="ui-icon-btn" title="عرض التفاصيل" [attr.aria-label]="'عرض تفاصيل ' + z.governorate"
+                (click)="viewing.set(z)">
+                <app-icon name="eye" [size]="15" />
+              </button>
               <button type="button" class="ui-icon-btn" title="تعديل" [attr.aria-label]="'تعديل ' + z.governorate" (click)="edit(z)">
                 <app-icon name="edit" [size]="15" />
               </button>
@@ -114,6 +119,14 @@
     }
   </aside>
 </div>
+
+<app-details-drawer [open]="!!viewing()" label="تفاصيل منطقة التوصيل" [details]="details()" (closed)="viewing.set(null)">
+  @if (viewing()) {
+  <button drawer-actions type="button" class="ui-btn ui-btn--primary" (click)="editViewed()">
+    <app-icon name="edit" [size]="15" /> تعديل
+  </button>
+  }
+</app-details-drawer>
 
 <app-zone-dialog [open]="dialogOpen()" [zone]="editing()" [available]="unzoned()" [presetGovernorate]="preset()"
   (closed)="dialogOpen.set(false)" (saved)="onSaved()" />

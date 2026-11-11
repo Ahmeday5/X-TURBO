@@ -39,14 +39,12 @@
 <ng-template #statusCell [appRowOf]="list.items()" let-v><app-status-pill [view]="statusView[v.status]" /></ng-template>
 
 <ng-template #actions [appRowOf]="list.items()" let-v>
-  <button type="button" class="ui-icon-btn" title="عرض" [attr.aria-label]="'عرض ' + v.number" (click)="open(v)">
-    <app-icon name="eye" [size]="16" />
-  </button>
-  @if (v.status === 'draft') {
-  <button type="button" class="ui-icon-btn" title="تعديل" [attr.aria-label]="'تعديل ' + v.number" (click)="edit(v.id)">
-    <app-icon name="edit" [size]="16" />
-  </button>
-  }
+  <div class="row-actions">
+    <app-row-menu [actions]="actionsOf(v)" [quick]="true" [label]="'إجراءات ' + v.number" (run)="act(v, $event)" />
+    <button type="button" class="ui-icon-btn" title="عرض" [attr.aria-label]="'عرض ' + v.number" (click)="open(v)">
+      <app-icon name="eye" [size]="16" />
+    </button>
+  </div>
 </ng-template>
 
 <ng-template #card [appRowOf]="list.items()" let-v>
@@ -129,7 +127,7 @@
       (rangeChange)="setRange($event)" />
   </div>
 
-  <app-data-table [columns]="columns()" [data]="list.items()" [view]="state.view()" [sort]="state.query().sort"
+  <app-data-table [rowClickable]="true" (rowClick)="open($event)" [columns]="columns()" [data]="list.items()" [view]="state.view()" [sort]="state.query().sort"
     [loading]="list.loading()" [initialLoading]="list.initialLoading()" [error]="list.error()"
     [skeletonCount]="state.query().pageSize" [cardTemplate]="card" [actionsTemplate]="actions" [emptyIcon]="icon()"
     [emptyTitle]="'لا توجد ' + cfg().title + ' مطابقة'" emptyText="جرّب تعديل البحث أو الفترة أو الفلاتر."
@@ -145,7 +143,8 @@
   }
 </div>
 
-<app-voucher-drawer class="no-print" [voucherId]="viewing() || null" (closed)="state.setParam('view', null)"
+<app-voucher-drawer class="no-print" [voucherId]="viewing() || null" [intent]="intent()"
+  (intentDone)="state.setParam('do', null)" (closed)="state.setParams({ view: null, do: null })"
   (changed)="refresh()" (edit)="edit($event)" (print)="print($event)" />
 
 <app-voucher-print [voucher]="printing()" />

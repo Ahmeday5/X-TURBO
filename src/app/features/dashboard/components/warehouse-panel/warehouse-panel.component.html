@@ -4,8 +4,17 @@
       <h2 class="panel__title">سعة المخازن</h2>
       <p class="panel__sub">المساحة المستغلة في {{ locationsLabel() }}</p>
     </div>
+    <a class="panel__link" routerLink="/warehouses">المخازن <app-icon name="arrow-right" [size]="14" /></a>
   </header>
 
+  @if (!rows().length) {
+  <div class="panel-empty">
+    <span class="panel-empty__icon"><app-icon name="warehouse" [size]="22" /></span>
+    <strong>لا توجد مخازن بعد</strong>
+    <p>أضف أول مخزن لتبدأ تسجيل الأرصدة ومتابعة نسبة الإشغال هنا.</p>
+    <a class="ui-btn ui-btn--ghost" routerLink="/warehouses/define"><app-icon name="plus" [size]="15" /> تعريف مخزن</a>
+  </div>
+  }
   <ul class="wh">
     @for (w of rows(); track w.id; let i = $index) {
     <li class="wh__row">

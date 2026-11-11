@@ -23,6 +23,8 @@ import { hasErrorCode } from '../../../../core/http/api-error-codes';
 import { DocumentsService } from '../../services/documents.service';
 import { LINES_PLURAL, PAYMENT_STATE_VIEW, partyLabel, paymentState, tracksPayment } from '../../utils/document-view';
 import { printDocument } from '../../utils/print-document';
+import { convertTarget, DocAction, documentActions, isConvertAction } from '../../utils/document-actions';
+import { runDrawerIntent } from '../../../../shared/utils/drawer-intent.util';
 import { todayIsoDate } from '../../../../shared/utils/date-iso.util';
 
 type Busy = 'post' | 'complete' | 'cancel' | 'delete' | 'convert' | null;
@@ -82,8 +84,58 @@ export class DocumentDrawerComponent {
   protected readonly overdue = (d: Document) =>
     !!d.dueDate && d.status === 'posted' && d.remaining > 0 && d.dueDate < todayIsoDate();
 
+  /** Action requested from the table row — run once the document has loaded. */
+  readonly intent = input<DocAction | null>(null);
+  readonly intentDone = output<void>();
+
+  /** The footer renders the same list as the table row's menu (one rule set). */
+  protected readonly actions = computed(() => {
+    const d = this.current();
+    return d ? documentActions(d, d.lines.length > 0) : [];
+  });
+
+  constructor() {
+    runDrawerIntent(this.current, this.intent, (d, action) => this.runAction(d, action), () => this.intentDone.emit());
+  }
+
+  /** Single entry for every action — footer button or table row. */
+  protected runAction(d: Document, action: DocAction): void {
+    if (!this.actions().some((a) => a.key === action)) {
+      this.toast.info(`لم يعد هذا الإجراء متاحًا — حالة ${d.number} الآن «${docStatusView(d.kind, d.status).label}»`);
+      return;
+    }
+    if (isConvertAction(action)) return this.convert(d, convertTarget(action));
+    switch (action) {
+      case 'post':
+        return this.post(d);
+      case 'edit':
+        return this.edit.emit(d.id);
+      case 'delete':
+        return void this.remove(d);
+      case 'complete':
+        return this.complete(d);
+      case 'cancel':
+        return this.openCancel();
+      case 'labels':
+        return this.printLabels(d);
+      case 'print':
+        return this.print(d);
+    }
+  }
+
+  /** Which footer button shows the spinner for the running request. */
+  protected busyFor(action: DocAction): boolean {
+    const busy = this.busy();
+    return !!busy && (busy === action || (busy === 'convert' && isConvertAction(action)));
+  }
+
   protected print(d: Document): void {
     printDocument(d);
+  }
+
+  /** One label per received unit, in the label-printing screen. */
+  protected printLabels(d: Document): void {
+    this.router.navigate(['/items/barcode-labels'], { queryParams: { doc: d.id } });
   }
 
   protected post(d: Document): void {

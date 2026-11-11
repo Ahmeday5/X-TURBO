@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
 import { BarListComponent, BarListRow } from '../../../../shared/components/charts/bar-list/bar-list.component';
+import { IconComponent } from '../../../../shared/components/icon/icon.component';
 import { formatInteger, formatMoney, formatMoneyCompact } from '../../../../shared/utils/format.util';
 import { ChannelSales } from '../../models/dashboard.model';
 
@@ -8,7 +9,7 @@ import { ChannelSales } from '../../models/dashboard.model';
   selector: 'app-channel-panel',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [BarListComponent],
+  imports: [BarListComponent, IconComponent],
   template: `
     <section class="panel cp">
       <header class="panel__head">
@@ -18,6 +19,13 @@ import { ChannelSales } from '../../models/dashboard.model';
         </div>
       </header>
 
+      @if (!hasSales()) {
+        <div class="panel-empty">
+          <span class="panel-empty__icon"><app-icon name="chart" [size]="22" /></span>
+          <strong>لا توجد مبيعات في هذه الفترة</strong>
+          <p>تظهر هنا حصة كل قناة (المتجر الإلكتروني، نقاط البيع، الجملة) من الإيراد.</p>
+        </div>
+      } @else {
       <app-bar-list [items]="rows()" />
 
       <footer class="cp__foot">
@@ -31,6 +39,7 @@ import { ChannelSales } from '../../models/dashboard.model';
           }
         </dl>
       </footer>
+      }
     </section>
   `,
   styles: [
@@ -55,6 +64,8 @@ import { ChannelSales } from '../../models/dashboard.model';
 export class ChannelPanelComponent {
   readonly channels = input.required<readonly ChannelSales[]>();
   readonly period = input.required<string>();
+
+  protected readonly hasSales = computed(() => this.channels().some((c) => c.revenue > 0 || c.orders > 0));
 
   protected readonly rows = computed<BarListRow[]>(() => {
     const channels = this.channels();

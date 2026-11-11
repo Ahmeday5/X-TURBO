@@ -112,9 +112,26 @@ export const AppValidators = {
     });
   },
 
-  /** Product barcode (EAN-8 … GTIN-14): 8–14 digits. */
+  /**
+   * Product barcode: English letters and/or digits (plus `-`), 3–64 chars —
+   * manufacturer EANs (6221234567890) and alphanumeric codes (BRK-2041A) alike.
+   * Arabic letters are refused: scanners and Code 128 labels can't carry them.
+   */
   barcode(): ValidatorFn {
-    return digitsValidator('barcode', 'الباركود', 8, 14, '6221234567890');
+    const example = 'مثال: 6221234567890 أو BRK-2041A';
+    return formatValidator('barcode', (v) => {
+      if (EASTERN_DIGITS.test(v)) return `اكتب الباركود بالأرقام الإنجليزية (0-9) — ${example}`;
+      if (ARABIC_LETTERS.test(v)) return `الباركود يُكتب بحروف إنجليزية وأرقام فقط — ${example}`;
+      if (/\s/.test(v)) return `الباركود بدون مسافات — ${example}`;
+      if (!/^[A-Za-z0-9-]+$/.test(v)) return `الباركود يقبل حروفًا إنجليزية وأرقامًا والشرطة (-) فقط — ${example}`;
+      if (v.length < 3 || v.length > 64) return `الباركود من 3 إلى 64 حرفًا/رقمًا (المكتوب ${v.length}) — ${example}`;
+      return null;
+    });
+  },
+
+  /** Item SKU: digits only, 1–20. */
+  sku(): ValidatorFn {
+    return digitsValidator('sku', 'رقم SKU', 1, 20, '100245');
   },
 
   /** Egyptian tax registration number: 9 digits. */

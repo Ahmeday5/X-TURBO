@@ -1,6 +1,8 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input, signal, TemplateRef, viewChild } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
+import { RowMenuComponent } from '../../../../shared/components/row-menu/row-menu.component';
+import { STOCK_ACTIONS, StockAction, stockActionTarget } from '../../utils/stock-actions';
 import { finalize } from 'rxjs';
 import { fetchAllPages } from '../../../../core/utils/api-list.util';
 import { DataTableComponent, TableColumn } from '../../../../shared/components/data-table/data-table.component';
@@ -48,6 +50,7 @@ const LEVELS: readonly StockLevel[] = ['ok', 'low', 'out'];
     PaginationComponent,
     IconComponent,
     StockMeterComponent,
+    RowMenuComponent,
     RowTemplateDirective,
     ItemStockDrawerComponent,
   ],
@@ -56,6 +59,7 @@ const LEVELS: readonly StockLevel[] = ['ok', 'low', 'out'];
 })
 export class StockPage {
   private readonly stock = inject(StockService);
+  private readonly router = inject(Router);
 
   /** Bound from route data. */
   readonly navId = input.required<string>();
@@ -128,6 +132,13 @@ export class StockPage {
   protected readonly money = formatMoney;
   protected readonly qty = formatInteger;
   protected readonly relative = formatRelative;
+
+  protected readonly rowActions = STOCK_ACTIONS;
+
+  protected act(row: StockRow, action: StockAction): void {
+    const { route, params } = stockActionTarget(action, row.itemId);
+    void this.router.navigate([route], { queryParams: params });
+  }
 
   protected open(row: StockRow): void {
     this.state.setParam('item', row.itemId);

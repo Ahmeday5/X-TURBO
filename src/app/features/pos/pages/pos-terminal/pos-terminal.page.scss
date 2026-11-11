@@ -59,6 +59,25 @@
     color: var(--txt3);
     pointer-events: none;
   }
+  // Scanner icon: hover / focus explains how barcode scanning works.
+  .pt-scan {
+    position: absolute;
+    z-index: 1;
+    inset-inline-start: 12px;
+    display: grid;
+    place-items: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 8px;
+    color: var(--primary);
+    cursor: help;
+
+    &:hover,
+    &:focus-visible {
+      outline: none;
+      background: var(--primary-soft);
+    }
+  }
   .ui-input {
     height: 48px;
     padding-inline: 44px 52px;

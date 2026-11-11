@@ -19,7 +19,13 @@
     <app-delta [pct]="revenue().deltaPct" period="مقارنة بالفترة السابقة" />
   </div>
 
-  @if (view() === 'chart') {
+  @if (isEmpty()) {
+  <div class="panel-empty rev__empty">
+    <span class="panel-empty__icon"><app-icon name="trend-up" [size]="22" /></span>
+    <strong>لا توجد إيرادات في هذه الفترة</strong>
+    <p>يظهر هنا منحنى الإيرادات يومًا بيوم بمجرد تسجيل مبيعات — جرّب فترة أطول من الأعلى.</p>
+  </div>
+  } @else if (view() === 'chart') {
   <app-area-chart class="rev__chart" seriesName="الإيرادات" [points]="points()" [formatValue]="formatMoney"
     [formatTick]="formatMoneyCompact" [height]="270" />
   } @else {

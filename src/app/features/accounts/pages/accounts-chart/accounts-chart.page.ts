@@ -3,6 +3,7 @@ import { Router, RouterLink } from '@angular/router';
 import { DialogService } from '../../../../core/services/dialog.service';
 import { ToastService } from '../../../../core/services/toast.service';
 import { IconComponent } from '../../../../shared/components/icon/icon.component';
+import { shouldActivateRow } from '../../../../shared/utils/row-activation.util';
 import { HighlightComponent } from '../../../../shared/components/highlight/highlight.component';
 import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
 import { StatusPillComponent } from '../../../../shared/components/status-pill/status-pill.component';
@@ -27,6 +28,8 @@ import { ApiError } from '../../../../core/models/api-response.model';
 import { hasErrorCode } from '../../../../core/http/api-error-codes';
 import { AccountsService } from '../../services/accounts.service';
 import { balanceText } from '../../utils/account-display.util';
+import { DetailsDrawerComponent } from '../../../../shared/components/details-drawer/details-drawer.component';
+import { toAccountDetails } from '../../utils/accounts-details';
 
 interface TreeRow {
   account: Account;
@@ -45,6 +48,7 @@ const ACCOUNTS_PLURAL = { one: 'حساب واحد', two: 'حسابان', few: '#
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    DetailsDrawerComponent,
     RouterLink,
     IconComponent,
     HighlightComponent,
@@ -64,6 +68,22 @@ export class AccountsChartPage {
 
   /** Bound from route data. */
   readonly navId = input.required<string>();
+
+  // ── Details drawer (👁) — fetched by id, so it shows the server's current state ──
+  protected readonly viewId = signal<string | null>(null);
+
+  /** A click anywhere on a row opens its details (its toggle / buttons keep their own action). */
+  protected openRow(id: string, event: Event): void {
+    if (shouldActivateRow(event)) this.viewId.set(id);
+  }
+  protected readonly viewed = createQueryResource(this.viewId, (id) => this.api.get(id!), {
+    enabled: (id) => !!id,
+    errorMessage: 'تعذّر تحميل التفاصيل',
+  });
+  protected readonly details = computed(() => {
+    const x = this.viewed.value();
+    return x && x.id === this.viewId() ? toAccountDetails(x) : null;
+  });
 
   private readonly state = new UrlListState({ filters: ['type'] });
   protected readonly chart = createQueryResource(signal(0), () => this.api.list());

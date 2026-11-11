@@ -1,0 +1,139 @@
+.prp-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.prp-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid var(--brd);
+  border-radius: 999px;
+  background: var(--bg2);
+  font: inherit;
+  font-size: 12px;
+  color: var(--txt2);
+  cursor: pointer;
+  transition: background var(--dur) var(--ease-out), border-color var(--dur) var(--ease-out);
+
+  &__dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--c, var(--primary));
+  }
+
+  &:hover {
+    border-color: var(--c, var(--primary));
+  }
+
+  &.is-active {
+    color: var(--txt);
+    font-weight: 700;
+    border-color: var(--c, var(--primary));
+    background: color-mix(in srgb, var(--c, var(--primary)) 12%, transparent);
+  }
+}
+
+.prp-number,
+.prp-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+
+  small {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    color: var(--txt3);
+  }
+}
+
+.prp-stack strong {
+  font-size: 13px;
+  color: var(--txt);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.prp-customer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+
+  div {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+  strong {
+    font-size: 13px;
+    color: var(--txt);
+  }
+  small {
+    font-size: 11px;
+    color: var(--txt3);
+  }
+}
+
+.prp-price {
+  color: var(--gr);
+  font-variant-numeric: tabular-nums;
+}
+
+.prp-muted {
+  color: var(--txt3);
+}
+
+.prp-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  height: 100%;
+
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+  }
+
+  &__part {
+    font-size: 14px;
+    color: var(--txt);
+  }
+
+  &__car {
+    font-size: 12px;
+    color: var(--txt2);
+  }
+
+  footer {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: auto;
+    padding-top: 8px;
+    border-top: 1px solid var(--brd);
+    font-size: 11px;
+    color: var(--txt3);
+
+    span {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+  }
+}
+
+.prp-pager {
+  margin-top: 14px;
+}

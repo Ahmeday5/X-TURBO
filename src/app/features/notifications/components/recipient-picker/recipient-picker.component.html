@@ -1,0 +1,106 @@
+<div class="rp">
+  <div class="rp__toolbar">
+    <label class="ui-affix rp__search">
+      <span class="ui-affix__text"><app-icon name="search" [size]="15" /></span>
+      <input class="ui-input" type="search" [value]="searchText()" (input)="onSearch($any($event.target).value)"
+        placeholder="ابحث بالاسم أو الهاتف أو البريد…" aria-label="بحث في العملاء" />
+    </label>
+    <select class="ui-input rp__device" [value]="device()" (change)="setDevice($any($event.target).value)"
+      aria-label="تصفية حسب الجهاز">
+      <option value="">كل العملاء</option>
+      <option value="true">لديه موبايل مسجّل للإشعارات</option>
+      <option value="false">بدون موبايل مسجّل</option>
+    </select>
+  </div>
+
+  <div class="rp__table-wrap" [class.is-loading]="list.loading()">
+    <table class="rp__table">
+      <thead>
+        <tr>
+          <th class="rp__check">
+            <input type="checkbox" [checked]="pageChecked().all" [indeterminate]="pageChecked().some"
+              [disabled]="!list.items().length || (full() && !pageChecked().all && !pageChecked().some)"
+              (change)="togglePage()" aria-label="تحديد كل عملاء الصفحة" />
+          </th>
+          <th>العميل</th>
+          <th>المحافظة</th>
+          <th>الجهاز</th>
+          <th>آخر دخول</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (c of list.items(); track c.id) {
+        <tr [class.is-selected]="isSelected(c.id)" [class.is-locked]="full() && !isSelected(c.id)" (click)="toggle(c)">
+          <td class="rp__check">
+            <input type="checkbox" [checked]="isSelected(c.id)" [disabled]="full() && !isSelected(c.id)"
+              (click)="$event.stopPropagation()" (change)="toggle(c)" [attr.aria-label]="'اختيار ' + c.name" />
+          </td>
+          <td>
+            <div class="rp__who">
+              <strong>{{ c.name }}</strong>
+              <small class="ltr">{{ c.phone }}</small>
+            </div>
+          </td>
+          <td>{{ c.governorate || '—' }}</td>
+          <td>
+            @if (c.fcmTokens) {
+            <span class="rp__tag is-on"><app-icon name="bell" [size]="11" /> مسجّل</span>
+            } @else {
+            <span class="rp__tag">داخل التطبيق فقط</span>
+            }
+          </td>
+          <td class="rp__muted">{{ c.lastLoginAt ? relative(c.lastLoginAt) : 'لم يدخل' }}</td>
+        </tr>
+        } @empty {
+        <tr>
+          <td colspan="5" class="rp__empty">
+            @if (list.initialLoading()) {
+            <span class="skeleton" style="display: block; height: 120px"></span>
+            } @else if (list.error()) {
+            {{ list.error() }} — <button type="button" class="rp__link" (click)="list.reload()">إعادة المحاولة</button>
+            } @else {
+            لا يوجد عملاء مطابقون للبحث.
+            }
+          </td>
+        </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  @if (list.totalPages() > 1) {
+  <app-pagination [pageIndex]="page()" [pageSize]="pageSize" [count]="list.count()" [totalPages]="list.totalPages()"
+    [pageSizeOptions]="[pageSize]" [disabled]="list.loading()" (pageChange)="page.set($event)" />
+  }
+
+  <!-- Selection -->
+  <div class="rp__selection">
+    <div class="rp__selection-head">
+      <strong>تم اختيار {{ integer(selected().length) }} من {{ integer(max) }}</strong>
+      @if (selected().length) {
+      <button type="button" class="rp__link" (click)="clear()">إلغاء الكل</button>
+      }
+    </div>
+    @if (selected().length) {
+    <ul class="rp__chips">
+      @for (c of chips(); track c.id) {
+      <li>
+        {{ c.name }}
+        <button type="button" (click)="remove(c.id)" [attr.aria-label]="'إزالة ' + c.name">
+          <app-icon name="x" [size]="11" />
+        </button>
+      </li>
+      }
+      @if (hiddenChips()) {<li class="rp__more">+{{ integer(hiddenChips()) }}</li>}
+    </ul>
+    } @else {
+    <p class="rp__hint">اختر العملاء من الجدول — يبقى اختيارك محفوظًا أثناء البحث والتنقل بين الصفحات.</p>
+    }
+    @if (full()) {
+    <p class="rp__warn"><app-icon name="alert" [size]="13" /> وصلت للحد الأقصى ({{ integer(max) }} عميل) في الإرسال الواحد — للأكثر استخدم «كل العملاء».</p>
+    }
+    @if (withoutDevice()) {
+    <p class="rp__hint"><app-icon name="alert" [size]="13" /> {{ integer(withoutDevice()) }} من المختارين بدون موبايل مسجّل — سيرون الإشعار داخل التطبيق فقط.</p>
+    }
+  </div>
+</div>

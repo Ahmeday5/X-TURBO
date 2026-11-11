@@ -376,6 +376,18 @@
   }
 }
 
+.ii__draft-note {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: var(--rl);
+  background: var(--primary-soft);
+  color: var(--primary-strong);
+  font-size: 12px;
+}
+
 @keyframes ii-indeterminate {
   0% {
     transform: translateX(110%);

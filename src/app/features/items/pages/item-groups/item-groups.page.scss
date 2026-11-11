@@ -159,3 +159,109 @@
     }
   }
 }
+
+.ig-mode {
+  margin-inline-end: 4px;
+}
+
+.ig-tree-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.ig-tree-bar__search {
+  flex: 1 1 260px;
+}
+
+.ig-tree-bar__stats {
+  font-size: 12px;
+  color: var(--txt3);
+  white-space: nowrap;
+}
+
+.ig-tree-hint {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 12px;
+  font-size: 11.5px;
+  color: var(--txt3);
+}
+
+.ig-tree-skeleton {
+  display: block;
+  margin-bottom: 6px;
+  border-radius: 10px;
+}
+
+.ig-name__img {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  object-fit: cover;
+  border: 2px solid var(--chip, var(--brd));
+}
+
+.ig-card__img {
+  object-fit: cover;
+  padding: 0;
+}
+.ig-fix {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 12px;
+  padding: 12px 14px;
+  border-radius: var(--rl);
+  border: 1px solid color-mix(in srgb, var(--am) 40%, transparent);
+  background: color-mix(in srgb, var(--am) 10%, var(--bg2));
+
+  > app-icon {
+    flex: none;
+    margin-top: 2px;
+    color: var(--am);
+  }
+}
+
+.ig-fix__text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  font-size: 12px;
+  color: var(--txt2);
+
+  strong {
+    font-size: 13px;
+    color: var(--txt);
+  }
+}
+
+.ig-fix__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.ig-fix__chip {
+  all: unset;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--am);
+  background: color-mix(in srgb, var(--am) 16%, transparent);
+  cursor: pointer;
+
+  &:hover {
+    background: color-mix(in srgb, var(--am) 26%, transparent);
+  }
+  &:focus-visible {
+    box-shadow: var(--focus-ring);
+  }
+}

@@ -13,6 +13,8 @@ import { Voucher, VOUCHER_KIND_CONFIG, VOUCHER_METHOD_LABEL, VOUCHER_STATUS_VIEW
 import { VouchersService } from '../../services/vouchers.service';
 import { ApiError } from '../../../../core/models/api-response.model';
 import { cashSideLabel, counterpartyName, JOURNAL_LINES_PLURAL, VOUCHER_KIND_ICON } from '../../utils/voucher-view';
+import { VoucherAction, voucherActions } from '../../utils/voucher-actions';
+import { runDrawerIntent } from '../../../../shared/utils/drawer-intent.util';
 
 type Busy = 'post' | 'cancel' | 'delete' | null;
 
@@ -37,6 +39,9 @@ export class VoucherDrawerComponent {
   readonly changed = output<void>();
   readonly edit = output<string>();
   readonly print = output<Voucher>();
+  /** Action requested from the table row — run once the voucher has loaded. */
+  readonly intent = input<VoucherAction | null>(null);
+  readonly intentDone = output<void>();
 
   protected readonly voucher = createQueryResource(this.voucherId, (id) => this.vouchers.get(id!), {
     enabled: (id) => !!id,
@@ -74,6 +79,36 @@ export class VoucherDrawerComponent {
     const other = counterpartyName(v);
     return v.kind === 'receipt' ? { debit: cash, credit: other } : { debit: other, credit: cash };
   });
+
+  /** The footer renders the same list as the table row's menu. */
+  protected readonly actions = computed(() => {
+    const v = this.current();
+    return v ? voucherActions(v) : [];
+  });
+
+  constructor() {
+    runDrawerIntent(this.current, this.intent, (v, action) => this.runAction(v, action), () => this.intentDone.emit());
+  }
+
+  /** Single entry for every action — footer button or table row. */
+  protected runAction(v: Voucher, action: VoucherAction): void {
+    if (!this.actions().some((a) => a.key === action)) {
+      this.toast.info(`لم يعد هذا الإجراء متاحًا — حالة ${v.number} الآن «${VOUCHER_STATUS_VIEW[v.status].label}»`);
+      return;
+    }
+    switch (action) {
+      case 'post':
+        return void this.post(v);
+      case 'edit':
+        return this.edit.emit(v.id);
+      case 'delete':
+        return void this.remove(v);
+      case 'cancel':
+        return this.openCancel();
+      case 'print':
+        return this.print.emit(v);
+    }
+  }
 
   protected async post(v: Voucher): Promise<void> {
     const ok = await this.dialog.confirm({

@@ -1,13 +1,39 @@
-<app-modal [open]="open()" [title]="isEdit() ? 'تعديل مجموعة' : 'مجموعة جديدة'" size="md" (closed)="closed.emit()">
+<app-modal [open]="open()" [title]="requireParent() ? 'تحويل لمجموعة فرعية' : isEdit() ? 'تعديل مجموعة' : 'مجموعة جديدة'"
+  size="md" (closed)="closed.emit()">
   <form id="group-form" class="gf" [formGroup]="form" (ngSubmit)="submit()" novalidate>
-    <!-- Live chip preview -->
+    @if (requireParent()) {
+    <p class="gf__notice">
+      <app-icon name="alert" [size]="15" />
+      «{{ group()?.name }}» مجموعة رئيسية وفيها {{ group()?.itemsCount }} صنف. الأصناف تكون تحت المجموعات الفرعية فقط —
+      اختر المجموعة الرئيسية التي ستنتقل تحتها، وتنتقل أصنافها معها كما هي.
+    </p>
+    }
+    <!-- Live preview + image -->
     <div class="gf__preview" [style.--chip]="form.controls.color.value">
+      @if (imageSrc(); as src) {
+      <img class="gf__preview-img" [src]="src" alt="صورة المجموعة" />
+      } @else {
       <span class="gf__preview-icon"><app-icon name="folder" [size]="22" /></span>
-      <div>
+      }
+      <div class="gf__preview-text">
         <strong>{{ form.controls.name.value || 'اسم المجموعة' }}</strong>
         <small>{{ group()?.code ?? 'كود تلقائي' }}</small>
       </div>
+      <div class="gf__image-actions">
+        <label class="ui-btn ui-btn--ghost gf__upload">
+          <app-icon name="image" [size]="14" /> {{ imageSrc() ? 'تغيير الصورة' : 'إضافة صورة' }}
+          <input type="file" [accept]="acceptTypes" (change)="pickImage($event)" />
+        </label>
+        @if (imageSrc()) {
+        <button type="button" class="ui-icon-btn ui-icon-btn--danger" title="إزالة الصورة" aria-label="إزالة الصورة"
+          (click)="removeImage()">
+          <app-icon name="trash" [size]="15" />
+        </button>
+        }
+      </div>
     </div>
+    @if (imageError(); as e) {<span class="ui-field-error">{{ e }}</span>}
+    @else {<span class="ui-hint">صورة واحدة JPG أو PNG أو WEBP حتى 5 ميجا — تظهر في التطبيق. تُحفظ مع المجموعة.</span>}
 
     <label class="ui-field">
       <span class="ui-label is-required">اسم المجموعة</span>
@@ -16,11 +42,16 @@
     </label>
 
     <label class="ui-field">
-      <span class="ui-label">المجموعة الرئيسية</span>
+      <span class="ui-label" [class.is-required]="requireParent()">المجموعة الأب</span>
       <select class="ui-input" formControlName="parentId">
-        <option value="">— بدون (مجموعة رئيسية) —</option>
-        @for (p of parentOptions(); track p.id) {<option [value]="p.id">{{ p.name }}</option>}
+        <option value="">{{ requireParent() ? 'اختر المجموعة الرئيسية…' : 'بدون — مجموعة رئيسية' }}</option>
+        @for (p of parentOptions(); track p.id) {<option [value]="p.id" [disabled]="p.blocked">{{ p.label }}</option>}
       </select>
+      <span class="ui-hint">
+        @if (group()?.parentName; as current) {الأب الحالي: {{ current }} · }
+        المجموعات التي تحتوي على أصناف لا يمكن إضافة فروع تحتها.
+      </span>
+      <app-form-error [control]="form.controls.parentId" label="المجموعة الأب" />
     </label>
 
     <label class="ui-field">

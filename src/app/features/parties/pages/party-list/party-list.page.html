@@ -31,6 +31,10 @@
 </ng-template>
 
 <ng-template #actions [appRowOf]="list.items()" let-p>
+  <button type="button" class="ui-icon-btn" title="عرض التفاصيل" [attr.aria-label]="'عرض تفاصيل ' + p.name"
+    (click)="viewId.set(p.id)">
+    <app-icon name="eye" [size]="16" />
+  </button>
   <button type="button" class="ui-icon-btn" title="كشف الحساب" [attr.aria-label]="'كشف حساب ' + p.name"
     (click)="statement(p)">
     <app-icon name="file-lines" [size]="16" />
@@ -76,7 +80,7 @@
     [value]="state.query().filters['external']" (valueChange)="state.setFilter('external', $event)" />
 </app-list-toolbar>
 
-<app-data-table [columns]="columns()" [data]="list.items()" [view]="state.view()" [sort]="state.query().sort"
+<app-data-table [rowClickable]="true" (rowClick)="viewId.set($event.id)" [columns]="columns()" [data]="list.items()" [view]="state.view()" [sort]="state.query().sort"
   [loading]="list.loading()" [initialLoading]="list.initialLoading()" [error]="list.error()"
   [skeletonCount]="state.query().pageSize" [cardTemplate]="card" [actionsTemplate]="actions" emptyIcon="users"
   emptyTitle="لا توجد حسابات مطابقة" emptyText="جرّب تعديل البحث أو الفلاتر، أو أضف عميلًا أو موردًا جديدًا."
@@ -89,3 +93,13 @@
 <app-pagination class="pl-pager" [pageIndex]="state.query().pageIndex" [pageSize]="state.query().pageSize"
   [count]="list.count()" [totalPages]="list.totalPages()" [pageSizeOptions]="[12, 24, 48, 96]"
   [disabled]="list.loading()" (pageChange)="state.setPage($event)" (pageSizeChange)="state.setPageSize($event)" />
+
+<!-- Details (👁) — fetched by id -->
+<app-details-drawer [open]="!!viewId()" label="تفاصيل الحساب" [details]="details()" [loading]="viewed.loading()"
+  [error]="viewed.error()" (retry)="viewed.reload()" (closed)="viewId.set(null)">
+  @if (viewed.value(); as x) {
+  <button drawer-actions type="button" class="ui-btn ui-btn--primary" (click)="viewId.set(null); edit(x)">
+    <app-icon name="edit" [size]="15" /> تعديل
+  </button>
+  }
+</app-details-drawer>

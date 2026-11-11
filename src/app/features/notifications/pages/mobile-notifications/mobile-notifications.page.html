@@ -1,0 +1,105 @@
+<!-- Cell / card templates -->
+<ng-template #messageCell [appRowOf]="rows()" let-c>
+  <div class="mn-msg">
+    <strong>{{ c.title }}</strong>
+    <small>{{ c.body }}</small>
+    @if (c.refType) {<span class="mn-ref"><app-icon name="arrow-right" [size]="10" /> {{ refLabel[c.refType] }}</span>}
+  </div>
+</ng-template>
+
+<ng-template #audienceCell [appRowOf]="rows()" let-c>
+  <div class="mn-stack">
+    <strong>{{ integer(c.recipientCount) }}</strong>
+    <small>{{ targetLabel[c.target] }}</small>
+  </div>
+</ng-template>
+
+<ng-template #deliveryCell [appRowOf]="rows()" let-c>
+  <div class="mn-delivery">
+    <app-delivery-bar [campaign]="c" />
+    <small>
+      @if (delivering(c)) {<span class="mn-live"><span class="mn-live__dot"></span> جارٍ الإرسال ({{ integer(c.pending) }})</span> · }
+      <span class="is-good">{{ integer(c.sent) }}</span> /
+      <span>{{ integer(c.noDevices) }}</span> /
+      <span [class.is-bad]="c.failed">{{ integer(c.failed) }}</span>
+    </small>
+  </div>
+</ng-template>
+
+<ng-template #readCell [appRowOf]="rows()" let-c>
+  <div class="mn-stack">
+    <strong>{{ integer(c.readCount) }}</strong>
+    <small>{{ rate(c) }}%</small>
+  </div>
+</ng-template>
+
+<ng-template #dateCell [appRowOf]="rows()" let-c>
+  <div class="mn-stack">
+    <span>{{ relative(c.createdAt) }}</span>
+    <small>{{ c.createdByName }}</small>
+  </div>
+</ng-template>
+
+<ng-template #actions [appRowOf]="rows()" let-c>
+  <button type="button" class="ui-icon-btn" title="التفاصيل" [attr.aria-label]="'تفاصيل ' + c.title" (click)="open(c)">
+    <app-icon name="eye" [size]="16" />
+  </button>
+</ng-template>
+
+<ng-template #card [appRowOf]="rows()" let-c>
+  <article class="mn-card">
+    <strong>{{ c.title }}</strong>
+    <p>{{ c.body }}</p>
+    <app-delivery-bar [campaign]="c" />
+    <footer>
+      <span><app-icon name="users" [size]="12" /> {{ integer(c.recipientCount) }}</span>
+      <span><app-icon name="check" [size]="12" /> {{ integer(c.sent) }}</span>
+      <span><app-icon name="eye" [size]="12" /> {{ integer(c.readCount) }}</span>
+      <span><app-icon name="clock" [size]="12" /> {{ relative(c.createdAt) }}</span>
+    </footer>
+  </article>
+</ng-template>
+
+<!-- Page -->
+<app-page-header [navId]="navId()" subtitle="إشعارات Push لعملاء تطبيق الموبايل — إرسال ومتابعة الوصول والقراءة">
+  @if (tab() === 'history') {
+  <button type="button" class="refresh-btn" [class.is-spinning]="list.loading()" [disabled]="list.loading()"
+    title="تحديث" aria-label="تحديث السجل" (click)="list.reload()">
+    <app-icon name="refresh" [size]="16" />
+  </button>
+  }
+</app-page-header>
+
+<div class="seg mn-tabs" role="tablist" aria-label="أقسام الإشعارات">
+  @for (t of tabs; track t.key) {
+  <button type="button" class="seg__btn" role="tab" [attr.aria-selected]="tab() === t.key"
+    [attr.aria-pressed]="tab() === t.key" (click)="setTab(t.key)">
+    <app-icon [name]="t.icon" [size]="15" /> {{ t.label }}
+  </button>
+  }
+</div>
+
+@if (tab() === 'compose') {
+<app-campaign-composer (sent)="onSent($event)" />
+} @else {
+<app-list-toolbar placeholder="ابحث في عنوان أو نص الإشعار…" [search]="state.query().search" [view]="state.view()"
+  [sort]="state.query().sort" [sortOptions]="sortOptions" [count]="list.count()" [activeFilters]="state.activeFilters()"
+  (searchChange)="state.setSearch($event)" (sortChange)="state.setSort($event)" (viewChange)="state.setView($event)"
+  (clearFilters)="state.clearFilters()" />
+
+<app-data-table [columns]="columns()" [data]="rows()" [view]="state.view()" [sort]="state.query().sort"
+  [loading]="list.loading()" [initialLoading]="list.initialLoading()" [error]="list.error()"
+  [skeletonCount]="state.query().pageSize" [cardTemplate]="card" [actionsTemplate]="actions" [rowClickable]="true"
+  emptyIcon="bell" emptyTitle="لم يتم إرسال إشعارات بعد" emptyText="أرسل أول إشعار لعملاء التطبيق من تاب «إرسال إشعار»."
+  (rowClick)="open($event)" (sortChange)="state.toggleSort($event)" (retry)="list.reload()">
+  <button empty-actions type="button" class="ui-btn ui-btn--primary" (click)="setTab('compose')">
+    <app-icon name="bell" [size]="15" /> إرسال إشعار
+  </button>
+</app-data-table>
+
+<app-pagination class="mn-pager" [pageIndex]="state.query().pageIndex" [pageSize]="state.query().pageSize"
+  [count]="list.count()" [totalPages]="list.totalPages()" [pageSizeOptions]="[12, 24, 48]"
+  [disabled]="list.loading()" (pageChange)="state.setPage($event)" (pageSizeChange)="state.setPageSize($event)" />
+}
+
+<app-campaign-drawer [campaignId]="openId() || null" (closed)="closeDrawer()" />

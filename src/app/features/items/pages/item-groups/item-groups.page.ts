@@ -1,7 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input, signal, TemplateRef, viewChild } from '@angular/core';
-import { toSignal } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
-import { Subject, startWith, switchMap } from 'rxjs';
 import { DialogService } from '../../../../core/services/dialog.service';
 import { ToastService } from '../../../../core/services/toast.service';
 import { DataTableComponent, TableColumn } from '../../../../shared/components/data-table/data-table.component';
@@ -13,10 +11,10 @@ import { createListResource } from '../../../../shared/list/list-resource';
 import { createQueryResource } from '../../../../shared/list/query-resource';
 import { UrlListState } from '../../../../shared/list/url-list-state';
 import { GroupFormDialogComponent } from '../../components/group-form-dialog/group-form-dialog.component';
-import { ItemGroup } from '../../models/item-group.model';
+import { GroupTreeComponent } from '../../components/group-tree/group-tree.component';
+import { flattenGroups, GROUP_ERROR_CODES, isMisplacedRoot, ItemGroup, ItemGroupNode } from '../../models/item-group.model';
 import { toItemGroupDetails } from '../../utils/item-details';
 import { DetailsDrawerComponent } from '../../../../shared/components/details-drawer/details-drawer.component';
-import { ITEM_ERROR_CODES } from '../../models/item.model';
 import { ApiError } from '../../../../core/models/api-response.model';
 import { hasErrorCode } from '../../../../core/http/api-error-codes';
 import { ItemGroupsService } from '../../services/item-groups.service';
@@ -33,6 +31,7 @@ import { ItemGroupsService } from '../../services/item-groups.service';
     PaginationComponent,
     IconComponent,
     GroupFormDialogComponent,
+    GroupTreeComponent,
     DetailsDrawerComponent,
   ],
   templateUrl: './item-groups.page.html',
@@ -55,18 +54,30 @@ export class ItemGroupsPage {
   });
   protected readonly list = createListResource(this.state.query, (q) => this.api.list(q));
 
-  /** Parent options — refreshed after every write so new groups appear. */
-  private readonly refreshLookup$ = new Subject<void>();
-  protected readonly parents = toSignal(
-    this.refreshLookup$.pipe(
-      startWith(undefined),
-      switchMap(() => this.api.lookup()),
-    ),
-    { initialValue: [] },
-  );
+  /** `?mode=list` → flat paged table; default → the hierarchy. */
+  private readonly modeParam = this.state.param('mode');
+  protected readonly mode = computed<'tree' | 'list'>(() => (this.modeParam() === 'list' ? 'list' : 'tree'));
+
+  /** The hierarchy — tree view and the dialog's parent picker. Reloaded after every write. */
+  protected readonly tree = createQueryResource(signal(true), () => this.api.tree(), {
+    errorMessage: 'تعذّر تحميل شجرة المجموعات',
+  });
+  protected readonly treeSearch = signal('');
+  private readonly treeView = viewChild(GroupTreeComponent);
+  protected readonly treeStats = computed(() => {
+    const flat = flattenGroups(this.tree.value() ?? []);
+    return { groups: flat.length, roots: (this.tree.value() ?? []).length, leaves: flat.filter((g) => g.isLeaf).length };
+  });
 
   /** `undefined` → dialog closed, `null` → creating, group → editing. */
   protected readonly editing = signal<ItemGroup | null | undefined>(undefined);
+  /** Parent pre-selected when adding a sub-group from the tree. */
+  protected readonly newParentId = signal<string | null>(null);
+  /** The dialog is fixing a main group that holds items (parent required). */
+  protected readonly movingToSub = signal(false);
+
+  /** Main groups holding items directly — items belong under sub-groups only. */
+  protected readonly misplaced = computed(() => (this.tree.value() ?? []).filter(isMisplacedRoot));
 
   // ── Details drawer (👁) ──
   protected readonly viewId = signal<string | null>(null);
@@ -98,13 +109,55 @@ export class ItemGroupsPage {
     { key: 'itemsCount', label: 'عدد الأصناف' },
   ];
 
-  protected onSaved(): void {
-    this.editing.set(undefined);
-    this.list.reload();
-    this.refreshLookup$.next();
+  protected setMode(mode: 'tree' | 'list'): void {
+    this.state.setParam('mode', mode === 'tree' ? null : mode);
   }
 
-  protected openItems(group: ItemGroup): void {
+  protected expandAll(): void {
+    this.treeView()?.expandAll();
+  }
+
+  protected collapseAll(): void {
+    this.treeView()?.collapseAll();
+  }
+
+  protected create(parentId: string | null = null): void {
+    this.movingToSub.set(false);
+    this.newParentId.set(parentId);
+    this.editing.set(null);
+  }
+
+  /** Tree nodes lack `parentName` — load the full group for the dialog. */
+  protected editNode(node: ItemGroupNode, moveToSub = false): void {
+    this.api.get(node.id).subscribe((group) => {
+      this.movingToSub.set(moveToSub);
+      this.editing.set(group);
+    });
+  }
+
+  /** Fix a main group that holds items: move it under a main group (it becomes a sub-group). */
+  protected makeSub(node: Pick<ItemGroupNode, 'id'>): void {
+    this.editNode(node as ItemGroupNode, true);
+  }
+
+  protected closeDialog(): void {
+    this.editing.set(undefined);
+    this.movingToSub.set(false);
+  }
+
+  protected removeNode(node: ItemGroupNode): void {
+    void this.remove({ ...node, parentName: null });
+  }
+
+  protected onSaved(): void {
+    this.closeDialog();
+    this.newParentId.set(null);
+    this.list.reload();
+    this.tree.reload();
+    if (this.viewId()) this.viewed.reload();
+  }
+
+  protected openItems(group: Pick<ItemGroup, 'id'>): void {
     this.router.navigate(['/items/directory'], { queryParams: { groupId: group.id } });
   }
 
@@ -122,7 +175,8 @@ export class ItemGroupsPage {
         this.onSaved();
       },
       error: (err: ApiError) => {
-        if (hasErrorCode(err, ITEM_ERROR_CODES.groupHasItems)) void this.offerShowItems(group, err.message);
+        if (hasErrorCode(err, GROUP_ERROR_CODES.hasItems)) void this.offerShowItems(group, err.message);
+        else if (hasErrorCode(err, GROUP_ERROR_CODES.hasChildren)) void this.explainHasChildren(err.message);
         else this.toast.error(err.message);
       },
     });
@@ -137,5 +191,19 @@ export class ItemGroupsPage {
       type: 'warning',
     });
     if (show) this.openItems(group);
+  }
+
+  /** Sub-groups must be deleted or moved first — point at them in the tree. */
+  private async explainHasChildren(serverMessage: string): Promise<void> {
+    const showTree = await this.dialog.confirm({
+      title: 'لا يمكن حذف المجموعة',
+      message: `${serverMessage}\nاحذف الفروع التي تحتها أو انقلها لمجموعة أخرى أولًا.`,
+      confirmText: 'عرض الشجرة',
+      type: 'warning',
+    });
+    if (showTree) {
+      this.setMode('tree');
+      this.expandAll();
+    }
   }
 }

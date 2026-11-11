@@ -18,9 +18,16 @@ const CRITICAL_RATIO = 0.25;
           <h2 class="panel__title">تنبيهات نقص المخزون</h2>
           <p class="panel__sub">أصناف تحت حد إعادة الطلب، مرتبة حسب الأولوية</p>
         </div>
-        <a class="ls__all" routerLink="/stock">إدارة المخزون <app-icon name="arrow-right" [size]="14" /></a>
+        <a class="ls__all" routerLink="/stock" [queryParams]="{ level: 'low' }">إدارة المخزون <app-icon name="arrow-right" [size]="14" /></a>
       </header>
 
+      @if (!rows().length) {
+        <div class="panel-empty" style="--tone: var(--gr)">
+          <span class="panel-empty__icon"><app-icon name="check" [size]="22" /></span>
+          <strong>لا توجد أصناف تحت حد الطلب</strong>
+          <p>كل الأصناف أرصدتها أعلى من حد إعادة الطلب — سيظهر هنا أي صنف يقترب من النفاد.</p>
+        </div>
+      }
       <ul class="ls">
         @for (item of rows(); track item.sku; let i = $index) {
           <li class="ls__row" [style.--i]="i">
@@ -54,7 +61,8 @@ export class LowStockPanelComponent {
   protected readonly rows = computed(() =>
     this.items()
       .map((item) => {
-        const ratio = item.quantity / item.reorderLevel;
+        // A zero reorder level would divide by zero — treat it as "at the level".
+        const ratio = item.reorderLevel > 0 ? item.quantity / item.reorderLevel : item.quantity > 0 ? 1 : 0;
         return { ...item, pct: Math.min(100, ratio * 100), critical: ratio <= CRITICAL_RATIO, ratio };
       })
       .sort((a, b) => a.ratio - b.ratio),

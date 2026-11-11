@@ -1,0 +1,77 @@
+<ng-template #branch let-nodes let-depth="depth">
+  <ul class="gt__list" [class.gt__list--root]="depth === 0" [attr.role]="depth === 0 ? 'tree' : 'group'">
+    @for (n of nodes; track n.id) {
+    @if (isShown(n)) {
+    <li role="treeitem" [attr.aria-expanded]="isOpen(n)" [style.--chip]="n.color" [style.--depth]="depth">
+      <!-- Whole row toggles: a parent opens its sub-groups, a final sub-group opens its items. -->
+      <div class="gt__row" [class.is-inactive]="!n.isActive" [class.is-open]="isOpen(n)"
+        [class.is-misplaced]="misplaced(n)" (click)="toggle(n)">
+        <span class="gt__toggle" [class.is-open]="isOpen(n)" aria-hidden="true">
+          <app-icon name="chevron-left" [size]="14" />
+        </span>
+
+        @if (n.imageUrl) {
+        <img class="gt__thumb" [src]="n.imageUrl" alt="" loading="lazy" />
+        } @else {
+        <span class="gt__thumb gt__thumb--icon"><app-icon [name]="n.children.length ? 'folder' : 'box'" [size]="15" /></span>
+        }
+
+        <button type="button" class="gt__name" (click)="$event.stopPropagation(); toggle(n)"
+          [attr.aria-label]="(isOpen(n) ? 'إغلاق ' : 'فتح ') + n.name">
+          <strong>{{ n.name }}</strong>
+          <small>
+            <span class="ltr">{{ n.code }}</span>
+            @if (n.children.length) {· {{ n.children.length }} فرع} @else if (depth > 0) {· فرع نهائي}
+            @if (!n.isActive) {· <em>موقوفة</em>}
+          </small>
+        </button>
+
+        @if (misplaced(n)) {
+        <button type="button" class="gt__fix" (click)="$event.stopPropagation(); makeSub.emit(n)"
+          title="الأصناف تكون تحت المجموعات الفرعية فقط — انقل هذه المجموعة تحت مجموعة رئيسية">
+          <app-icon name="alert" [size]="13" /> رئيسية فيها أصناف — تحويل لفرعية
+        </button>
+        }
+
+        <span class="gt__count" [title]="'مباشرة: ' + n.itemsCount + ' — الإجمالي مع الفروع: ' + n.totalItemsCount">
+          <strong>{{ n.totalItemsCount }}</strong> صنف
+        </span>
+
+        <div class="gt__actions" (click)="$event.stopPropagation()">
+          @if (!n.itemsCount) {
+          <button type="button" class="ui-icon-btn" title="إضافة فرع" [attr.aria-label]="'إضافة فرع تحت ' + n.name"
+            (click)="addChild.emit(n)">
+            <app-icon name="plus" [size]="15" />
+          </button>
+          }
+          <button type="button" class="ui-icon-btn" title="التفاصيل" [attr.aria-label]="'تفاصيل ' + n.name" (click)="view.emit(n)">
+            <app-icon name="eye" [size]="15" />
+          </button>
+          <button type="button" class="ui-icon-btn" title="تعديل" [attr.aria-label]="'تعديل ' + n.name" (click)="edit.emit(n)">
+            <app-icon name="edit" [size]="15" />
+          </button>
+          <button type="button" class="ui-icon-btn ui-icon-btn--danger" title="حذف" [attr.aria-label]="'حذف ' + n.name"
+            (click)="remove.emit(n)">
+            <app-icon name="trash" [size]="15" />
+          </button>
+        </div>
+      </div>
+
+      @if (isOpen(n)) {
+      @if (n.children.length) {
+      <ng-container *ngTemplateOutlet="branch; context: { $implicit: n.children, depth: depth + 1 }" />
+      } @else {
+      <app-group-items [groupId]="n.id" [groupName]="n.name" />
+      }
+      }
+    </li>
+    }
+    }
+  </ul>
+</ng-template>
+
+@if (empty()) {
+<p class="gt__empty">لا توجد مجموعات مطابقة للبحث.</p>
+} @else {
+<ng-container *ngTemplateOutlet="branch; context: { $implicit: sorted(), depth: 0 }" />
+}

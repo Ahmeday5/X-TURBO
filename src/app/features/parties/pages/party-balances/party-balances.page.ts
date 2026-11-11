@@ -26,6 +26,8 @@ import {
 } from '../../models/party.model';
 import { PartiesService } from '../../services/parties.service';
 import { balanceTone } from '../../utils/party-display.util';
+import { DetailsDrawerComponent } from '../../../../shared/components/details-drawer/details-drawer.component';
+import { toPartyDetails } from '../../utils/party-details';
 
 interface BalancesQuery {
   list: ListQuery;
@@ -38,6 +40,7 @@ interface BalancesQuery {
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    DetailsDrawerComponent,
     RouterLink,
     DataTableComponent,
     FilterSelectComponent,
@@ -57,6 +60,17 @@ export class PartyBalancesPage {
   private readonly toast = inject(ToastService);
 
   readonly navId = input.required<string>();
+
+  // ── Details drawer (👁) — fetched by id, so it shows the server's current state ──
+  protected readonly viewId = signal<string | null>(null);
+  protected readonly viewed = createQueryResource(this.viewId, (id) => this.parties.get(id!), {
+    enabled: (id) => !!id,
+    errorMessage: 'تعذّر تحميل التفاصيل',
+  });
+  protected readonly details = computed(() => {
+    const x = this.viewed.value();
+    return x && x.id === this.viewId() ? toPartyDetails(x) : null;
+  });
 
   protected readonly state = new UrlListState({
     pageSize: 25,

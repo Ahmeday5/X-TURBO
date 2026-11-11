@@ -237,12 +237,116 @@ select.ui-input {
   cursor: pointer;
 }
 
+/* Numbers: Bootstrap's RTL reboot forces `direction: ltr` on number/tel/email/url
+   inputs (correct for digits), which would leave them left-aligned on an RTL form.
+   Keep them LTR but aligned with the rest of the form, and drop the native spin
+   buttons (they overlap the value and nobody steps prices by 1). */
+[dir='rtl'] .ui-input:is([type='number'], [type='tel']) {
+  text-align: right;
+}
+
+.ui-input[type='number'] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+
+  &::-webkit-outer-spin-button,
+  &::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+}
+
+/* "See all" link in a panel header. */
+.panel__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--primary);
+  text-decoration: none;
+  white-space: nowrap;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+/* Empty state inside a panel / card: icon, title, one helpful line, optional action.
+   <div class="panel-empty"><span class="panel-empty__icon">…</span><strong>…</strong><p>…</p></div> */
+.panel-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 180px;
+  padding: 24px 16px;
+  text-align: center;
+  border: 1px dashed var(--brd2);
+  border-radius: var(--rl);
+  background: var(--bg);
+
+  &__icon {
+    display: grid;
+    place-items: center;
+    width: 46px;
+    height: 46px;
+    margin-bottom: 4px;
+    border-radius: 14px;
+    color: var(--tone, var(--primary));
+    background: color-mix(in srgb, var(--tone, var(--primary)) 12%, transparent);
+  }
+  strong {
+    font-size: 13.5px;
+    color: var(--txt);
+  }
+  p {
+    max-width: 340px;
+    margin: 0 0 6px;
+    font-size: 12px;
+    line-height: 1.7;
+    color: var(--txt3);
+  }
+}
+
+/* Table actions cell: quick action + "⋯" menu + eye, aligned and never wrapping. */
+.row-actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+/* Rows that open their details on click (custom tables / tree rows). */
+tr.is-clickable,
+.ac-row[tabindex] {
+  cursor: pointer;
+  transition: background var(--dur-fast);
+
+  &:hover {
+    background: var(--bg3);
+  }
+  &:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: -2px;
+  }
+}
+
 /* Input with a trailing unit/currency */
 .ui-affix {
   position: relative;
 
   .ui-input {
     padding-inline-end: 52px;
+  }
+
+  /* An LTR input (number, `.ltr`…) resolves `inline-end` to its own right side, while
+     the unit sits on the form's end (left in RTL) — reserve the room physically. */
+  [dir='rtl'] & .ui-input:is([type='number'], [type='tel'], [type='email'], [type='url'], .ltr) {
+    padding-left: 52px;
+    padding-right: 13px;
   }
   &__text {
     position: absolute;

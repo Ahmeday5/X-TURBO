@@ -17,7 +17,7 @@ import { RatingStarsComponent } from '../../../../shared/components/rating-stars
 import { toItemDetails } from '../../utils/item-details';
 import { ItemCardComponent } from '../../components/item-card/item-card.component';
 import { StockMeterComponent } from '../../components/stock-meter/stock-meter.component';
-import { Item, ITEM_ERROR_CODES, marginPct, toItemPayload } from '../../models/item.model';
+import { discountedPrice, Item, ITEM_ERROR_CODES, marginPct, toItemPayload } from '../../models/item.model';
 import { ApiError } from '../../../../core/models/api-response.model';
 import { hasErrorCode } from '../../../../core/http/api-error-codes';
 import { ItemGroupsService } from '../../services/item-groups.service';
@@ -101,6 +101,7 @@ export class ItemsDirectoryPage {
   protected readonly money = formatMoney;
   protected readonly int = formatInteger;
   protected readonly margin = marginPct;
+  protected readonly discounted = discountedPrice;
 
   protected edit(item: Item): void {
     this.router.navigate(['/items/define'], { queryParams: { id: item.id } });

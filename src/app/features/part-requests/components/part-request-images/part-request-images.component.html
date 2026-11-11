@@ -1,0 +1,36 @@
+@if (images().length) {
+<ul class="pri">
+  @for (img of images(); track img.id; let i = $index) {
+  @let src = urlOf(img.id);
+  <li class="pri__cell" [class.is-error]="failed(img.id)">
+    @if (src) {
+    <button type="button" class="pri__thumb" [attr.aria-label]="'عرض الصورة ' + (i + 1)" (click)="open(i)">
+      <img [src]="src" [alt]="'صورة ' + (i + 1) + ' من العميل'" loading="lazy" />
+    </button>
+    } @else if (failed(img.id)) {
+    <button type="button" class="pri__retry" (click)="retry(img)">
+      <app-icon name="refresh" [size]="16" />
+      <span>تعذّر التحميل — إعادة المحاولة</span>
+    </button>
+    } @else {
+    <span class="skeleton pri__skeleton"></span>
+    }
+  </li>
+  }
+</ul>
+} @else {
+<p class="pri__empty"><app-icon name="image" [size]="15" /> لم يرفق العميل صورًا لهذا الطلب.</p>
+}
+
+<app-modal [open]="viewing() !== null" [title]="'صورة ' + ((viewing() ?? 0) + 1) + ' من ' + images().length" size="lg"
+  (closed)="viewing.set(null)">
+  @if (viewedUrl(); as src) {
+  <div class="pri-viewer"><img [src]="src" alt="صورة القطعة المطلوبة" /></div>
+  }
+  @if (images().length > 1) {
+  <div modal-footer class="pri-viewer__nav">
+    <button type="button" class="ui-btn ui-btn--ghost" (click)="step(-1)">السابقة</button>
+    <button type="button" class="ui-btn ui-btn--ghost" (click)="step(1)">التالية</button>
+  </div>
+  }
+</app-modal>

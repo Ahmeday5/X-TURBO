@@ -2,7 +2,7 @@
   position: fixed;
   inset: 0;
   background: var(--overlay);
-  z-index: 9999;
+  z-index: var(--z-loader);
   backdrop-filter: blur(2px);
 }
 

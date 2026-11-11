@@ -38,6 +38,10 @@
 </ng-template>
 
 <ng-template #actions [appRowOf]="list.items()" let-w>
+  <button type="button" class="ui-icon-btn" title="عرض التفاصيل" [attr.aria-label]="'عرض تفاصيل ' + w.name"
+    (click)="viewId.set(w.id)">
+    <app-icon name="eye" [size]="16" />
+  </button>
   <button type="button" class="ui-icon-btn" title="الأرصدة" [attr.aria-label]="'أرصدة ' + w.name" (click)="openStock(w)">
     <app-icon name="layers" [size]="16" />
   </button>
@@ -81,7 +85,7 @@
     [value]="state.query().filters['status']" (valueChange)="state.setFilter('status', $event)" />
 </app-list-toolbar>
 
-<app-data-table [columns]="columns()" [data]="list.items()" [view]="state.view()" [sort]="state.query().sort"
+<app-data-table [rowClickable]="true" (rowClick)="viewId.set($event.id)" [columns]="columns()" [data]="list.items()" [view]="state.view()" [sort]="state.query().sort"
   [loading]="list.loading()" [initialLoading]="list.initialLoading()" [error]="list.error()"
   [skeletonCount]="state.query().pageSize" [cardTemplate]="card" [actionsTemplate]="actions" emptyIcon="warehouse"
   emptyTitle="لا توجد مخازن مطابقة" emptyText="جرّب تعديل البحث أو الفلاتر، أو أضف مخزنًا جديدًا."
@@ -94,3 +98,13 @@
 <app-pagination class="wd-pager" [pageIndex]="state.query().pageIndex" [pageSize]="state.query().pageSize"
   [count]="list.count()" [totalPages]="list.totalPages()" [pageSizeOptions]="[12, 24, 48]" [disabled]="list.loading()"
   (pageChange)="state.setPage($event)" (pageSizeChange)="state.setPageSize($event)" />
+
+<!-- Details (👁) — fetched by id -->
+<app-details-drawer [open]="!!viewId()" label="تفاصيل المخزن" [details]="details()" [loading]="viewed.loading()"
+  [error]="viewed.error()" (retry)="viewed.reload()" (closed)="viewId.set(null)">
+  @if (viewed.value(); as x) {
+  <button drawer-actions type="button" class="ui-btn ui-btn--primary" (click)="viewId.set(null); edit(x)">
+    <app-icon name="edit" [size]="15" /> تعديل
+  </button>
+  }
+</app-details-drawer>

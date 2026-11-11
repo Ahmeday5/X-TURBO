@@ -1,5 +1,12 @@
 import { inject, Injectable } from '@angular/core';
-import { Observable } from 'rxjs';
+import { map, Observable, switchMap, throwError } from 'rxjs';
+import { ApiError } from '../../../core/models/api-response.model';
+
+/** Human order number ("ORD-00042") rather than an id. */
+const ORDER_NUMBER = /^[A-Za-z]{2,5}-\d+$/;
+export const isOrderNumber = (value: string): boolean => ORDER_NUMBER.test(value.trim());
+
+const notFound = (message: string): ApiError => ({ status: 404, code: 'NOT_FOUND', message }) as ApiError;
 import { ApiService } from '../../../core/services/api.service';
 import { withSilentErrors, withSkipLoader } from '../../../core/http/http-context.tokens';
 import { PagedResponse } from '../../../core/models/api-response.model';
@@ -25,6 +32,21 @@ export class OrdersService {
 
   get(id: string): Observable<Order> {
     return this.api.get<Order>(API_ENDPOINTS.orders.byId(id), { context: withSkipLoader() });
+  }
+
+  /**
+   * Opens an order by its id OR its human number (`ORD-00042`). Some payloads
+   * (the dashboard's recent orders, shared links, a scanned slip) only carry
+   * the number — it is resolved through the list search, exact match only.
+   */
+  resolve(idOrNumber: string): Observable<Order> {
+    if (!isOrderNumber(idOrNumber)) return this.get(idOrNumber);
+    return this.list({ pageIndex: 1, pageSize: 5, search: idOrNumber, sort: null, filters: {} }).pipe(
+      map((page) => page.data.find((o) => o.number.toLowerCase() === idOrNumber.toLowerCase())),
+      switchMap((hit) =>
+        hit ? this.get(hit.id) : throwError(() => notFound(`لم يتم العثور على الطلب ${idOrNumber} — ربما حُذف أو ليس لديك صلاحية عرضه`)),
+      ),
+    );
   }
 
   /**

@@ -37,6 +37,7 @@ const groups: ItemGroup[] = GROUP_SEED.map(([name, description], i) => ({
   description,
   color: GROUP_COLORS[i % GROUP_COLORS.length],
   isActive: i !== 11,
+  imageUrl: null,
   itemsCount: 0,
   createdAt: daysAgo(400 - i * 9),
 }));
@@ -64,9 +65,11 @@ function buildItems(): Item[] {
           groupColor: groups[g].color,
           unit: ITEM_UNITS[part.includes('طقم') ? 1 : part.includes('زيت') ? 2 : 0],
           barcode: String(6221000000000 + Math.floor(rand() * 999_999_999)),
+          sku: null,
           brand: BRANDS[Math.floor(rand() * BRANDS.length)],
           purchasePrice: purchase,
           salePrice: Math.round((purchase * (1.18 + rand() * 0.35)) / 5) * 5,
+          discountPercent: 0,
           minStock,
           stock: rand() < 0.08 ? 0 : Math.floor(rand() * minStock * 6),
           description: '',
@@ -176,6 +179,7 @@ function createGroup({ req }: MockContext) {
     id: `grp-${n}`,
     code: `GR-${String(n).padStart(3, '0')}`,
     parentName: null,
+    imageUrl: null,
     itemsCount: 0,
     createdAt: new Date().toISOString(),
   };

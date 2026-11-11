@@ -80,6 +80,15 @@ export class ApiService {
   }
 
   /**
+   * Binary GET through the normal interceptor chain (so the Bearer token is
+   * attached) — for protected files a plain `<img src>` can't load. Render with
+   * `URL.createObjectURL(blob)` and revoke it when done.
+   */
+  getBlob(endpoint: string, options: RequestOptions = {}): Observable<Blob> {
+    return this.http.get(this.url(endpoint), { ...this.opts(options), responseType: 'blob' });
+  }
+
+  /**
    * Multipart upload (POST `FormData`) that reports progress.
    *
    * Emits `{ kind: 'progress', percent }` while sending — `percent` is `null`

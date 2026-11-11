@@ -1,0 +1,171 @@
+<app-page-header [navId]="navId()" subtitle="طباعة ملصقات باركود للأصناف على رول حراري أو ورق A4 — امسحها في نقطة البيع والفواتير">
+  <button type="button" class="ui-btn ui-btn--primary" [disabled]="!totalLabels()" (click)="print()">
+    <app-icon name="barcode" [size]="16" /> طباعة {{ totalLabels() ? '(' + integer(totalLabels()) + ' ملصق)' : '' }}
+  </button>
+</app-page-header>
+
+<div class="bl">
+  <div class="bl__main">
+    <!-- Sources -->
+    <section class="fp__section" style="--i: 0">
+      <header class="fp__section-head">
+        <span class="fp__section-icon"><app-icon name="plus" [size]="17" /></span>
+        <div>
+          <h2>الأصناف المراد طباعتها</h2>
+          <p>ابحث بالاسم أو الكود (أو امسح باركود المنتج بجهاز القارئ)، أو اسحب أصناف فاتورة مشتريات بكمياتها</p>
+        </div>
+      </header>
+
+      <div class="bl__sources">
+        <div class="ui-field">
+          <span class="ui-label">إضافة صنف</span>
+          <app-item-picker [items]="catalogue.value() ?? []" [priceOf]="priceOf" [loading]="catalogue.loading()"
+            (picked)="add($event)" />
+          @if (catalogue.error(); as e) {<span class="ui-field-error">{{ e }}</span>}
+        </div>
+        <div class="ui-field">
+          <span class="ui-label">من فاتورة مشتريات</span>
+          <app-searchable-select [options]="purchases.value() ?? []" [ngModel]="docId()"
+            (ngModelChange)="loadDocument($event)" [isDisabled]="purchases.loading() || loadingDoc() || !catalogue.value()"
+            [placeholder]="loadingDoc() ? 'جارٍ إضافة الأصناف…' : 'اختر الفاتورة — ملصق لكل قطعة'"
+            searchPlaceholder="رقم الفاتورة أو المورد…" />
+          <span class="ui-hint">آخر 50 فاتورة. يمكنك أيضًا الطباعة من زر «ملصقات باركود» داخل أي فاتورة.</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Queue -->
+    <section class="fp__section" style="--i: 1">
+      <header class="fp__section-head bl__queue-head">
+        <span class="fp__section-icon"><app-icon name="list" [size]="17" /></span>
+        <div>
+          <h2>قائمة الطباعة</h2>
+          <p>{{ integer(rows().length) }} صنف · {{ integer(totalLabels()) }} ملصق
+            @if (sheetsNeeded(); as sheets) {· {{ integer(sheets) }} ورقة A4}</p>
+        </div>
+        @if (rows().length) {
+        <div class="bl__bulk">
+          <label>
+            نسخ لكل صنف
+            <input class="ui-input" type="number" min="1" [max]="maxCopies" placeholder="—"
+              (change)="setAllCopies($any($event.target).value)" aria-label="عدد النسخ لكل الأصناف" />
+          </label>
+          <button type="button" class="ui-btn ui-btn--ghost" (click)="clear()">
+            <app-icon name="trash" [size]="15" /> تفريغ
+          </button>
+        </div>
+        }
+      </header>
+
+      @if (withoutBarcode().length) {
+      <p class="bl__warn">
+        <app-icon name="alert" [size]="14" />
+        {{ integer(withoutBarcode().length) }} صنف بدون باركود — سيُطبع كود الصنف (SKU) كباركود ويعمل مع الماسح عادي.
+        لتوليد باركود دائم افتح الصنف واضغط «توليد».
+      </p>
+      }
+
+      @if (rows().length) {
+      <div class="bl__table-wrap">
+        <table class="bl__table">
+          <thead>
+            <tr>
+              <th>الصنف</th>
+              <th>يُطبع كباركود</th>
+              <th class="num">السعر</th>
+              <th class="num">النسخ</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (r of rows(); track r.item.id; let i = $index) {
+            <tr>
+              <td>
+                <div class="bl__item">
+                  <strong>{{ r.item.name }}</strong>
+                  <small class="ltr">{{ r.item.code }}</small>
+                </div>
+              </td>
+              <td>
+                <span class="bl__value ltr" [class.is-fallback]="!r.item.barcode">{{ value(r.item) }}</span>
+                @if (!r.item.barcode) {
+                <a class="bl__link" [routerLink]="'/items/define'" [queryParams]="{ id: r.item.id }">توليد باركود</a>
+                }
+              </td>
+              <td class="num">{{ money(r.item.salePrice) }}</td>
+              <td class="num">
+                <input class="ui-input bl__copies" type="number" min="1" [max]="maxCopies" [value]="r.copies"
+                  (change)="setCopies(i, $any($event.target).value)" [attr.aria-label]="'عدد نسخ ' + r.item.name" />
+              </td>
+              <td>
+                <button type="button" class="ui-icon-btn" title="إزالة" [attr.aria-label]="'إزالة ' + r.item.name"
+                  (click)="remove(i)">
+                  <app-icon name="x" [size]="15" />
+                </button>
+              </td>
+            </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      } @else {
+      <div class="bl__empty">
+        <app-icon name="barcode" [size]="28" />
+        <p>لم تُضف أصنافًا بعد — ابدأ من البحث أعلاه أو امسح باركود صنف.</p>
+      </div>
+      }
+    </section>
+  </div>
+
+  <!-- Layout & preview -->
+  <aside class="bl__aside">
+    <section class="fp__section" style="--i: 2">
+      <header class="fp__section-head">
+        <span class="fp__section-icon"><app-icon name="sliders" [size]="17" /></span>
+        <div>
+          <h2>شكل الملصق</h2>
+          <p>يُحفظ اختيارك على هذا الجهاز</p>
+        </div>
+      </header>
+
+      <label class="ui-field">
+        <span class="ui-label">مقاس الملصق</span>
+        <select class="ui-input" [value]="template().id" (change)="setTemplate($any($event.target).value)">
+          <optgroup label="طابعة ملصقات حرارية">
+            @for (t of templates; track t.id) {@if (t.stock === 'roll') {<option [value]="t.id">{{ t.label }}</option>}}
+          </optgroup>
+          <optgroup label="طابعة عادية — ورق ستيكر A4">
+            @for (t of templates; track t.id) {@if (t.stock === 'sheet') {<option [value]="t.id">{{ t.label }}</option>}}
+          </optgroup>
+        </select>
+      </label>
+
+      <div class="ui-field">
+        <span class="ui-label">يظهر على الملصق</span>
+        <div class="bl__fields">
+          @for (f of fieldOptions; track f.key) {
+          <label class="bl__check">
+            <input type="checkbox" [checked]="fields()[f.key]" (change)="toggleField(f.key)" /> {{ f.label }}
+          </label>
+          }
+        </div>
+      </div>
+
+      <div class="bl__preview">
+        <span class="bl__preview-label">
+          <app-icon name="eye" [size]="14" /> معاينة {{ isSample() ? '(مثال)' : '— ' + previewRow().item.name }}
+        </span>
+        <app-label-preview [row]="previewRow()" [template]="template()" [fields]="fields()" />
+      </div>
+
+      <p class="bl__tip">
+        @if (template().stock === 'roll') {
+        <app-icon name="alert" [size]="13" /> في نافذة الطباعة اختر طابعة الملصقات، واضبط «حجم الورق» على
+        {{ template().width }}×{{ template().height }} مم، والهوامش «بدون»، والمقياس 100%.
+        } @else {
+        <app-icon name="alert" [size]="13" /> في نافذة الطباعة اختر الورق A4، والهوامش «افتراضي/بدون»، والمقياس 100% (ليس «ملاءمة الصفحة»).
+        }
+      </p>
+    </section>
+  </aside>
+</div>

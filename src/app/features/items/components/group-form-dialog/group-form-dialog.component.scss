@@ -38,6 +38,63 @@
   transition: background 0.35s, box-shadow 0.35s;
 }
 
+.gf__notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--txt);
+  background: color-mix(in srgb, var(--am) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--am) 35%, transparent);
+
+  app-icon {
+    flex: none;
+    margin-top: 3px;
+    color: var(--am);
+  }
+}
+
+.gf__preview-img {
+  width: 44px;
+  height: 44px;
+  flex: none;
+  border-radius: 13px;
+  object-fit: cover;
+  border: 2px solid var(--chip);
+}
+
+.gf__preview-text {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.gf__image-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+}
+
+.gf__upload {
+  position: relative;
+  height: 34px;
+  cursor: pointer;
+
+  input {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+  }
+  &:has(input:focus-visible) {
+    box-shadow: var(--focus-ring);
+  }
+}
+
 .gf__colors {
   display: flex;
   flex-wrap: wrap;

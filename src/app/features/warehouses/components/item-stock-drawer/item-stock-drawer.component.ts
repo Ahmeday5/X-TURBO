@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, input, output } f
 import { RouterLink } from '@angular/router';
 import { DrawerComponent } from '../../../../shared/components/drawer/drawer.component';
 import { IconComponent } from '../../../../shared/components/icon/icon.component';
+import { STOCK_ACTIONS, stockActionTarget } from '../../utils/stock-actions';
 import { createQueryResource } from '../../../../shared/list/query-resource';
 import { formatDayMonth, formatInteger, formatMoney } from '../../../../shared/utils/format.util';
 import { STOCK_LEVEL_LABEL } from '../../../items/models/item.model';
@@ -84,8 +85,13 @@ import { StockService } from '../../services/stock.service';
 
       <div drawer-footer>
         @if (itemId(); as id) {
-          <a class="ui-btn ui-btn--ghost" routerLink="/items/define" [queryParams]="{ id }"><app-icon name="edit" [size]="16" /> بطاقة الصنف</a>
-          <a class="ui-btn ui-btn--ghost" routerLink="/invoices/transfers" [queryParams]="{ doc: 'new' }"><app-icon name="swap" [size]="16" /> تحويل مخزني</a>
+          <!-- Same shortcuts as the stock table's row menu (one list). -->
+          @for (a of actions; track a.key) {
+            @let to = target(a.key, id);
+            <a class="ui-btn ui-btn--ghost" [routerLink]="to.route" [queryParams]="to.params">
+              <app-icon [name]="a.icon" [size]="16" /> {{ a.label }}
+            </a>
+          }
         }
       </div>
     </app-drawer>
@@ -129,6 +135,8 @@ import { StockService } from '../../services/stock.service';
   ],
 })
 export class ItemStockDrawerComponent {
+  protected readonly actions = STOCK_ACTIONS;
+  protected readonly target = stockActionTarget;
   private readonly stock = inject(StockService);
 
   readonly itemId = input<string | null>(null);

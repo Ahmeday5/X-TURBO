@@ -27,7 +27,11 @@ import { EntityDetails } from './details-drawer.model';
     <app-drawer [open]="open()" [label]="label()" (closed)="closed.emit()">
       <div drawer-title class="dd-title">
         @if (details(); as d) {
-          <span class="dd-title__icon"><app-icon [name]="d.header.icon ?? 'file-lines'" [size]="18" /></span>
+          @if (d.header.imageUrl) {
+            <img class="dd-title__icon dd-title__img" [src]="d.header.imageUrl" alt="" />
+          } @else {
+            <span class="dd-title__icon"><app-icon [name]="d.header.icon ?? 'file-lines'" [size]="18" /></span>
+          }
           <div class="dd-title__text">
             <strong>{{ d.header.title }}</strong>
             @if (d.header.subtitle) {<small>{{ d.header.subtitle }}</small>}
@@ -80,6 +84,7 @@ import { EntityDetails } from './details-drawer.model';
         flex-shrink: 0; width: 36px; height: 36px; display: grid; place-items: center; border-radius: 11px;
         background: var(--primary-soft); color: var(--primary);
       }
+      .dd-title__img { object-fit: cover; border: 1px solid var(--brd); }
       .dd-title__text { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
       .dd-title__text strong { font-size: 15px; font-weight: 700; color: var(--txt); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
       .dd-title__text small { font-size: 11.5px; color: var(--txt3); }

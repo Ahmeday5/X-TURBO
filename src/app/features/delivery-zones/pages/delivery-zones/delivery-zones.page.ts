@@ -4,6 +4,7 @@ import { ApiError } from '../../../../core/models/api-response.model';
 import { DialogService } from '../../../../core/services/dialog.service';
 import { ToastService } from '../../../../core/services/toast.service';
 import { IconComponent } from '../../../../shared/components/icon/icon.component';
+import { shouldActivateRow } from '../../../../shared/utils/row-activation.util';
 import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
 import { SummaryTile, SummaryTilesComponent } from '../../../../shared/components/summary-tiles/summary-tiles.component';
 import { createQueryResource } from '../../../../shared/list/query-resource';
@@ -18,6 +19,8 @@ import {
   toZonePayload,
 } from '../../models/delivery-zone.model';
 import { DeliveryZonesService } from '../../services/delivery-zones.service';
+import { toZoneDetails } from '../../utils/zone-details';
+import { DetailsDrawerComponent } from '../../../../shared/components/details-drawer/details-drawer.component';
 
 /**
  * Delivery zones: shipping fee, delivery estimate and free-shipping threshold
@@ -28,7 +31,7 @@ import { DeliveryZonesService } from '../../services/delivery-zones.service';
   selector: 'app-delivery-zones-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [PageHeaderComponent, IconComponent, SummaryTilesComponent, ZoneDialogComponent],
+  imports: [PageHeaderComponent, IconComponent, SummaryTilesComponent, ZoneDialogComponent, DetailsDrawerComponent],
   templateUrl: './delivery-zones.page.html',
   styleUrl: './delivery-zones.page.scss',
 })
@@ -95,6 +98,24 @@ export class DeliveryZonesPage {
   protected readonly editing = signal<DeliveryZone | null>(null);
   protected readonly preset = signal<string | null>(null);
   protected readonly busyId = signal<string | null>(null);
+
+  // ── Details drawer (👁) — built from the row: the API has no GET /delivery-zones/{id} ──
+  protected readonly viewing = signal<DeliveryZone | null>(null);
+
+  /** A click anywhere on a row opens its details (its buttons / switch keep their own action). */
+  protected openRow(zone: DeliveryZone, event: Event): void {
+    if (shouldActivateRow(event)) this.viewing.set(zone);
+  }
+  protected readonly details = computed(() => {
+    const z = this.viewing();
+    return z ? toZoneDetails(z) : null;
+  });
+
+  protected editViewed(): void {
+    const z = this.viewing();
+    this.viewing.set(null);
+    if (z) this.edit(z);
+  }
 
   protected add(governorate: string | null = null): void {
     this.editing.set(null);

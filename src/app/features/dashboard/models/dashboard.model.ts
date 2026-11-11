@@ -52,7 +52,10 @@ export interface LowStockItem {
 
 
 export interface RecentOrder {
+  /** The API currently sends the order NUMBER here (`ORD-00042`); the drawer resolves either. */
   id: string;
+  /** Human number, when the API sends it separately from the id. */
+  number?: string;
   customer: string;
   channel: string;
   itemCount: number;

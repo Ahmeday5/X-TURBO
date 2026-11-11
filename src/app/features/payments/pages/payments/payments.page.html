@@ -55,9 +55,12 @@
 </ng-template>
 
 <ng-template #actions [appRowOf]="list.items()" let-p>
-  <button type="button" class="ui-icon-btn" title="التفاصيل" [attr.aria-label]="'تفاصيل ' + p.number" (click)="open(p)">
-    <app-icon name="eye" [size]="16" />
-  </button>
+  <div class="row-actions">
+    <app-row-menu [actions]="actionsOf(p)" [quick]="true" [label]="'إجراءات ' + p.number" (run)="act(p, $event)" />
+    <button type="button" class="ui-icon-btn" title="التفاصيل" [attr.aria-label]="'تفاصيل ' + p.number" (click)="open(p)">
+      <app-icon name="eye" [size]="16" />
+    </button>
+  </div>
 </ng-template>
 
 <ng-template #card [appRowOf]="list.items()" let-p>
@@ -135,4 +138,5 @@
   [count]="list.count()" [totalPages]="list.totalPages()" [pageSizeOptions]="[12, 24, 48, 96]"
   [disabled]="list.loading()" (pageChange)="state.setPage($event)" (pageSizeChange)="state.setPageSize($event)" />
 
-<app-payment-drawer [paymentId]="viewing() || null" (closed)="state.setParam('view', null)" (changed)="refresh()" />
+<app-payment-drawer [paymentId]="viewing() || null" [intent]="intent()" (intentDone)="state.setParam('do', null)"
+  (closed)="state.setParams({ view: null, do: null })" (changed)="refresh()" />

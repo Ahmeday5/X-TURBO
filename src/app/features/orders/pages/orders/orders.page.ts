@@ -12,6 +12,7 @@ import { PaginationComponent } from '../../../../shared/components/pagination/pa
 import { StatusPillComponent } from '../../../../shared/components/status-pill/status-pill.component';
 import { CountUpDirective } from '../../../../shared/directives/count-up.directive';
 import { RowTemplateDirective } from '../../../../shared/directives/row-template.directive';
+import { RowMenuComponent } from '../../../../shared/components/row-menu/row-menu.component';
 import { createListResource } from '../../../../shared/list/list-resource';
 import { createQueryResource } from '../../../../shared/list/query-resource';
 import { UrlListState } from '../../../../shared/list/url-list-state';
@@ -27,6 +28,8 @@ import {
   ORDER_ITEMS_PLURAL,
   ORDER_PERIODS,
   ORDER_STATUS_VIEW,
+  OrderAction,
+  orderActions,
   OrderStats,
   OrderStatus,
   OrderSummary,
@@ -71,6 +74,7 @@ const ORDER_FILTERS = ['status', 'channel', 'payment', 'period'] as const;
     OrderStatusTabsComponent,
     PageHeaderComponent,
     PaginationComponent,
+    RowMenuComponent,
     RowTemplateDirective,
     StatusPillComponent,
   ],
@@ -142,12 +146,21 @@ export class OrdersPage {
   protected readonly relative = formatRelative;
   protected readonly items = (n: number) => pluralAr(n, ORDER_ITEMS_PLURAL);
 
+  /** Row action requested from the table — run by the drawer (one implementation). */
+  private readonly doParam = this.state.param('do');
+  protected readonly intent = computed(() => (this.doParam() as OrderAction) || null);
+  protected readonly actionsOf = orderActions;
+
   protected open(order: OrderSummary): void {
     this.state.setParam('order', order.id);
   }
 
+  protected act(order: OrderSummary, action: OrderAction): void {
+    this.state.setParams({ order: order.id, do: action });
+  }
+
   protected closeDrawer(): void {
-    this.state.setParam('order', null);
+    this.state.setParams({ order: null, do: null });
   }
 
   protected setStatus(status: OrderStatus | null): void {

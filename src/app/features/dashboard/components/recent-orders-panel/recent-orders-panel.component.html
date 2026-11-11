@@ -2,11 +2,12 @@
   <header class="panel__head">
     <div>
       <h2 class="panel__title">أحدث الطلبات</h2>
-      <p class="panel__sub">آخر الحركات على كل القنوات</p>
+      <p class="panel__sub">آخر الحركات على كل القنوات — اضغط على الطلب لعرضه وتحديث حالته</p>
     </div>
     <a class="ro__all" routerLink="/orders">عرض الكل <app-icon name="arrow-right" [size]="14" /></a>
   </header>
 
+  @if (orders().length) {
   <div class="ro__scroll">
     <table class="ro">
       <thead>
@@ -16,13 +17,15 @@
           <th>القناة</th>
           <th class="ro__num">الإجمالي</th>
           <th>الحالة</th>
+          <th class="ro__act" aria-label="إجراءات"></th>
         </tr>
       </thead>
       <tbody>
         @for (o of orders(); track o.id; let i = $index) {
-        <tr class="ro__row" [style.--i]="i">
+        <tr class="ro__row is-clickable" [style.--i]="i" tabindex="0" [attr.aria-label]="'عرض الطلب ' + label(o)"
+          (click)="open(o, $event)" (keydown.enter)="open(o, $event)">
           <td>
-            <div class="ro__id ltr">{{ o.id }}</div>
+            <div class="ro__id ltr">{{ label(o) }}</div>
             <div class="ro__time"><app-icon name="clock" [size]="11" />{{ formatRelative(o.createdAt) }}</div>
           </td>
           <td>
@@ -39,9 +42,25 @@
           <td>
             <app-status-pill [view]="status[o.status]" />
           </td>
+          <td class="ro__act">
+            <button type="button" class="ui-icon-btn" title="عرض التفاصيل" [attr.aria-label]="'عرض تفاصيل الطلب ' + label(o)"
+              (click)="open(o)">
+              <app-icon name="eye" [size]="15" />
+            </button>
+          </td>
         </tr>
         }
       </tbody>
     </table>
   </div>
+  } @else {
+  <div class="panel-empty">
+    <span class="panel-empty__icon"><app-icon name="cart" [size]="22" /></span>
+    <strong>لا توجد طلبات في هذه الفترة</strong>
+    <p>تظهر هنا آخر الطلبات من المتجر الإلكتروني ونقاط البيع والجملة فور تسجيلها.</p>
+    <a class="ui-btn ui-btn--ghost" routerLink="/orders"><app-icon name="cart" [size]="15" /> صفحة الطلبات</a>
+  </div>
+  }
 </section>
+
+<app-order-details-drawer [orderId]="openKey()" (closed)="openKey.set(null)" (changed)="changed.emit()" />

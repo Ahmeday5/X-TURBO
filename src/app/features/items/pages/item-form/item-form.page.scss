@@ -236,16 +236,57 @@
   flex-wrap: wrap;
 }
 
-.if-note {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin: 0 0 14px;
-  font-size: 12px;
-  color: var(--txt3);
-}
 
 /* Label with a live character counter on the opposite side. */
+.if__discount-row {
+  margin-top: 14px;
+}
+
+.if__after-discount small s {
+  opacity: 0.7;
+}
+
+.if__barcode {
+  display: flex;
+  gap: 8px;
+
+  .ui-input {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  .ui-btn {
+    flex: none;
+    height: 42px;
+  }
+}
+
+.if__barcode-preview {
+  width: min(100%, 220px);
+  margin-top: 6px;
+  padding: 6px 8px 4px;
+  border: 1px solid var(--brd);
+  border-radius: 8px;
+  background: #fff;
+
+  ::ng-deep .bc__text {
+    color: #111;
+  }
+}
+
+.if__inline-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--primary);
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
 .if__label-row {
   display: flex;
   align-items: baseline;
@@ -262,4 +303,19 @@
   &.is-over {
     color: var(--re);
   }
+}
+
+/* What a new item's other tabs will save with it. */
+.if__pending {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-inline-end: auto;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--gr);
+}
+
+.if-create-bar {
+  margin-top: 16px;
 }

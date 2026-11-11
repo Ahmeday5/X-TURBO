@@ -56,6 +56,18 @@
     border-top: 1px solid var(--brd);
   }
 
+  &__draft-note {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0;
+    padding: 10px 12px;
+    border-radius: var(--rl);
+    background: var(--primary-soft);
+    color: var(--primary-strong);
+    font-size: 12px;
+  }
+
   &__unsaved {
     display: inline-flex;
     align-items: center;

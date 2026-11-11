@@ -3,26 +3,25 @@
   <a class="ui-btn ui-btn--ghost" routerLink="/items/directory"><app-icon name="table" [size]="16" /> دليل الأصناف</a>
 </app-page-header>
 
-@if (isEdit()) {
 <div class="seg if-tabs" role="tablist" aria-label="أقسام الصنف">
-  @for (t of tabs; track t.key) {
+  @for (t of tabs(); track t.key) {
   <button type="button" class="seg__btn" role="tab" [attr.aria-selected]="activeTab() === t.key"
     [attr.aria-pressed]="activeTab() === t.key" (click)="setTab(t.key)">
     <app-icon [name]="t.icon" [size]="15" /> {{ t.label }}
   </button>
   }
 </div>
-} @else {
-<p class="if-note"><app-icon name="image" [size]="14" /> الصور وبيانات المتجر بتتضاف من «تعديل الصنف» بعد حفظه.</p>
-}
 
-@if (activeTab() === 'images' && id()) {
-<app-item-images [itemId]="id()!" />
-} @else if (activeTab() === 'store' && id()) {
-<!-- Base price = the saved sale price (tiers are validated against it). -->
-<app-item-store [itemId]="id()!" [basePrice]="current()?.salePrice ?? 0" />
-} @else if (activeTab() === 'fitments' && id()) {
-<app-item-fitments [itemId]="id()!" />
+<!-- Images / store / fitments: live on the server when editing; a draft saved with the item when creating. -->
+@if (activeTab() === 'images') {
+<app-item-images [itemId]="id() ?? null" />
+} @else if (activeTab() === 'store') {
+<!-- Tiers are validated against the sale price: the saved one when editing, the one being typed when creating. -->
+<app-item-store [itemId]="id() ?? null" [basePrice]="id() ? (current()?.salePrice ?? 0) : liveSalePrice()" />
+} @else if (activeTab() === 'fitments') {
+<app-item-fitments [itemId]="id() ?? null" />
+} @else if (activeTab() === 'reviews' && id()) {
+<app-item-reviews [itemId]="id()!" />
 } @else {
 <form class="if" [formGroup]="form" (ngSubmit)="submit('save')" [class.is-loading]="loadingItem()" novalidate>
   <div class="if__main">
@@ -47,6 +46,10 @@
           <span class="ui-label is-required">المجموعة</span>
           <app-searchable-select formControlName="groupId" [options]="groupOptions()" placeholder="اختر المجموعة"
             searchPlaceholder="ابحث في المجموعات…" />
+          <span class="ui-hint">تظهر المجموعات الفرعية فقط (آخر فرع) — الأصناف لا تُربط بمجموعة رئيسية.</span>
+          @if (groupNotLeaf(); as g) {
+          <span class="ui-field-error">«{{ g.name }}» {{ g.reason }} — اختر المجموعة الفرعية المناسبة للصنف قبل الحفظ.</span>
+          }
           <app-form-error [control]="form.controls.groupId" label="المجموعة" />
         </div>
 
@@ -62,13 +65,35 @@
           <input class="ui-input" formControlName="brand" placeholder="بوش، دينسو، أصلي…" />
         </label>
 
-        <label class="ui-field">
-          <span class="ui-label">الباركود</span>
-          <div class="ui-affix">
-            <input class="ui-input ltr" formControlName="barcode" inputmode="numeric" placeholder="6221000000000" />
-            <span class="ui-affix__text"><app-icon name="barcode" [size]="16" /></span>
+        <div class="ui-field">
+          <span class="ui-label if__label-row">
+            الباركود
+            @if (id() && form.controls.barcode.value) {
+            <a class="if__inline-link" routerLink="/items/barcode-labels" [queryParams]="{ items: id() }">
+              <app-icon name="barcode" [size]="12" /> طباعة ملصق
+            </a>
+            }
+          </span>
+          <div class="if__barcode">
+            <input class="ui-input ltr" formControlName="barcode" placeholder="6221234567890 / BRK-2041A"
+              autocomplete="off" spellcheck="false" aria-label="الباركود" />
+            <button type="button" class="ui-btn ui-btn--ghost" (click)="generateBarcode()"
+              title="باركود داخلي للمحل (EAN-13 يبدأ بـ 2) لصنف بدون باركود مصنع">
+              <app-icon name="barcode" [size]="15" /> توليد
+            </button>
           </div>
+          <span class="ui-hint">حروف إنجليزية وأرقام — امسحه بالماسح أو اكتبه، أو «توليد» لصنف بدون باركود.</span>
           <app-form-error [control]="form.controls.barcode" label="الباركود" />
+          @if (form.controls.barcode.valid && form.controls.barcode.value) {
+          <app-barcode class="if__barcode-preview" [value]="form.controls.barcode.value" [height]="34" [showText]="true" />
+          }
+        </div>
+
+        <label class="ui-field">
+          <span class="ui-label">رقم SKU</span>
+          <input class="ui-input ltr" formControlName="sku" inputmode="numeric" placeholder="100245" autocomplete="off" />
+          <span class="ui-hint">اختياري، أرقام فقط وغير مكرر — غير كود الصنف التلقائي ({{ current()?.code ?? 'يُولّد عند الحفظ' }}).</span>
+          <app-form-error [control]="form.controls.sku" label="رقم SKU" />
         </label>
       </div>
     </section>
@@ -111,6 +136,35 @@
 
       @if (margin() < 0) {
       <p class="if__warn"><app-icon name="alert" [size]="15" /> سعر البيع أقل من سعر الشراء.</p>
+      }
+
+      <div class="if__grid if__grid--3 if__discount-row">
+        <label class="ui-field">
+          <span class="ui-label">الخصم</span>
+          <div class="ui-affix">
+            <input class="ui-input" type="number" [min]="discountRange.min" [max]="discountRange.max" step="0.5"
+              formControlName="discountPercent" />
+            <span class="ui-affix__text">%</span>
+          </div>
+          <span class="ui-hint">من {{ discountRange.min }} إلى {{ discountRange.max }}% — يظهر للعميل في التطبيق.</span>
+          <app-form-error [control]="form.controls.discountPercent" label="الخصم" />
+        </label>
+
+        <div class="if__margin if__after-discount" [class.is-negative]="discount().belowCost">
+          <span>السعر بعد الخصم</span>
+          <strong>{{ discount().after }} ج.م</strong>
+          <small>
+            @if (discount().pct > 0) {
+            <s>{{ preview().salePrice }}</s> · توفير {{ discount().saved }} ج.م ({{ discount().pct }}%)
+            } @else {
+            بدون خصم
+            }
+          </small>
+        </div>
+      </div>
+
+      @if (discount().belowCost) {
+      <p class="if__warn"><app-icon name="alert" [size]="15" /> السعر بعد الخصم أقل من سعر الشراء — البيع بخسارة.</p>
       }
     </section>
 
@@ -173,6 +227,9 @@
 
   <!-- Sticky actions -->
   <footer class="if__actions">
+    @if (!isEdit() && setup.pendingSummary()) {
+    <span class="if__pending"><app-icon name="check" [size]="13" /> يُحفظ مع الصنف: {{ setup.pendingSummary() }}</span>
+    }
     <a class="ui-btn ui-btn--ghost" routerLink="/items/directory">إلغاء</a>
     @if (!isEdit()) {
     <button type="button" class="ui-btn ui-btn--ghost" [class.is-loading]="saving() === 'saveNew'" [disabled]="!!saving()"
@@ -185,4 +242,22 @@
     </button>
   </footer>
 </form>
+}
+
+<!-- Creating: the item can be saved from any tab (the details form is validated first). -->
+@if (!isEdit() && activeTab() !== 'details') {
+<footer class="fp__actions if-create-bar">
+  @if (setup.pendingSummary()) {
+  <span class="if__pending"><app-icon name="check" [size]="13" /> يُحفظ مع الصنف: {{ setup.pendingSummary() }}</span>
+  }
+  <a class="ui-btn ui-btn--ghost" routerLink="/items/directory">إلغاء</a>
+  <button type="button" class="ui-btn ui-btn--ghost" [class.is-loading]="saving() === 'saveNew'" [disabled]="!!saving()"
+    (click)="submit('saveNew')">
+    <app-icon name="plus" [size]="16" /> حفظ وإضافة آخر
+  </button>
+  <button type="button" class="ui-btn ui-btn--primary" [class.is-loading]="saving() === 'save'" [disabled]="!!saving()"
+    (click)="submit('save')">
+    <app-icon name="check" [size]="16" /> حفظ الصنف
+  </button>
+</footer>
 }

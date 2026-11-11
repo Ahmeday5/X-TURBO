@@ -18,6 +18,7 @@ import {
   toFitmentPayload,
 } from '../../models/item-fitment.model';
 import { ItemFitmentsService } from '../../services/item-fitments.service';
+import { ItemDraftService } from '../../services/item-draft.service';
 
 /** Year typed in a box → number, or null when empty. */
 const toYear = (raw: string): number | null => (raw.trim() === '' ? null : Number(raw));
@@ -41,7 +42,12 @@ export class ItemFitmentsComponent {
   private readonly cars = inject(CarCatalogService);
   private readonly toast = inject(ToastService);
 
-  readonly itemId = input.required<string>();
+  /** `null` = a new, unsaved item: the list goes to the draft and is saved right after the item. */
+  readonly itemId = input<string | null>(null);
+
+  /** Provided by the item screen; holds a new item's pending fitments. */
+  private readonly setup = inject(ItemDraftService, { optional: true });
+  protected readonly draftMode = computed(() => !this.itemId() && !!this.setup);
 
   protected readonly yearsLabel = fitmentYearsLabel;
   protected readonly spanLabel = spanLabel;
@@ -108,11 +114,22 @@ export class ItemFitmentsComponent {
   constructor() {
     effect(() => {
       const id = this.itemId();
-      untracked(() => this.load(id));
+      untracked(() => {
+        if (id) this.load(id);
+        // New item: show what was added before switching tabs.
+        else if (this.setup) this.draft.set(sortFitments(this.setup.fitments()));
+      });
+    });
+
+    // New item: mirror the list into the draft (saved right after the item).
+    effect(() => {
+      const list = this.draft();
+      if (this.draftMode()) untracked(() => this.setup!.setFitments(list));
     });
   }
 
   protected load(itemId = this.itemId()): void {
+    if (!itemId) return;
     this.loading.set(true);
     this.loadError.set(null);
     this.api
@@ -168,7 +185,7 @@ export class ItemFitmentsComponent {
     this.saving.set(true);
     const sent = this.draft();
     this.api
-      .replace(this.itemId(), sent.map(toFitmentPayload))
+      .replace(this.itemId()!, sent.map(toFitmentPayload))
       .pipe(finalize(() => this.saving.set(false)))
       .subscribe({
         next: (list) => {

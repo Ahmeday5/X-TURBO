@@ -37,9 +37,12 @@
 <ng-template #statusCell [appRowOf]="list.items()" let-o><app-status-pill [view]="statusView[o.status]" /></ng-template>
 
 <ng-template #actions [appRowOf]="list.items()" let-o>
-  <button type="button" class="ui-icon-btn" title="التفاصيل" [attr.aria-label]="'تفاصيل ' + o.number" (click)="open(o)">
-    <app-icon name="eye" [size]="16" />
-  </button>
+  <div class="row-actions">
+    <app-row-menu [actions]="actionsOf(o)" [quick]="true" [label]="'إجراءات ' + o.number" (run)="act(o, $event)" />
+    <button type="button" class="ui-icon-btn" title="التفاصيل" [attr.aria-label]="'تفاصيل ' + o.number" (click)="open(o)">
+      <app-icon name="eye" [size]="16" />
+    </button>
+  </div>
 </ng-template>
 
 <ng-template #card [appRowOf]="list.items()" let-o><app-order-card [order]="o" /></ng-template>
@@ -101,4 +104,5 @@
   [count]="list.count()" [totalPages]="list.totalPages()" [pageSizeOptions]="[12, 24, 48, 96]"
   [disabled]="list.loading()" (pageChange)="state.setPage($event)" (pageSizeChange)="state.setPageSize($event)" />
 
-<app-order-details-drawer [orderId]="openOrderId() || null" (closed)="closeDrawer()" (changed)="refresh()" />
+<app-order-details-drawer [orderId]="openOrderId() || null" [intent]="intent()" (intentDone)="state.setParam('do', null)"
+  (closed)="closeDrawer()" (changed)="refresh()" />

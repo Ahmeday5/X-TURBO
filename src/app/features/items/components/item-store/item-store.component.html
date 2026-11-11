@@ -41,6 +41,11 @@
         <app-icon name="alert" [size]="15" /> الصنف منشور بدون صور — أضف صورة واحدة على الأقل من تاب «الصور» ليظهر بشكل جيد في التطبيق.
       </p>
       }
+      @if (draftMode()) {
+      <p class="ist-note" role="note">
+        <app-icon name="check" [size]="15" /> تُحفظ بيانات المتجر تلقائيًا مع الصنف عند الضغط على «حفظ الصنف».
+      </p>
+      }
     </section>
 
     <!-- Price tiers -->
@@ -117,11 +122,13 @@
     </div>
   </aside>
 
+  @if (!draftMode()) {
   <footer class="fp__actions">
     <button type="button" class="ui-btn ui-btn--ghost" [disabled]="!form.dirty || saving()" (click)="reset()">تراجع عن التغييرات</button>
     <button type="submit" class="ui-btn ui-btn--primary" [class.is-loading]="saving()" [disabled]="saving() || loading()">
       <app-icon name="check" [size]="16" /> حفظ بيانات المتجر
     </button>
   </footer>
+  }
 </form>
 }

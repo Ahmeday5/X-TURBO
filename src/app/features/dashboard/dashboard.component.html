@@ -27,14 +27,15 @@
   <div class="bento" [class.is-refreshing]="loading()" [attr.aria-busy]="loading()">
     @for (card of kpiCards; track card.key; let i = $index) {
     <app-kpi-card class="span-3 reveal" [style.--i]="i + 1" [label]="card.label" [icon]="card.icon"
-      [kpi]="d.kpis[card.key]" [format]="card.format" [upIsGood]="card.upIsGood" [period]="comparison()" />
+      [kpi]="d.kpis[card.key]" [format]="card.format" [upIsGood]="card.upIsGood" [period]="comparison()"
+      [link]="card.link" [linkParams]="card.linkParams ?? null" [emptyNote]="card.emptyNote" />
     }
 
     <app-revenue-panel class="span-8 reveal" style="--i: 5" [revenue]="d.revenue" [period]="period()" />
 
     <app-channel-panel class="span-4 reveal" style="--i: 6" [channels]="d.channels" [period]="period()" />
 
-    <app-recent-orders-panel class="span-8 reveal" style="--i: 7" [orders]="d.recentOrders" />
+    <app-recent-orders-panel class="span-8 reveal" style="--i: 7" [orders]="d.recentOrders" (changed)="reload()" />
     <app-warehouse-panel class="span-4 reveal" style="--i: 8" [warehouses]="d.warehouses" />
 
     <app-low-stock-panel class="span-6 reveal" style="--i: 9" [items]="d.lowStock" />
@@ -45,8 +46,17 @@
           <h2 class="panel__title">القطع الأكثر مبيعًا</h2>
           <p class="panel__sub">حسب الإيراد · {{ period() }}</p>
         </div>
+        <a class="panel__link" routerLink="/reports">التقارير <app-icon name="arrow-right" [size]="14" /></a>
       </header>
+      @if (productRows().length) {
       <app-bar-list [items]="productRows()" />
+      } @else {
+      <div class="panel-empty">
+        <span class="panel-empty__icon"><app-icon name="trend-up" [size]="22" /></span>
+        <strong>لا توجد مبيعات في هذه الفترة</strong>
+        <p>يظهر هنا ترتيب القطع حسب الإيراد بمجرد تسجيل أول فاتورة بيع أو طلب.</p>
+      </div>
+      }
     </section>
   </div>
   } @else if (error()) {

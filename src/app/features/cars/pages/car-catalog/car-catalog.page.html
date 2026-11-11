@@ -57,6 +57,10 @@
           </small>
         </div>
         <div class="cc__make-acts">
+          <button type="button" class="ui-icon-btn" title="عرض التفاصيل" [attr.aria-label]="'عرض تفاصيل ' + m.name"
+            (click)="$event.stopPropagation(); viewing.set({ kind: 'make', make: m })">
+            <app-icon name="eye" [size]="15" />
+          </button>
           <button type="button" class="ui-icon-btn" title="تعديل" [attr.aria-label]="'تعديل ' + m.name"
             (click)="$event.stopPropagation(); editMake(m)">
             <app-icon name="edit" [size]="15" />
@@ -117,7 +121,8 @@
         </thead>
         <tbody>
           @for (m of currentModels(); track m.id) {
-          <tr [class.is-inactive]="!m.isActive">
+          <tr class="is-clickable" [class.is-inactive]="!m.isActive" tabindex="0" (click)="openModelRow(m, $event)"
+            (keydown.enter)="openModelRow(m, $event)">
             <td>
               <strong>{{ m.name }}</strong>
               @if (m.nameEn) {<small class="ltr">{{ m.nameEn }}</small>}
@@ -129,6 +134,10 @@
               </span>
             </td>
             <td class="cc__c cc__row-acts">
+              <button type="button" class="ui-icon-btn" title="عرض التفاصيل" [attr.aria-label]="'عرض تفاصيل ' + m.name"
+                (click)="viewing.set({ kind: 'model', model: m })">
+                <app-icon name="eye" [size]="15" />
+              </button>
               <button type="button" class="ui-icon-btn" title="تعديل" [attr.aria-label]="'تعديل ' + m.name" (click)="editModel(m)">
                 <app-icon name="edit" [size]="15" />
               </button>
@@ -145,6 +154,15 @@
     }
   </section>
 </div>
+
+<app-details-drawer [open]="!!viewing()" [label]="viewing()?.kind === 'model' ? 'تفاصيل الموديل' : 'تفاصيل الماركة'"
+  [details]="details()" (closed)="viewing.set(null)">
+  @if (viewing()) {
+  <button drawer-actions type="button" class="ui-btn ui-btn--primary" (click)="editViewed()">
+    <app-icon name="edit" [size]="15" /> تعديل
+  </button>
+  }
+</app-details-drawer>
 
 <app-car-make-dialog [open]="makeDialogOpen()" [make]="editingMake()" [nextSortOrder]="nextSortOrder()"
   (closed)="makeDialogOpen.set(false)" (saved)="onMakeSaved($event)" />

@@ -1,0 +1,54 @@
+<div class="gi" [class.is-loading]="page.loading() && !!page.value()">
+  @if (page.value()) {
+  @if (rows().length) {
+  <ul class="gi__list">
+    @for (i of rows(); track i.id) {
+    <li>
+      <a class="gi__row" routerLink="/items/define" [queryParams]="{ id: i.id }" [class.is-inactive]="!i.isActive"
+        [attr.aria-label]="'تعديل ' + i.name">
+        <span class="gi__name">
+          <strong>{{ i.name }}</strong>
+          <small><span class="ltr">{{ i.code }}</span>
+            @if (i.sku) {· <span class="ltr">SKU {{ i.sku }}</span>}
+            @if (i.brand) {· {{ i.brand }}}
+            @if (!i.isActive) {· <em>موقوف</em>}
+          </small>
+        </span>
+        <span class="gi__price">
+          <strong>{{ money(i.discountPercent ? discounted(i) : i.salePrice) }}</strong>
+          @if (i.discountPercent) {<small>خصم {{ i.discountPercent }}%</small>}
+        </span>
+        <span class="gi__stock" [attr.data-level]="level(i)">{{ integer(i.stock) }} · {{ levelLabel[level(i)] }}</span>
+        <app-icon class="gi__go" name="chevron-left" [size]="14" />
+      </a>
+    </li>
+    }
+  </ul>
+  } @else {
+  <p class="gi__empty">لا توجد أصناف في «{{ groupName() }}» بعد.</p>
+  }
+
+  <div class="gi__foot">
+    <span>{{ integer(rows().length) }} من {{ integer(total()) }} صنف</span>
+    @if (remaining()) {
+    <button type="button" class="gi__btn" [disabled]="page.loading()" (click)="showMore()">
+      عرض {{ integer(remaining() < 10 ? remaining() : 10) }} أخرى
+    </button>
+    }
+    <a class="gi__btn" routerLink="/items/define" [queryParams]="{ groupId: groupId() }">
+      <app-icon name="plus" [size]="13" /> صنف جديد هنا
+    </a>
+    @if (total() > rows().length) {
+    <a class="gi__btn" routerLink="/items/directory" [queryParams]="{ groupId: groupId() }">
+      <app-icon name="table" [size]="13" /> في دليل الأصناف
+    </a>
+    }
+  </div>
+  } @else if (page.error()) {
+  <p class="gi__empty gi__empty--error">
+    {{ page.error() }} — <button type="button" class="gi__btn" (click)="page.reload()">إعادة المحاولة</button>
+  </p>
+  } @else {
+  @for (h of [40, 40, 40]; track $index) {<span class="skeleton gi__skeleton"></span>}
+  }
+</div>

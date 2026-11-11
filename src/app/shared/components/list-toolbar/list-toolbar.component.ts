@@ -23,7 +23,7 @@ export interface SortOption {
   label: string;
 }
 
-const SEARCH_DEBOUNCE_MS = 350;
+const SEARCH_DEBOUNCE_MS = 300;
 
 /**
  * List toolbar: debounced search, filter slot, sort picker (needed in card

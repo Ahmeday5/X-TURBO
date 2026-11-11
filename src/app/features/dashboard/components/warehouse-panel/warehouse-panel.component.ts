@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { IconComponent } from '../../../../shared/components/icon/icon.component';
 import { formatInteger } from '../../../../shared/utils/format.util';
 import { ArabicPluralForms, pluralAr } from '../../../../shared/utils/plural.util';
@@ -27,7 +28,7 @@ const DANGER_AT = 90;
   selector: 'app-warehouse-panel',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [IconComponent],
+  imports: [IconComponent, RouterLink],
   templateUrl: './warehouse-panel.component.html',
   styleUrl: './warehouse-panel.component.scss',
 })

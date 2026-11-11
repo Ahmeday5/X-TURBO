@@ -8,10 +8,15 @@ export interface Item {
   groupName: string;
   groupColor: string;
   unit: ItemUnit;
+  /** Letters and/or digits, unique when set (409 `BARCODE_TAKEN`). */
   barcode: string;
+  /** Optional digits-only stock-keeping number, unique (409 `SKU_TAKEN`). Not the auto `code`. */
+  sku: string | null;
   brand: string;
   purchasePrice: number;
   salePrice: number;
+  /** 0–100. Shown to customers in the mobile app as a sale price cut. */
+  discountPercent: number;
   /** Reorder level — below it the item is flagged as low stock. */
   minStock: number;
   stock: number;
@@ -34,9 +39,11 @@ export type ItemPayload = Pick<
   | 'groupId'
   | 'unit'
   | 'barcode'
+  | 'sku'
   | 'brand'
   | 'purchasePrice'
   | 'salePrice'
+  | 'discountPercent'
   | 'minStock'
   | 'description'
   | 'compatibleWith'
@@ -52,12 +59,47 @@ export const ITEM_ERROR_CODES = {
   hasMovements: 'ITEM_HAS_MOVEMENTS',
   /** Group still contains items. */
   groupHasItems: 'GROUP_HAS_ITEMS',
+  /** The chosen group has sub-groups — items attach to leaf groups only. */
+  groupNotLeaf: 'GROUP_NOT_LEAF',
+  skuTaken: 'SKU_TAKEN',
+  barcodeTaken: 'BARCODE_TAKEN',
 } as const;
+
+/** Uniqueness conflicts (409) → the form control they belong to. */
+export const ITEM_CONFLICT_FIELD: Readonly<Record<string, 'sku' | 'barcode' | 'groupId'>> = {
+  [ITEM_ERROR_CODES.skuTaken]: 'sku',
+  [ITEM_ERROR_CODES.barcodeTaken]: 'barcode',
+  [ITEM_ERROR_CODES.groupNotLeaf]: 'groupId',
+};
+
+export const DISCOUNT_RANGE = { min: 0, max: 100 } as const;
+
+/** Sale price after the item discount, rounded to piasters. */
+export function discountedPrice(salePrice: number, discountPercent: number): number {
+  const pct = Math.min(DISCOUNT_RANGE.max, Math.max(DISCOUNT_RANGE.min, discountPercent || 0));
+  return Math.round(salePrice * (1 - pct / 100) * 100) / 100;
+}
 
 /** Full update payload from a loaded item (e.g. to toggle `isActive`). */
 export function toItemPayload(item: Item, patch: Partial<ItemPayload> = {}): ItemPayload {
-  const { name, groupId, unit, barcode, brand, purchasePrice, salePrice, minStock, description, compatibleWith, isActive } = item;
-  return { name, groupId, unit, barcode, brand, purchasePrice, salePrice, minStock, description, compatibleWith, isActive, ...patch };
+  const { name, groupId, unit, barcode, sku, brand, purchasePrice, salePrice, discountPercent, minStock, description, compatibleWith, isActive } =
+    item;
+  return {
+    name,
+    groupId,
+    unit,
+    barcode,
+    sku: sku ?? null,
+    brand,
+    purchasePrice,
+    salePrice,
+    discountPercent: discountPercent ?? 0,
+    minStock,
+    description,
+    compatibleWith,
+    isActive,
+    ...patch,
+  };
 }
 
 export const ITEM_UNITS =['قطعة', 'طقم', 'لتر', 'علبة', 'كرتونة', 'متر', 'زوج'] as const;

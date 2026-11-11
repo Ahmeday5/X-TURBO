@@ -6,6 +6,7 @@ import {
   signal,
 } from '@angular/core';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
+import { RouterLink } from '@angular/router';
 import { combineLatest, EMPTY, Subject } from 'rxjs';
 import { catchError, startWith, switchMap, tap } from 'rxjs/operators';
 import { AuthService } from '../../core/auth/services/auth.service';
@@ -26,7 +27,7 @@ import {
   formatMoneyCompact,
 } from '../../shared/utils/format.util';
 import { ChannelPanelComponent } from './components/channel-panel/channel-panel.component';
-import { KpiCardComponent } from '../../shared/components/kpi-card/kpi-card.component';
+import { KpiCardComponent, KpiEmptyNote } from '../../shared/components/kpi-card/kpi-card.component';
 import { LowStockPanelComponent } from './components/low-stock-panel/low-stock-panel.component';
 import { RecentOrdersPanelComponent } from './components/recent-orders-panel/recent-orders-panel.component';
 import { RevenuePanelComponent } from './components/revenue-panel/revenue-panel.component';
@@ -44,6 +45,11 @@ interface KpiCardConfig {
   icon: IconName;
   format: (value: number) => string;
   upIsGood: boolean;
+  /** Screen the tile opens. */
+  link: string;
+  linkParams?: Record<string, string>;
+  /** What a zero means, in words. */
+  emptyNote: KpiEmptyNote;
 }
 
 const KPI_CARDS: readonly KpiCardConfig[] = [
@@ -53,6 +59,8 @@ const KPI_CARDS: readonly KpiCardConfig[] = [
     icon: 'cart',
     format: formatInteger,
     upIsGood: true,
+    link: '/orders',
+    emptyNote: { text: 'لا توجد طلبات في هذه الفترة', tone: 'neutral' },
   },
   {
     key: 'avgOrderValue',
@@ -60,6 +68,8 @@ const KPI_CARDS: readonly KpiCardConfig[] = [
     icon: 'receipt',
     format: formatMoney,
     upIsGood: true,
+    link: '/reports',
+    emptyNote: { text: 'يُحسب بعد أول طلب', tone: 'neutral' },
   },
   {
     key: 'inventoryValue',
@@ -67,6 +77,8 @@ const KPI_CARDS: readonly KpiCardConfig[] = [
     icon: 'layers',
     format: formatMoneyCompact,
     upIsGood: true,
+    link: '/stock',
+    emptyNote: { text: 'لا يوجد مخزون حاليًا', tone: 'neutral' },
   },
   {
     key: 'lowStockSkus',
@@ -74,6 +86,9 @@ const KPI_CARDS: readonly KpiCardConfig[] = [
     icon: 'alert',
     format: formatInteger,
     upIsGood: false,
+    link: '/stock',
+    linkParams: { level: 'low' },
+    emptyNote: { text: 'كل الأصناف فوق حد الطلب', tone: 'good' },
   },
 ];
 
@@ -94,6 +109,7 @@ const RANGES: ReadonlyArray<{
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    RouterLink,
     BarListComponent,
     ChannelPanelComponent,
     IconComponent,

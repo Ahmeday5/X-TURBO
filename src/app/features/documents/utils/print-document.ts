@@ -1,4 +1,5 @@
 import { environment } from '../../../../environments/environment';
+import { barcodeSvg } from '../../../shared/barcode/code128';
 import { formatFullDate, formatInteger, formatMoney } from '../../../shared/utils/format.util';
 import { DOC_KIND_CONFIG, DOC_PAYMENT_LABEL, Document, docStatusView } from '../models/document.model';
 import { partyLabel, tracksPayment } from './document-view';
@@ -28,6 +29,9 @@ export function printDocument(doc: Document): void {
   if (doc.reference) meta.push(['المرجع', doc.reference]);
   if (tracksPayment(cfg) && doc.paymentMethod) meta.push(['طريقة الدفع', DOC_PAYMENT_LABEL[doc.paymentMethod]]);
   meta.push(['الحالة', docStatusView(doc.kind, doc.status).label]);
+
+  // Scannable document number: a scan into the documents search box finds it again.
+  const numberBarcode = barcodeSvg(doc.number);
 
   const priced = cfg.financial;
   const rows = doc.lines
@@ -59,6 +63,11 @@ export function printDocument(doc: Document): void {
   body { font-family: "IBM Plex Sans Arabic", "Segoe UI", Tahoma, sans-serif; color: #111; margin: 0; font-size: 12px; }
   header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 3px solid #d9151d; padding-bottom: 12px; margin-bottom: 16px; }
   .brand { font-size: 22px; font-weight: 800; color: #d9151d; direction: ltr; }
+  .head-end { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+  .doc-barcode { width: 56mm; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+  .doc-barcode svg { width: 100%; height: 11mm; }
+  .doc-barcode span { font: 600 10px/1 Consolas, monospace; letter-spacing: 1px; direction: ltr; }
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   h1 { margin: 0; font-size: 20px; }
   .ltr { direction: ltr; unicode-bidi: isolate; }
   .meta { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px 18px; margin-bottom: 16px; }
@@ -75,7 +84,8 @@ export function printDocument(doc: Document): void {
   .sign { display: flex; justify-content: space-between; margin-top: 48px; color: #555; }
   .sign span { border-top: 1px solid #999; padding-top: 6px; min-width: 160px; text-align: center; }
 </style></head><body>
-<header><div><h1>${esc(cfg.singular)}</h1><div class="ltr">${esc(doc.number)}</div></div><div class="brand">${esc(environment.appName)}</div></header>
+<header><div><h1>${esc(cfg.singular)}</h1><div class="ltr">${esc(doc.number)}</div></div>
+<div class="head-end"><div class="brand">${esc(environment.appName)}</div>${numberBarcode ? `<div class="doc-barcode">${numberBarcode}<span>${esc(doc.number)}</span></div>` : ''}</div></header>
 <section class="meta">${meta.map(([k, v]) => `<div><small>${esc(k)}</small>${esc(v)}</div>`).join('')}</section>
 <table><thead><tr><th>#</th><th>الكود</th><th>الصنف</th><th>الوحدة</th><th>الكمية</th>
 ${priced ? '<th>السعر</th><th>الخصم</th><th>الإجمالي</th>' : ''}</tr></thead><tbody>${rows}</tbody></table>

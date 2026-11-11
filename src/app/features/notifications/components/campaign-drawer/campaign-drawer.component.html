@@ -1,0 +1,59 @@
+<app-drawer [open]="!!campaignId()" label="تفاصيل الإشعار" (closed)="closed.emit()">
+  <div drawer-title class="cd-title">
+    @if (current(); as c) {
+    <h2>{{ c.title }}</h2>
+    <p>{{ dateTime(c.createdAt) }} · {{ c.createdByName }}</p>
+    } @else {
+    <span class="skeleton" style="width: 180px; height: 20px"></span>
+    <span class="skeleton" style="width: 220px; height: 12px; margin-top: 8px"></span>
+    }
+  </div>
+
+  @if (current(); as c) {
+  <div class="cd" [class.is-refreshing]="campaign.loading()">
+    @if (delivering()) {
+    <p class="cd-live" role="status" style="--i: 0">
+      <span class="cd-live__dot"></span> جارٍ الإرسال… يتم تحديث الأرقام تلقائيًا كل 3 ثوانٍ
+    </p>
+    }
+
+    <section class="cd-stats" style="--i: 1">
+      <div><small>المستلمون</small><strong>{{ integer(c.recipientCount) }}</strong></div>
+      <div><small>وصل للموبايل</small><strong class="is-good">{{ integer(c.sent) }}</strong></div>
+      <div><small>قرأه</small><strong>{{ integer(c.readCount) }} <em>{{ rate() }}%</em></strong></div>
+    </section>
+
+    <section class="cd-block" style="--i: 2">
+      <h3 class="cd-h">حالة الوصول</h3>
+      <app-delivery-bar [campaign]="c" [legend]="true" />
+      @if (c.inAppOnly) {
+      <p class="cd-note"><app-icon name="alert" [size]="13" /> إرسال Push غير مفعّل على السيرفر — ظهر الإشعار داخل التطبيق فقط.</p>
+      }
+    </section>
+
+    <section class="cd-block" style="--i: 3">
+      <h3 class="cd-h">الإشعار</h3>
+      <app-phone-preview [title]="c.title" [body]="c.body" [link]="c.refType ? refLabel[c.refType] : null" />
+      <dl class="cd-facts">
+        <div><dt>المستلمون</dt><dd>{{ targetLabel[c.target] }}</dd></div>
+        <div><dt>يفتح</dt><dd>{{ c.refType ? refLabel[c.refType] : 'التطبيق فقط' }}</dd></div>
+        <div><dt>أرسله</dt><dd>{{ c.createdByName || '—' }}</dd></div>
+      </dl>
+    </section>
+  </div>
+  } @else if (campaign.error()) {
+  <div class="page-state">
+    <span class="page-state__icon"><app-icon name="alert" [size]="22" /></span>
+    <p class="panel__title">{{ campaign.error() }}</p>
+    <button type="button" class="ui-btn ui-btn--ghost" (click)="campaign.reload()">
+      <app-icon name="refresh" [size]="15" /> إعادة المحاولة
+    </button>
+  </div>
+  } @else {
+  <div class="cd">
+    @for (h of [70, 110, 360]; track $index) {
+    <span class="skeleton" [style.height.px]="h"></span>
+    }
+  </div>
+  }
+</app-drawer>

@@ -111,7 +111,11 @@ export const API_ENDPOINTS = {
   itemGroups: {
     list: 'item-groups',
     lookup: 'item-groups/lookup',
+    /** Nested nodes with `children` + `totalItemsCount` (roll-up). */
+    tree: 'item-groups/tree',
     byId: (id: string) => `item-groups/${seg(id)}`,
+    /** POST multipart (`file`) to upload/replace · DELETE to remove. One image per group. */
+    image: (id: string) => `item-groups/${seg(id)}/image`,
   },
 
   carMakes: {

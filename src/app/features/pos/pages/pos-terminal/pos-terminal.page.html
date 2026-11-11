@@ -10,10 +10,12 @@
   <!-- ═══ Catalogue ═══ -->
   <section class="pt-cat panel">
     <div class="pt-search">
-      <app-icon name="barcode" [size]="18" />
+      <span class="pt-scan" [title]="scanHint" tabindex="0" role="img" [attr.aria-label]="scanHint">
+        <app-icon name="barcode" [size]="18" />
+      </span>
       <input #search class="ui-input" type="search" [ngModel]="term()" (ngModelChange)="term.set($event)"
-        (keydown)="onSearchKey($event)" placeholder="امسح الباركود أو ابحث بالاسم أو الكود…" aria-label="بحث الأصناف"
-        autocomplete="off" />
+        (keydown)="onSearchKey($event)" [placeholder]="scanPlaceholder" aria-label="بحث الأصناف أو مسح الباركود"
+        [title]="scanHint" autocomplete="off" />
       <kbd class="pt-kbd ltr">F2</kbd>
     </div>
 
@@ -122,7 +124,7 @@
       } @empty {
       <div class="pt-empty">
         <app-icon name="cart" [size]="28" />
-        <span>السلة فارغة — امسح باركود أو اختر صنفًا</span>
+        <span>السلة فارغة — اختر صنفًا من القائمة، أو امسح باركود المنتج بجهاز القارئ</span>
       </div>
       }
     </div>
