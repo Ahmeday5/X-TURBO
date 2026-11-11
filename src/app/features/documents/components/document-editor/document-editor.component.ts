@@ -46,6 +46,9 @@ import { applyServerErrors, RowErrors, splitIndexedErrors } from '../../../../co
 import { DocumentsService } from '../../services/documents.service';
 import { isOutgoing, LINES_PLURAL, newLabel, partyLabel, tracksPayment } from '../../utils/document-view';
 import { ItemPickerComponent } from '../item-picker/item-picker.component';
+import { SCAN_HINT, SCAN_ROW_PLACEHOLDER } from '../../../../shared/barcode/scan-hint.const';
+import { findByScan } from '../../../../shared/barcode/scan-match';
+import { ScanFeedbackService } from '../../../../shared/barcode/scan-feedback.service';
 
 interface EditLine {
   key: number;
@@ -80,6 +83,7 @@ export class DocumentEditorComponent {
   private readonly stock = inject(StockService);
   private readonly parties = inject(PartiesService);
   private readonly toast = inject(ToastService);
+  private readonly scanFeedback = inject(ScanFeedbackService);
 
   readonly kind = input.required<DocKind>();
   readonly docId = input.required<string>();
@@ -226,16 +230,63 @@ export class DocumentEditorComponent {
 
   // ── Lines ──
 
-  protected addItem(item: ItemLookup): void {
+  /** Adds a line, or +1 on the item's existing line (scanning the same item again). Returns the line's key. */
+  protected addItem(item: ItemLookup): number {
     const existing = this.lines().find((l) => l.itemId === item.id);
     if (existing) {
       this.patchLine(existing.key, { qty: (Number(existing.qty) || 0) + 1 });
-      return;
+      this.flash(existing.key);
+      return existing.key;
     }
+    const key = ++lineKey;
     this.lines.update((ls) => [
       ...ls,
-      { key: ++lineKey, itemId: item.id, code: item.code, name: item.name, unit: item.unit, qty: 1, price: this.priceOf(item), discountPct: 0 },
+      { key, itemId: item.id, code: item.code, name: item.name, unit: item.unit, qty: 1, price: this.priceOf(item), discountPct: 0 },
     ]);
+    this.flash(key);
+    return key;
+  }
+
+  // ── Scan row ──
+
+  protected readonly scanHint = SCAN_HINT;
+  protected readonly scanRowPlaceholder = SCAN_ROW_PLACEHOLDER;
+  /** Why the last scan added nothing (cleared on the next keystroke). */
+  protected readonly scanMiss = signal<string | null>(null);
+  /** Confirmation of the last successful scan ("+1 · تيل فرامل — الكمية 3"). */
+  protected readonly lastScanned = signal<string | null>(null);
+  /** Line briefly highlighted after it was added / incremented. */
+  protected readonly flashKey = signal<number | null>(null);
+  private flashTimer?: ReturnType<typeof setTimeout>;
+
+  /**
+   * Enter in the scan row (a scanner sends the full code + Enter): exact
+   * barcode / code / SKU only → add the item or +1 its line. The box is
+   * cleared and keeps focus, so the next scan needs no click.
+   */
+  protected onScan(box: HTMLInputElement, event: Event): void {
+    event.preventDefault();
+    const raw = box.value.trim();
+    if (!raw) return;
+    const item = findByScan(this.items(), raw);
+    box.value = '';
+    if (!item) {
+      this.lastScanned.set(null);
+      this.scanMiss.set(`لا يوجد صنف بالباركود أو الكود «${raw}» — تأكد من الملصق أو ابحث بالاسم من الأعلى`);
+      this.scanFeedback.miss();
+      return;
+    }
+    const key = this.addItem(item);
+    const qty = this.lines().find((l) => l.key === key)?.qty ?? 1;
+    this.scanMiss.set(null);
+    this.lastScanned.set(`${item.name} — الكمية ${this.int(Number(qty) || 1)}`);
+    this.scanFeedback.ok();
+  }
+
+  private flash(key: number): void {
+    this.flashKey.set(key);
+    clearTimeout(this.flashTimer);
+    this.flashTimer = setTimeout(() => this.flashKey.set(null), 900);
   }
 
   protected patchLine(key: number, patch: Partial<EditLine>): void {

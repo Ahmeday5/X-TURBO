@@ -18,6 +18,8 @@ import { AuthService } from '../../../../core/auth/services/auth.service';
 import { ToastService } from '../../../../core/services/toast.service';
 import { IconComponent } from '../../../../shared/components/icon/icon.component';
 import { SCAN_HINT, SCAN_PLACEHOLDER } from '../../../../shared/barcode/scan-hint.const';
+import { findByScan } from '../../../../shared/barcode/scan-match';
+import { ScanFeedbackService } from '../../../../shared/barcode/scan-feedback.service';
 import { ModalComponent } from '../../../../shared/components/modal/modal.component';
 import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
 import {
@@ -25,7 +27,7 @@ import {
   SearchableSelectOption,
 } from '../../../../shared/components/searchable-select/searchable-select.component';
 import { createQueryResource } from '../../../../shared/list/query-resource';
-import { matchesAll, normalizeArabic, tokenize } from '../../../../shared/utils/arabic-search.util';
+import { matchesAll, tokenize } from '../../../../shared/utils/arabic-search.util';
 import { todayIsoDate } from '../../../../shared/utils/date-iso.util';
 import { formatMoney, formatRelative } from '../../../../shared/utils/format.util';
 import { pluralAr } from '../../../../shared/utils/plural.util';
@@ -64,6 +66,7 @@ export class PosTerminalPage {
   protected readonly scanHint = SCAN_HINT;
   protected readonly scanPlaceholder = SCAN_PLACEHOLDER;
   private readonly stock = inject(StockService);
+  private readonly scanFeedback = inject(ScanFeedbackService);
   private readonly docs = inject(DocumentsService);
   private readonly parties = inject(PartiesService);
   private readonly toast = inject(ToastService);
@@ -248,15 +251,15 @@ export class PosTerminalPage {
     e.preventDefault();
     const raw = this.term().trim();
     if (!raw) return;
-    const lower = raw.toLowerCase();
-    const exact = (this.items.value() ?? []).find(
-      (i) => i.barcode?.toLowerCase() === lower || normalizeArabic(i.code) === normalizeArabic(raw),
-    );
+    // Same exact-only rule as invoices (barcode → code → SKU); a single search hit also counts.
+    const exact = findByScan(this.items.value() ?? [], raw);
     const target = exact ?? (this.visibleItems().length === 1 ? this.visibleItems()[0] : null);
-    if (target) {
-      if (this.add(target)) this.term.set('');
+    if (target && this.add(target)) {
+      this.term.set('');
+      this.scanFeedback.ok();
     } else {
-      this.toast.info('لا يوجد صنف بهذا الباركود أو الكود');
+      this.scanFeedback.miss();
+      if (!target) this.toast.info(`لا يوجد صنف بالباركود أو الكود «${raw}»`);
     }
   }
 

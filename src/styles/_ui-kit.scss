@@ -241,7 +241,9 @@ select.ui-input {
    inputs (correct for digits), which would leave them left-aligned on an RTL form.
    Keep them LTR but aligned with the rest of the form, and drop the native spin
    buttons (they overlap the value and nobody steps prices by 1). */
-[dir='rtl'] .ui-input:is([type='number'], [type='tel']) {
+// `:where` keeps this at the specificity of `.ui-input`, so a component can still
+// centre its numbers (e.g. quantity cells) without !important.
+:where([dir='rtl']) .ui-input:where([type='number'], [type='tel']) {
   text-align: right;
 }
 

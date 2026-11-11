@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, ElementRef, input, output, signal, viewChild } from '@angular/core';
 import { IconComponent } from '../../../../shared/components/icon/icon.component';
 import { SCAN_HINT, SCAN_PLACEHOLDER } from '../../../../shared/barcode/scan-hint.const';
+import { findByScan } from '../../../../shared/barcode/scan-match';
 import { ClickOutsideDirective } from '../../../../shared/directives/click-outside.directive';
 import { matchesAll, tokenize } from '../../../../shared/utils/arabic-search.util';
 import { formatInteger, formatMoney } from '../../../../shared/utils/format.util';
@@ -28,7 +29,7 @@ const MAX_RESULTS = 50;
           [placeholder]="loading() ? 'جارٍ تحميل الأصناف…' : scanPlaceholder" [title]="scanHint"
           [value]="term()" (input)="onType($any($event.target).value)" (focus)="openList()" (click)="openList()"
           (keydown.arrowDown)="open() ? move(1, $event) : openList()" (keydown.arrowUp)="move(-1, $event)"
-          (keydown.enter)="choose(results()[active()], $event)" (keydown.escape)="open.set(false)"
+          (keydown.enter)="onEnter($event)" (keydown.escape)="open.set(false)"
           role="combobox" aria-label="بحث عن صنف" aria-autocomplete="list" [attr.aria-expanded]="open()" aria-controls="ip-list" />
         <span class="ip__kbd" [title]="scanHint"><app-icon name="barcode" [size]="15" /></span>
         <button type="button" class="ip__toggle" [class.is-open]="open()" [disabled]="disabled()" tabindex="-1"
@@ -158,14 +159,17 @@ export class ItemPickerComponent {
     this.term.set(value);
     this.active.set(0);
     this.open.set(true);
-    // Scanner / exact code: add immediately.
-    const exact = value.trim().toLowerCase();
-    // Barcodes may hold letters now — compare case-insensitively, like the code.
-    const hit =
-      exact.length >= 5
-        ? this.items().find((i) => i.barcode?.toLowerCase() === exact || i.code.toLowerCase() === exact)
-        : undefined;
-    if (hit) this.choose(hit);
+  }
+
+  /**
+   * Enter: an exact barcode / code wins (that's what a scanner sends, followed
+   * by Enter); otherwise the highlighted result. Nothing is ever added while
+   * typing — a partial scan could equal another item's shorter code.
+   */
+  protected onEnter(event: Event): void {
+    event.preventDefault();
+    const exact = findByScan(this.items(), this.term());
+    this.choose(exact ?? this.results()[this.active()]);
   }
 
   protected move(step: number, event: Event): void {

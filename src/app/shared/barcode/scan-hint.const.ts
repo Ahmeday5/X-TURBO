@@ -7,3 +7,6 @@ export const SCAN_HINT =
   'يعمل مع جهاز قارئ الباركود (USB أو Bluetooth): ضع المؤشر في خانة البحث، ثم وجّه الجهاز على الباركود المطبوع على المنتج — يُضاف الصنف تلقائيًا. بدون جهاز؟ اكتب رقم الباركود أو الكود واضغط Enter.';
 
 export const SCAN_PLACEHOLDER = 'ابحث بالاسم أو الكود — أو امسح باركود المنتج بجهاز القارئ';
+
+/** Placeholder of the scan row at the bottom of a document's lines table. */
+export const SCAN_ROW_PLACEHOLDER = 'اضغط هنا وامسح الباركود — أو اكتب الكود واضغط Enter';

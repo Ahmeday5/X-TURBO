@@ -75,14 +75,13 @@
         <span class="fp__section-icon"><app-icon name="box" [size]="17" /></span>
         <div>
           <h2>الأصناف</h2>
-          <p>{{ lines().length ? linesLabel() + ' · إجمالي الكمية ' + int(totalQty()) : 'اختر صنفًا من القائمة، أو امسح باركود المنتج بجهاز القارئ لإضافته' }}</p>
+          <p>{{ lines().length ? linesLabel() + ' · إجمالي الكمية ' + int(totalQty()) : 'ابحث عن صنف من القائمة، أو اضغط على خانة المسح أسفل الجدول وامسح الباركود' }}</p>
         </div>
       </header>
 
       <app-item-picker [items]="items()" [priceOf]="priceOf" [loading]="itemsLoading()"
         [disabled]="!form.controls.warehouseId.value" (picked)="addItem($event)" />
 
-      @if (lines().length) {
       <div class="tw de__table">
         <table>
           <thead>
@@ -98,7 +97,7 @@
           </thead>
           <tbody>
             @for (l of lines(); track l.key; let i = $index) {
-            <tr class="de__row" [class.is-short]="shortLines().has(l.key)">
+            <tr class="de__row" [class.is-short]="shortLines().has(l.key)" [class.is-flash]="flashKey() === l.key">
               <td class="de__idx">{{ i + 1 }}</td>
               <td class="de__name">
                 <strong>{{ l.name }}</strong>
@@ -143,17 +142,28 @@
               </td>
             </tr>
             }
+
+            <!-- Scan row: click once, then every scan adds (or +1s) a line and the cursor stays here. -->
+            <tr class="de__scan" [class.is-miss]="!!scanMiss()" [class.is-disabled]="!form.controls.warehouseId.value">
+              <td class="de__idx"><app-icon name="barcode" [size]="14" /></td>
+              <td class="de__scan-cell" [attr.colspan]="cfg().financial ? 6 : 5">
+                <input #scanBox class="de__scan-input" type="text" autocomplete="off" spellcheck="false"
+                  [placeholder]="form.controls.warehouseId.value ? scanRowPlaceholder : 'اختر المخزن أولًا لإضافة الأصناف'"
+                  [disabled]="!form.controls.warehouseId.value || itemsLoading()" [title]="scanHint"
+                  aria-label="خانة مسح الباركود: امسح باركود الصنف أو اكتب الكود واضغط Enter"
+                  (keydown.enter)="onScan(scanBox, $event)" (input)="scanMiss.set(null)" />
+                @if (scanMiss(); as miss) {
+                <span class="de__scan-msg" role="alert"><app-icon name="alert" [size]="13" /> {{ miss }}</span>
+                } @else if (lastScanned()) {
+                <span class="de__scan-msg is-ok" role="status"><app-icon name="check" [size]="13" /> {{ lastScanned() }}</span>
+                }
+              </td>
+            </tr>
           </tbody>
         </table>
       </div>
       @if (shortLines().size) {
       <p class="de__warn"><app-icon name="alert" [size]="15" /> بعض الكميات أكبر من المتاح في المخزن — لن يتم الترحيل إلا إذا كان المخزن يسمح بالرصيد السالب.</p>
-      }
-      } @else {
-      <div class="de__empty">
-        <app-icon name="barcode" [size]="28" />
-        <p>لم تتم إضافة أصناف بعد</p>
-      </div>
       }
     </section>
 
