@@ -11,7 +11,6 @@ export const environment = {
 
   apiUrl: 'https://xturbo.runasp.net/api',
   /** Real API. (The API's `Cors:Origins` allows http://xturbo.theonesystemco.com.) */
-  mockApi: false,
   tokenKey: 'xturbo_access_token',
   refreshTokenKey: 'xturbo_refresh_token',
   /** Must match the key read by the anti-flash script in index.html. */

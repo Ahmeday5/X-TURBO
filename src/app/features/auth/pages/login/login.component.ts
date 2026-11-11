@@ -16,7 +16,6 @@ import { PasswordInputComponent } from '../../../../shared/components/password-i
 import { DEFAULT_AUTHENTICATED_ROUTE } from '../../../../core/auth/auth.config';
 import { environment } from '../../../../../environments/environment';
 import { FormShake } from '../../utils/form-shake';
-import { DEMO_ACCOUNTS, DemoAccount } from '../../../../mock';
 import { API_ERROR_CODES } from '../../../../core/http/api-error-codes';
 import { applyServerErrors, waitText } from '../../../../core/utils/api-error.util';
 
@@ -54,8 +53,6 @@ export class LoginComponent {
   private readonly toast = inject(ToastService);
 
   protected readonly appName = environment.appName;
-  /** Empty in production builds (see mock/index.prod.ts). */
-  protected readonly demoAccounts = DEMO_ACCOUNTS;
 
   /** Drives the in-button spinner — independent of the global page loader. */
   protected readonly isSubmitting = signal(false);
@@ -73,11 +70,6 @@ export class LoginComponent {
   protected isInvalid(field: 'email' | 'password'): boolean {
     const ctrl = this.form.controls[field];
     return ctrl.invalid && ctrl.touched;
-  }
-
-  protected useDemoAccount(account: DemoAccount): void {
-    this.form.patchValue({ email: account.email, password: account.password });
-    this.serverError.set(null);
   }
 
   protected onPasswordKey(event: KeyboardEvent): void {

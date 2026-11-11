@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject, input, signal, TemplateRef, viewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, HostListener, inject, input, signal, TemplateRef, viewChild } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { DialogService } from '../../../../core/services/dialog.service';
 import { ToastService } from '../../../../core/services/toast.service';
@@ -29,6 +29,9 @@ import { hasErrorCode } from '../../../../core/http/api-error-codes';
 import { WarehousesService } from '../../services/warehouses.service';
 import { DetailsDrawerComponent } from '../../../../shared/components/details-drawer/details-drawer.component';
 import { toWarehouseDetails } from '../../utils/warehouse-details';
+import { PendingReviewBadgeComponent } from '../../components/pending-review-badge/pending-review-badge.component';
+import { PENDING_INVOICES_PLURAL, PURCHASE_REVIEW_ROUTE } from '../../utils/pending-review';
+import { pluralAr } from '../../../../shared/utils/plural.util';
 
 /** Every warehouse with capacity usage and stock figures; filters and view mirrored to the URL. */
 @Component({
@@ -37,6 +40,7 @@ import { toWarehouseDetails } from '../../utils/warehouse-details';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     DetailsDrawerComponent,
+    PendingReviewBadgeComponent,
     RouterLink,
     PageHeaderComponent,
     SummaryTilesComponent,
@@ -84,6 +88,35 @@ export class WarehousesDirectoryPage {
   protected readonly all = createQueryResource(signal(null), () =>
     this.api.list({ pageIndex: 1, pageSize: 100, search: '', sort: null, filters: {} }),
   );
+
+  // ── Purchase invoices waiting for the warehouse manager ──
+
+  /** Every warehouse id (from the network-wide list) — the counts refetch only when it changes. */
+  private readonly warehouseIds = computed(() => (this.all.value()?.data ?? []).map((w) => w.id), {
+    equal: (a, b) => a.length === b.length && a.every((id, i) => id === b[i]),
+  });
+  protected readonly pending = createQueryResource(this.warehouseIds, (ids) => this.api.pendingReviewCounts(ids), {
+    enabled: (ids) => ids.length > 0,
+  });
+  protected readonly pendingOf = (w: Pick<Warehouse, 'id'>): number => this.pending.value()?.[w.id] ?? 0;
+
+  /** Network-wide attention summary for the banner (null → nothing waiting). */
+  protected readonly pendingSummary = computed(() => {
+    const counts = this.pending.value();
+    if (!counts) return null;
+    const waiting = (this.all.value()?.data ?? [])
+      .map((w) => ({ id: w.id, name: w.name, count: counts[w.id] ?? 0 }))
+      .filter((w) => w.count > 0)
+      .sort((a, b) => b.count - a.count);
+    if (!waiting.length) return null;
+    const total = waiting.reduce((s, w) => s + w.count, 0);
+    return {
+      total: pluralAr(total, PENDING_INVOICES_PLURAL),
+      where: waiting.length === 1 ? `في «${waiting[0].name}»` : `في ${waiting.length} مخازن`,
+      /** The banner's button opens the busiest queue first. */
+      first: waiting[0],
+    };
+  });
 
   protected readonly tiles = computed<SummaryTile[]>(() => {
     const rows = this.all.value()?.data ?? null;
@@ -141,6 +174,17 @@ export class WarehousesDirectoryPage {
     this.router.navigate(['/stock'], { queryParams: { warehouseId: w.id } });
   }
 
+  /** The warehouse's purchase invoices waiting for the warehouse manager. */
+  protected openReview(w: Pick<Warehouse, 'id'>): void {
+    this.router.navigate([PURCHASE_REVIEW_ROUTE], { queryParams: { warehouseId: w.id } });
+  }
+
+  /** Back to this tab (e.g. after reviewing elsewhere) → the attention badges catch up. */
+  @HostListener('window:focus')
+  protected onWindowFocus(): void {
+    if (this.warehouseIds().length) this.pending.reload();
+  }
+
   protected async makeDefault(w: Warehouse): Promise<void> {
     const confirmed = await this.dialog.confirm({
       title: 'تغيير المخزن الافتراضي',
@@ -178,6 +222,7 @@ export class WarehousesDirectoryPage {
   protected reload(): void {
     this.list.reload();
     this.all.reload();
+    this.pending.reload();
   }
 
   /**

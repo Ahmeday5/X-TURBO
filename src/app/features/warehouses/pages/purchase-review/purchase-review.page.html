@@ -1,0 +1,113 @@
+<!-- Cell / card templates -->
+<ng-template #numberCell [appRowOf]="list.items()" let-d>
+  <div class="pr-number">
+    <span class="ui-code ltr">{{ d.number }}</span>
+    <small><app-icon name="calendar" [size]="11" /> {{ day(d.date) }}</small>
+  </div>
+</ng-template>
+
+<ng-template #supplierCell [appRowOf]="list.items()" let-d>
+  <div class="pr-stack pr-stack--start">
+    <strong>{{ d.partyName ?? '—' }}</strong>
+    @if (d.reference) {<small>فاتورة المورد {{ d.reference }}</small>}
+  </div>
+</ng-template>
+
+<ng-template #qtyCell [appRowOf]="list.items()" let-d>
+  <div class="pr-stack">
+    <span>{{ linesLabel(d.linesCount) }}</span>
+    <small>كمية {{ int(d.totalQty) }}</small>
+  </div>
+</ng-template>
+
+<ng-template #totalCell [appRowOf]="list.items()" let-d>
+  <div class="pr-stack pr-stack--end">
+    <strong class="pr-total">{{ money(d.total) }}</strong>
+    <app-status-pill [view]="paymentView(d)" />
+  </div>
+</ng-template>
+
+<ng-template #createdCell [appRowOf]="list.items()" let-d>
+  <div class="pr-stack">
+    <span>{{ relative(d.createdAt) }}</span>
+    <small>{{ d.createdBy }}</small>
+  </div>
+</ng-template>
+
+<ng-template #actions [appRowOf]="list.items()" let-d>
+  @if (canReview()) {
+  <div class="row-actions">
+    <app-row-menu [actions]="actionsOf(d)" [quick]="true" [label]="'إجراءات ' + d.number" (run)="act(d, $event)" />
+    <button type="button" class="ui-icon-btn" title="مراجعة" [attr.aria-label]="'مراجعة ' + d.number" (click)="open(d)">
+      <app-icon name="eye" [size]="16" />
+    </button>
+  </div>
+  }
+</ng-template>
+
+<ng-template #card [appRowOf]="list.items()" let-d>
+  <button type="button" class="pr-card" [disabled]="!canReview()" (click)="open(d)">
+    <header class="pr-card__head">
+      <span class="ui-code ltr">{{ d.number }}</span>
+      <span class="pr-card__age"><app-icon name="clock" [size]="12" /> {{ relative(d.createdAt) }}</span>
+    </header>
+    <strong class="pr-card__title">{{ d.partyName ?? '—' }}</strong>
+    <span class="pr-card__meta">
+      <app-icon name="calendar" [size]="12" /> {{ day(d.date) }} · {{ linesLabel(d.linesCount) }} · كمية {{ int(d.totalQty) }}
+    </span>
+    <footer class="pr-card__foot">
+      <strong>{{ money(d.total) }}</strong>
+      <small>{{ d.createdBy }}</small>
+    </footer>
+  </button>
+</ng-template>
+
+<!-- Page -->
+<app-page-header [navId]="navId()">
+  <button type="button" class="refresh-btn" [class.is-spinning]="list.loading()" [disabled]="list.loading()"
+    title="تحديث" aria-label="تحديث قائمة المراجعة" (click)="reload()">
+    <app-icon name="refresh" [size]="16" />
+  </button>
+  @if (canReview()) {
+  <a class="ui-btn ui-btn--ghost" [routerLink]="purchasesRoute">
+    <app-icon name="cart" [size]="16" /> فواتير المشتريات
+  </a>
+  }
+</app-page-header>
+
+@if (noWarehouses()) {
+<p class="pr-note"><app-icon name="alert" [size]="15" /> لا توجد مخازن نشطة — فعّل مخزنًا أو أضف مخزنًا لعرض فواتيره.</p>
+} @else {
+<app-status-tabs label="المخزن" [tabs]="warehouseTabs()" [active]="warehouseId()"
+  (activeChange)="selectWarehouse($event)" />
+
+<p class="pr-note pr-note--warning">
+  <app-icon name="clock" [size]="15" />
+  <span>
+    التفعيل يضيف البضاعة إلى رصيد {{ warehouseName() ? '«' + warehouseName() + '»' : 'المخزن' }} ويسجّل القيود.
+    الإلغاء يُخرج الفاتورة من القائمة دون أي أثر.
+    @if (!canReview()) { — <strong>للعرض فقط:</strong> التفعيل والإلغاء يتطلبان صلاحية الفواتير.}
+  </span>
+</p>
+
+<app-list-toolbar placeholder="ابحث برقم الفاتورة أو المورد أو رقم فاتورة المورد…" [search]="state.query().search"
+  [view]="state.view()" [sort]="state.query().sort" [sortOptions]="sortOptions" [count]="list.count()"
+  [activeFilters]="0" (searchChange)="state.setSearch($event)" (sortChange)="state.setSort($event)"
+  (viewChange)="state.setView($event)" />
+
+<app-data-table [rowClickable]="canReview()" (rowClick)="open($event)" [columns]="columns()" [data]="list.items()"
+  [view]="state.view()" [sort]="state.query().sort" [loading]="list.loading() || resolving()"
+  [initialLoading]="list.initialLoading() || resolving()" [error]="list.error()"
+  [skeletonCount]="state.query().pageSize" [cardTemplate]="card" [actionsTemplate]="actions" emptyIcon="check"
+  emptyTitle="لا توجد فواتير بانتظار المراجعة" [emptyText]="emptyText()"
+  (sortChange)="state.toggleSort($event)" (retry)="list.reload()" />
+
+<app-pagination class="pr-pager" [pageIndex]="state.query().pageIndex" [pageSize]="state.query().pageSize"
+  [count]="list.count()" [totalPages]="list.totalPages()" [pageSizeOptions]="[12, 24, 48]"
+  [disabled]="list.loading()" (pageChange)="state.setPage($event)" (pageSizeChange)="state.setPageSize($event)" />
+}
+
+@if (canReview()) {
+<app-document-drawer [docId]="viewing() || null" [intent]="intent()" (intentDone)="state.setParam('do', null)"
+  (closed)="closeDrawer()" (changed)="reload()" (edit)="edit($event)" />
+}

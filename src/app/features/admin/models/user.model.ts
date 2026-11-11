@@ -162,7 +162,7 @@ export function normalizePermissions(keys: readonly string[]): Permission[] {
   return ALL_PERMISSIONS.filter((p) => set.has(p));
 }
 
-// ── Password policy (shared by the form, the reset dialog and the mock) ──
+// ── Password policy (shared by the form and the reset dialog) ──
 
 export interface PasswordRule {
   id: string;

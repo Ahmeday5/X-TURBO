@@ -26,7 +26,6 @@ import { cacheInterceptor } from './core/interceptors/cache.interceptor';
 import { errorInterceptor } from './core/interceptors/error.interceptor';
 import { loaderInterceptor } from './core/interceptors/loader.interceptor';
 import { timeoutInterceptor } from './core/interceptors/timeout.interceptor';
-import { MOCK_API_INTERCEPTORS } from './mock';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -48,8 +47,6 @@ export const appConfig: ApplicationConfig = {
     //   auth    → attaches Bearer + handles 401 refresh dance (must be
     //             innermost so it intercepts 401s BEFORE error can toast them;
     //             successful retries never reach the error layer at all)
-    //   mock    → dev-only fake backend (environment.mockApi); sits where the
-    //             network would, so everything above behaves as in production
     provideHttpClient(
       withFetch(),
       withInterceptors([
@@ -58,7 +55,6 @@ export const appConfig: ApplicationConfig = {
         loaderInterceptor,
         errorInterceptor,
         authInterceptor,
-        ...MOCK_API_INTERCEPTORS,
       ]),
     ),
     provideAnimationsAsync(),

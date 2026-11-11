@@ -110,3 +110,101 @@
 .wd-pager {
   margin-top: 4px;
 }
+
+/* ── purchase invoices waiting for review ── */
+.wd-name__pending {
+  margin-top: 4px;
+}
+
+/* Network-wide banner: something is waiting for the warehouse manager. */
+.wd-attention {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+  padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, var(--am) 40%, transparent);
+  border-inline-start: 4px solid var(--am);
+  border-radius: var(--rl);
+  background: var(--am-l);
+  animation: wd-attention-in 0.35s var(--ease-out) both;
+
+  &__pulse {
+    flex-shrink: 0;
+    width: 38px;
+    height: 38px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: var(--am);
+    color: #fff;
+    animation: wd-ping 1.6s cubic-bezier(0, 0, 0.2, 1) infinite;
+  }
+
+  &__text {
+    flex: 1;
+    min-width: 200px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+
+    strong {
+      font-size: 13.5px;
+      color: var(--am);
+    }
+    small {
+      font-size: 11.5px;
+      color: var(--txt2);
+    }
+  }
+
+  &__go {
+    flex-shrink: 0;
+  }
+}
+
+/* Row "review" icon: a blinking dot while invoices are waiting. */
+.wd-review-btn {
+  position: relative;
+
+  &.has-pending {
+    color: var(--am);
+
+    &::after {
+      content: '';
+      position: absolute;
+      top: 4px;
+      inset-inline-end: 4px;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--am);
+      animation: wd-ping 1.6s cubic-bezier(0, 0, 0.2, 1) infinite;
+    }
+  }
+}
+
+@keyframes wd-ping {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--am) 65%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 9px color-mix(in srgb, var(--am) 0%, transparent);
+  }
+}
+
+@keyframes wd-attention-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wd-attention,
+  .wd-attention__pulse,
+  .wd-review-btn.has-pending::after {
+    animation: none;
+  }
+}

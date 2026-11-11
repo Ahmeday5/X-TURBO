@@ -23,11 +23,20 @@ import { hasErrorCode } from '../../../../core/http/api-error-codes';
 import { DocumentsService } from '../../services/documents.service';
 import { LINES_PLURAL, PAYMENT_STATE_VIEW, partyLabel, paymentState, tracksPayment } from '../../utils/document-view';
 import { printDocument } from '../../utils/print-document';
-import { convertTarget, DocAction, documentActions, isConvertAction } from '../../utils/document-actions';
+import { convertTarget, DocAction, documentActions, isConvertAction, postVerb } from '../../utils/document-actions';
 import { runDrawerIntent } from '../../../../shared/utils/drawer-intent.util';
 import { todayIsoDate } from '../../../../shared/utils/date-iso.util';
 
 type Busy = 'post' | 'complete' | 'cancel' | 'delete' | 'convert' | null;
+
+/** What posting `d` does, for the confirmation dialog. */
+function postConfirmMessage(d: Document): string {
+  if (DOC_KIND_CONFIG[d.kind].stock === 'none') return 'بعد الاعتماد لا يمكن تعديل عرض السعر. هل تريد المتابعة؟';
+  if (d.status === 'pending-review') {
+    return `ستُضاف البضاعة إلى رصيد «${d.warehouseName}» وتُسجَّل القيود، ولا يمكن تعديل الفاتورة بعد التفعيل. هل تريد المتابعة؟`;
+  }
+  return 'بعد الترحيل تُطبَّق الحركة على المخزون والأرصدة ولا يمكن تعديل المستند. هل تريد المتابعة؟';
+}
 
 /** Read-only view of a document with the actions its status allows. */
 @Component({
@@ -139,8 +148,13 @@ export class DocumentDrawerComponent {
   }
 
   protected post(d: Document): void {
-    const cfg = DOC_KIND_CONFIG[d.kind];
-    this.run('post', this.docs.post(d.id), `تم ترحيل ${d.number}`, cfg.kind === 'quotation' ? 'اعتماد' : 'ترحيل');
+    const reviewed = d.status === 'pending-review';
+    const success = reviewed
+      ? `تم تفعيل ${d.number} واستلام البضاعة في ${d.warehouseName}`
+      : d.kind === 'quotation'
+        ? `تم اعتماد ${d.number}`
+        : `تم ترحيل ${d.number}`;
+    this.run('post', this.docs.post(d.id), success, { verb: postVerb(d), message: postConfirmMessage(d) });
   }
 
   protected complete(d: Document): void {
@@ -158,9 +172,10 @@ export class DocumentDrawerComponent {
   }
 
   protected async remove(d: Document): Promise<void> {
+    const what = d.status === 'draft' ? 'المسودة' : DOC_KIND_CONFIG[d.kind].singular;
     const ok = await this.dialog.confirm({
-      title: 'حذف المسودة',
-      message: `سيتم حذف المسودة ${d.number} نهائيًا. هل تريد المتابعة؟`,
+      title: `حذف ${what}`,
+      message: `سيتم حذف ${what} ${d.number} نهائيًا. هل تريد المتابعة؟`,
       confirmText: 'حذف',
       type: 'danger',
     });
@@ -171,7 +186,7 @@ export class DocumentDrawerComponent {
       .pipe(finalize(() => this.busy.set(null)))
       .subscribe({
         next: () => {
-          this.toast.success('تم حذف المسودة');
+          this.toast.success(`تم حذف ${what} ${d.number}`);
           this.changed.emit();
           this.closed.emit();
         },
@@ -202,16 +217,18 @@ export class DocumentDrawerComponent {
     });
   }
 
-  private async run(kind: Busy, request$: Observable<Document>, success: string, confirmVerb?: string): Promise<void> {
-    if (confirmVerb) {
+  private async run(
+    kind: Busy,
+    request$: Observable<Document>,
+    success: string,
+    confirm?: { verb: string; message: string },
+  ): Promise<void> {
+    if (confirm) {
       const d = this.current()!;
       const ok = await this.dialog.confirm({
-        title: `${confirmVerb} ${d.number}`,
-        message:
-          DOC_KIND_CONFIG[d.kind].stock === 'none'
-            ? 'بعد الاعتماد لا يمكن تعديل عرض السعر. هل تريد المتابعة؟'
-            : 'بعد الترحيل تُطبَّق الحركة على المخزون والأرصدة ولا يمكن تعديل المستند. هل تريد المتابعة؟',
-        confirmText: confirmVerb,
+        title: `${confirm.verb} ${d.number}`,
+        message: confirm.message,
+        confirmText: confirm.verb,
         type: 'info',
       });
       if (!ok) return;

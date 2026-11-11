@@ -7,8 +7,9 @@
         <div>
           <h2>{{ title() }}</h2>
           <p>
-            @if (current(); as d) {<span class="ltr">{{ d.number }}</span> · مسودة}
+            @if (current(); as d) {<span class="ltr">{{ d.number }}</span> · {{ statusView(d.kind, d.status).label }}}
             @else {يُرقَّم تلقائيًا عند الحفظ}
+            @if (reviewFlow()) { · تُرسَل لمدير المخازن للمراجعة والتفعيل}
             @if (current()?.sourceNumber) { · من <span class="ltr">{{ current()?.sourceNumber }}</span>}
           </p>
         </div>
@@ -250,6 +251,13 @@
 
   <footer class="fp__actions">
     <button type="button" class="ui-btn ui-btn--ghost" (click)="closed.emit()">إلغاء</button>
+    @if (reviewFlow()) {
+    <!-- Review flow: saving sends the document to the warehouse manager; it is activated there, never here. -->
+    <button type="submit" class="ui-btn ui-btn--primary" [class.is-loading]="!!saving()" [disabled]="!!saving()"
+      title="Ctrl+S">
+      <app-icon name="clipboard" [size]="16" /> {{ isNew() ? 'حفظ وإرسال للمراجعة' : 'حفظ التعديلات' }}
+    </button>
+    } @else {
     <button type="button" class="ui-btn ui-btn--ghost" [class.is-loading]="saving() === 'draft'" [disabled]="!!saving()"
       (click)="submit(false)" title="Ctrl+S">
       <app-icon name="file" [size]="16" /> حفظ كمسودة
@@ -257,5 +265,6 @@
     <button type="submit" class="ui-btn ui-btn--primary" [class.is-loading]="saving() === 'post'" [disabled]="!!saving()">
       <app-icon name="check" [size]="16" /> {{ cfg().kind === 'quotation' ? 'حفظ واعتماد' : 'حفظ وترحيل' }}
     </button>
+    }
   </footer>
 </form>

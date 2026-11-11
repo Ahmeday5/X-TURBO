@@ -229,6 +229,14 @@ export const NAV_SECTIONS: readonly NavSection[] = [
             keywords: ['مستودعات'],
           },
           {
+            id: 'warehouses.purchase-review',
+            label: 'مراجعة فواتير الشراء',
+            route: '/warehouses/purchase-review',
+            icon: 'clipboard',
+            description: 'فواتير الشراء بانتظار مدير المخازن — تفعيلها واستلام البضاعة أو إلغاؤها',
+            keywords: ['مراجعة', 'استلام', 'تفعيل', 'فاتورة شراء', 'بانتظار المراجعة', 'مدير المخازن'],
+          },
+          {
             id: 'stock',
             label: 'أرصدة المخزون',
             route: '/stock',

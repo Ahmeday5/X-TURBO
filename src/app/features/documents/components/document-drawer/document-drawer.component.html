@@ -74,6 +74,13 @@
       </dl>
     </section>
 
+    @if (d.status === 'pending-review') {
+    <p class="dd-note dd-note--warning" style="--i: 2" role="status">
+      <app-icon name="clock" [size]="14" />
+      بانتظار مراجعة مدير المخازن — لم تُضَف البضاعة إلى رصيد {{ d.warehouseName }} ولم تُسجَّل قيودها بعد. تُطبَّق عند التفعيل.
+    </p>
+    }
+
     @if (d.status === 'posted' && cfg()!.completeAction; as action) {
     <p class="dd-note dd-note--info" style="--i: 2"><app-icon name="clock" [size]="14" /> {{ action.hint }}</p>
     }
@@ -127,7 +134,11 @@
 
 <app-modal [open]="cancelOpen()" title="إلغاء المستند" size="sm" (closed)="cancelOpen.set(false)">
   <p class="dd-cancel-text">
-    @if (current()?.status === 'posted') {سيتم عكس أثر المستند على المخزون والأرصدة.} @else {ستُلغى المسودة.}
+    @switch (current()?.status) {
+    @case ('posted') {سيتم عكس أثر المستند على المخزون والأرصدة.}
+    @case ('pending-review') {ستُلغى الفاتورة دون أي أثر على المخزون أو القيود، وتخرج من قائمة المراجعة.}
+    @default {ستُلغى المسودة.}
+    }
     يبقى المستند في السجل بحالة «ملغي».
   </p>
   <label class="ui-field">

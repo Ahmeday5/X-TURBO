@@ -33,8 +33,10 @@ import {
   docKindForRoute,
   Document,
   DocumentSummary,
+  docStatusCount,
   docStatusesFor,
   docStatusView,
+  openStatusFor,
 } from '../../models/document.model';
 import { DocumentsService } from '../../services/documents.service';
 import {
@@ -153,7 +155,7 @@ export class DocumentsPage {
       { value: null, label: 'الكل', color: 'var(--primary)', count: s?.count ?? null },
       ...docStatusesFor(kind).map((status) => {
         const view = docStatusView(kind, status);
-        return { value: status, label: view.label, color: view.color, count: s ? s[status] : null };
+        return { value: status, label: view.label, color: view.color, count: s ? docStatusCount(s, status) : null };
       }),
     ];
   });
@@ -162,7 +164,14 @@ export class DocumentsPage {
     const s = this.stats.value();
     const cfg = this.cfg();
     const v = <K extends keyof NonNullable<typeof s>>(k: K) => (s ? (s[k] as number) : null);
-    const count: SummaryTile = { label: cfg.title, icon: cfg.icon, value: v('count'), format: formatInteger, hint: s ? `${pluralAr(s.draft, DOCS_PLURAL)} مسودة` : undefined };
+    const open = openStatusFor(cfg.kind);
+    const count: SummaryTile = {
+      label: cfg.title,
+      icon: cfg.icon,
+      value: v('count'),
+      format: formatInteger,
+      hint: s ? `${pluralAr(docStatusCount(s, open), DOCS_PLURAL)} ${open === 'pending-review' ? 'بانتظار المراجعة' : 'مسودة'}` : undefined,
+    };
 
     if (tracksPayment(cfg)) {
       return [

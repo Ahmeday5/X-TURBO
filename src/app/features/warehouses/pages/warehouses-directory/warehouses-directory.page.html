@@ -7,6 +7,9 @@
     <div>
       <strong>{{ w.name }} @if (w.isDefault) {<span class="wd-default">الافتراضي</span>}</strong>
       <small>{{ w.city }}@if (w.manager) { · {{ w.manager }}}</small>
+      @if (pendingOf(w) > 0) {
+      <app-pending-review-badge class="wd-name__pending" [count]="pendingOf(w)" (review)="openReview(w)" />
+      }
     </div>
   </div>
 </ng-template>
@@ -45,6 +48,10 @@
   <button type="button" class="ui-icon-btn" title="الأرصدة" [attr.aria-label]="'أرصدة ' + w.name" (click)="openStock(w)">
     <app-icon name="layers" [size]="16" />
   </button>
+  <button type="button" class="ui-icon-btn wd-review-btn" [class.has-pending]="pendingOf(w) > 0"
+    title="فواتير بانتظار المراجعة" [attr.aria-label]="'فواتير شراء بانتظار المراجعة في ' + w.name" (click)="openReview(w)">
+    <app-icon name="clipboard" [size]="16" />
+  </button>
   @if (!w.isDefault && w.isActive) {
   <button type="button" class="ui-icon-btn" title="تعيين كافتراضي" [attr.aria-label]="'تعيين ' + w.name + ' كافتراضي'"
     (click)="makeDefault(w)">
@@ -61,7 +68,9 @@
   }
 </ng-template>
 
-<ng-template #card [appRowOf]="list.items()" let-w><app-warehouse-card [warehouse]="w" /></ng-template>
+<ng-template #card [appRowOf]="list.items()" let-w>
+  <app-warehouse-card [warehouse]="w" [pendingReview]="pendingOf(w)" (review)="openReview(w)" />
+</ng-template>
 
 <!-- Page -->
 <app-page-header [navId]="navId()">
@@ -74,6 +83,19 @@
 </app-page-header>
 
 <app-summary-tiles [tiles]="tiles()" [refreshing]="all.loading() && !!all.value()" />
+
+@if (pendingSummary(); as p) {
+<div class="wd-attention" role="status">
+  <span class="wd-attention__pulse" aria-hidden="true"><app-icon name="clipboard" [size]="18" /></span>
+  <div class="wd-attention__text">
+    <strong>{{ p.total }} بانتظار المراجعة {{ p.where }}</strong>
+    <small>البضاعة لا تُضاف إلى الرصيد إلا بعد تفعيل الفاتورة من مدير المخازن.</small>
+  </div>
+  <button type="button" class="ui-btn ui-btn--primary wd-attention__go" (click)="openReview(p.first)">
+    مراجعة الآن <app-icon name="arrow-right" [size]="15" />
+  </button>
+</div>
+}
 
 <app-list-toolbar placeholder="ابحث باسم المخزن أو الكود أو المدينة أو المسؤول…" [search]="state.query().search"
   [view]="state.view()" [sort]="state.query().sort" [sortOptions]="sortOptions" [count]="list.count()"
@@ -103,8 +125,13 @@
 <app-details-drawer [open]="!!viewId()" label="تفاصيل المخزن" [details]="details()" [loading]="viewed.loading()"
   [error]="viewed.error()" (retry)="viewed.reload()" (closed)="viewId.set(null)">
   @if (viewed.value(); as x) {
-  <button drawer-actions type="button" class="ui-btn ui-btn--primary" (click)="viewId.set(null); edit(x)">
-    <app-icon name="edit" [size]="15" /> تعديل
-  </button>
+  <ng-container drawer-actions>
+    <button type="button" class="ui-btn ui-btn--ghost" (click)="viewId.set(null); openReview(x)">
+      <app-icon name="clipboard" [size]="15" /> فواتير بانتظار المراجعة@if (pendingOf(x) > 0) { ({{ pendingOf(x) }})}
+    </button>
+    <button type="button" class="ui-btn ui-btn--primary" (click)="viewId.set(null); edit(x)">
+      <app-icon name="edit" [size]="15" /> تعديل
+    </button>
+  </ng-container>
   }
 </app-details-drawer>

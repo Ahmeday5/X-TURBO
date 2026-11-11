@@ -14,16 +14,9 @@ npm start        # http://localhost:4200
 npm run build    # نسخة الإنتاج → dist/x-turbo-dashboard/
 ```
 
-### الدخول (قبل جاهزية الباك إند)
+### الـ API
 
-طول ما `mockApi: true` في `src/environments/environment.ts`، الـ API بيشتغل من داخل المتصفح (`src/app/mock/`)، وصفحة الدخول بتعرض حسابات تجريبية تتملى بضغطة:
-
-| الحساب | البريد | كلمة المرور | الصلاحيات |
-|---|---|---|---|
-| مدير النظام | `admin@xturbo.com` | `Admin@123` | كل الصلاحيات |
-| مدير المخازن | `warehouse@xturbo.com` | `Warehouse@123` | المخزون والكتالوج والمشتريات |
-
-أول ما الباك إند يجهز: `mockApi: false` وظبط `apiUrl`. نسخة الإنتاج **لا تحتوي** أي كود mock أو بيانات تجريبية (`angular.json → fileReplacements` بيبدّل `mock/index.ts` بـ `mock/index.prod.ts`).
+الداشبورد بيكلّم الباك إند الحقيقي على `apiUrl` في `src/environments/environment.ts` (والإنتاج في `environment.prod.ts`). مفيش أي API تجريبي أو بيانات وهمية.
 
 ---
 
@@ -50,7 +43,6 @@ src/
 │   │   ├── components/       charts (area/sparkline/bar-list)، delta، icon، modal، data-table…
 │   │   ├── directives/       count-up، pointer-parallax، click-outside، has-permission
 │   │   └── utils/            format (أرقام/عملة/تواريخ)، plural (الجمع العربي)، initials، motion
-│   └── mock/                 API تجريبي للتطوير فقط
 ├── styles/                   نظام التصميم (tokens، base، bootstrap-overrides، patterns…)
 └── environments/
 ```
@@ -101,5 +93,3 @@ features/<القسم>/
 ├── components/                  مكونات العرض (OnPush، inputs فقط)
 └── <القسم>.component.ts         الصفحة: الحالة (signals) وتنسيق البيانات
 ```
-
-ولحد ما الباك إند يجهز، أضف handler في `src/app/mock/handlers/` وسجّله في `mock-api.interceptor.ts`.

@@ -18,14 +18,23 @@ export type DocKind =
   | 'reservation';
 
 /**
- * draft     → editable, no effect.
- * posted    → effects applied (stock / balances). For a voucher transfer: issued, in transit.
- *             For a reservation: items held. For a quotation: approved / sent.
- * completed → follow-up done: voucher transfer received, reservation delivered,
- *             quotation converted to a sale.
- * cancelled → effects reversed.
+ * draft          → editable, no effect.
+ * pending-review → (review-flow kinds only — purchase invoices) saved by the
+ *                  author, waiting for the warehouse manager to activate
+ *                  (`post`) or `cancel` it. Editable / deletable like a draft,
+ *                  no effect on stock or the ledger yet.
+ * posted         → effects applied (stock / balances). For a voucher transfer: issued, in transit.
+ *                  For a reservation: items held. For a quotation: approved / sent.
+ * completed      → follow-up done: voucher transfer received, reservation delivered,
+ *                  quotation converted to a sale.
+ * cancelled      → effects reversed.
  */
-export type DocStatus = 'draft' | 'posted' | 'completed' | 'cancelled';
+export type DocStatus = 'draft' | 'pending-review' | 'posted' | 'completed' | 'cancelled';
+
+/** Not yet effective — the author can still edit / delete it, and it can be posted. */
+export function isOpenStatus(status: DocStatus): boolean {
+  return status === 'draft' || status === 'pending-review';
+}
 
 export type DocPaymentMethod = 'cash' | 'card' | 'wallet' | 'bank' | 'credit';
 
@@ -100,9 +109,13 @@ export interface Document extends DocumentHeader {
 
 /** Business-rule codes the documents API answers with (409). */
 export const DOCUMENT_ERROR_CODES = {
-  /** Only drafts can be edited / deleted / posted. */
+  /** Only open documents (draft / pending-review) can be edited / deleted / posted. */
   notDraft: 'DOCUMENT_NOT_DRAFT',
   alreadyPosted: 'DOCUMENT_ALREADY_POSTED',
+  /** Convert refused while the source isn't posted yet (e.g. a purchase still pending review). */
+  notPosted: 'DOCUMENT_NOT_POSTED',
+  cancelled: 'DOCUMENT_CANCELLED',
+  completed: 'DOCUMENT_COMPLETED',
   /** Cancel refused while a return of this document is still active — cancel the return first. */
   hasReturns: 'DOCUMENT_HAS_RETURNS',
   /** Credit sale would push the customer past their credit limit. */
@@ -133,7 +146,10 @@ export interface DocumentPayload {
   paid: number;
   notes: string;
   channel?: 'erp' | 'pos';
-  /** Post immediately after saving (otherwise saved as draft). */
+  /**
+   * Post immediately after saving (otherwise saved as draft). Ignored by the
+   * server for review-flow kinds — they are always saved as `pending-review`.
+   */
   post: boolean;
 }
 
@@ -141,6 +157,8 @@ export interface DocumentPayload {
 export interface DocumentStats {
   count: number;
   draft: number;
+  /** Purchase invoices waiting for the warehouse manager. */
+  pendingReview: number;
   posted: number;
   completed: number;
   cancelled: number;
@@ -191,6 +209,11 @@ export interface DocKindConfig {
   completeAction?: { label: string; icon: IconName; hint: string };
   /** Kinds a posted document can be converted into. */
   convertTo?: readonly DocKind[];
+  /**
+   * Saved documents wait for the warehouse manager (`pending-review`) instead
+   * of being drafts, and can't be posted on save — only activated by review.
+   */
+  reviewFlow?: boolean;
 }
 
 const SALE_LIKE = { party: 'customer', priceSource: 'sale', financial: true } as const;
@@ -246,6 +269,7 @@ export const DOC_KIND_CONFIG: Record<DocKind, DocKindConfig> = {
     stock: 'in',
     dueDateLabel: 'تاريخ الاستحقاق',
     convertTo: ['purchase-return'],
+    reviewFlow: true,
   },
   'sale-return': {
     kind: 'sale-return',
@@ -311,10 +335,25 @@ export function docKindForRoute(route: string): DocKind | null {
 
 // ── Display maps ──
 
-export const DOC_STATUSES: readonly DocStatus[] = ['draft', 'posted', 'completed', 'cancelled'];
+export const DOC_STATUSES: readonly DocStatus[] = ['draft', 'pending-review', 'posted', 'completed', 'cancelled'];
+
+/** The `DocumentStats` counter of each status (the wire keys are camelCase). */
+export const DOC_STATUS_STAT: Record<DocStatus, keyof DocumentStats> = {
+  draft: 'draft',
+  'pending-review': 'pendingReview',
+  posted: 'posted',
+  completed: 'completed',
+  cancelled: 'cancelled',
+};
+
+/** Count of `status` in `stats` (0 when an older server omits the counter). */
+export function docStatusCount(stats: DocumentStats, status: DocStatus): number {
+  return stats[DOC_STATUS_STAT[status]] ?? 0;
+}
 
 const DOC_STATUS_BASE: Record<DocStatus, StatusView> = {
   draft: { label: 'مسودة', tone: 'neutral', color: 'var(--txt3)' },
+  'pending-review': { label: 'بانتظار المراجعة', tone: 'warning', color: 'var(--am)' },
   posted: { label: 'مُرحّل', tone: 'good', color: 'var(--gr)' },
   completed: { label: 'مكتمل', tone: 'info', color: 'var(--bl)' },
   cancelled: { label: 'ملغي', tone: 'danger', color: 'var(--re)' },
@@ -326,11 +365,17 @@ export function docStatusView(kind: DocKind, status: DocStatus): StatusView {
   return label ? { ...DOC_STATUS_BASE[status], label } : DOC_STATUS_BASE[status];
 }
 
+/** Status a newly saved (not posted) document of `kind` gets. */
+export function openStatusFor(kind: DocKind): DocStatus {
+  return DOC_KIND_CONFIG[kind].reviewFlow ? 'pending-review' : 'draft';
+}
+
 /** Statuses a kind can actually reach (filters / tabs). */
 export function docStatusesFor(kind: DocKind): DocStatus[] {
   const cfg = DOC_KIND_CONFIG[kind];
   const hasCompleted = !!cfg.completeAction || !!cfg.statusLabels?.completed;
-  return DOC_STATUSES.filter((s) => s !== 'completed' || hasCompleted);
+  const open = openStatusFor(kind);
+  return DOC_STATUSES.filter((s) => (isOpenStatus(s) ? s === open : s !== 'completed' || hasCompleted));
 }
 
 export const DOC_PAYMENT_METHODS: readonly DocPaymentMethod[] = ['cash', 'card', 'wallet', 'bank', 'credit'];
@@ -342,7 +387,7 @@ export const DOC_PAYMENT_LABEL: Record<DocPaymentMethod, string> = {
   credit: 'آجل',
 };
 
-// ── Maths (shared by the editor preview and the mock server) ──
+// ── Maths (editor preview) ──
 
 const round2 = (n: number): number => Math.round(n * 100) / 100;
 

@@ -112,7 +112,7 @@ export const MONTHS_AR: readonly string[] = [
 export const HIDDEN_NUMBERING_KINDS: ReadonlySet<string> = new Set(['goods-issue', 'goods-receipt']);
 
 /**
- * The prefix rule as a regex (1–5 capital English letters) — for the dev mock.
+ * The prefix rule as a regex (1–5 capital English letters).
  * Forms use `AppValidators.docPrefix()`, which explains the rule to the user.
  */
 export const PREFIX_PATTERN = /^[A-Z]{1,5}$/;

@@ -57,22 +57,4 @@
     </button>
   </form>
 
-  @if (demoAccounts.length) {
-  <div class="av-demo" style="--i: 4">
-    <div class="av-divider">حسابات تجريبية</div>
-    <div class="av-demo__list">
-      @for (account of demoAccounts; track account.email) {
-      <button type="button" class="av-demo__item" (click)="useDemoAccount(account)"
-        [attr.aria-label]="'استخدام حساب ' + account.role + ' التجريبي'">
-        <span class="av-demo__avatar">{{ account.name.charAt(0) }}</span>
-        <span class="av-demo__text">
-          <span class="av-demo__role">{{ account.role }}</span>
-          <span class="av-demo__email ltr">{{ account.email }}</span>
-        </span>
-        <app-icon class="av-demo__go" name="arrow-right" [size]="15" />
-      </button>
-      }
-    </div>
-  </div>
-  }
 </section>

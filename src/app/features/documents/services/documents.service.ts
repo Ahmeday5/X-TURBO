@@ -38,7 +38,7 @@ export class DocumentsService {
     return this.api.post<Document>(API_ENDPOINTS.documents.list, payload);
   }
 
-  /** Drafts only. */
+  /** Open documents only (draft / pending-review). */
   update(id: string, payload: DocumentPayload): Observable<Document> {
     return this.api.put<Document>(API_ENDPOINTS.documents.byId(id), payload);
   }
@@ -47,12 +47,16 @@ export class DocumentsService {
   // Errors are NOT toasted here: the caller reacts to the business code
   // (stale status → reload, DOCUMENT_HAS_RETURNS → open the return, …).
 
-  /** Drafts only. */
+  /** Open documents only (draft / pending-review). */
   delete(id: string): Observable<void> {
     return this.api.delete<void>(API_ENDPOINTS.documents.byId(id), { context: withSilentErrors() });
   }
 
-  /** draft → posted (applies stock / balance effects; may fail with CREDIT_LIMIT_EXCEEDED). */
+  /**
+   * draft | pending-review → posted (applies stock / balance effects; may fail
+   * with CREDIT_LIMIT_EXCEEDED). For a purchase pending review this is the
+   * warehouse manager's "activate / receive".
+   */
   post(id: string): Observable<Document> {
     return this.api.post<Document>(API_ENDPOINTS.documents.post(id), {}, { context: withSilentErrors() });
   }
@@ -63,7 +67,7 @@ export class DocumentsService {
   }
 
   /**
-   * draft | posted → cancelled (reverses effects). Refused when the goods were
+   * draft | pending-review | posted → cancelled (reverses effects, if any). Refused when the goods were
    * already consumed, or while a return of this document is still active.
    */
   cancel(id: string, reason: string): Observable<Document> {

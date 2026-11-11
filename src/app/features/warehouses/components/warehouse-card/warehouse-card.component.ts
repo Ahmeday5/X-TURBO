@@ -1,7 +1,8 @@
-import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
 import { IconComponent } from '../../../../shared/components/icon/icon.component';
 import { formatCompact, formatMoneyCompact } from '../../../../shared/utils/format.util';
 import { usageTone, Warehouse, WAREHOUSE_TYPE_VIEW } from '../../models/warehouse.model';
+import { PendingReviewBadgeComponent } from '../pending-review-badge/pending-review-badge.component';
 
 /** Fields the card needs — a saved warehouse or the form's live draft both fit. */
 export type WarehouseCardData = Pick<
@@ -21,14 +22,23 @@ export type WarehouseCardData = Pick<
   | 'usagePct'
 >;
 
-/** Warehouse summary: identity, capacity usage and stock figures. Directory cards + form preview. */
+/**
+ * Warehouse summary: identity, capacity usage and stock figures. Directory cards + form preview.
+ * With `pendingReview` > 0 an attention strip (pulsing badge) leads the card.
+ */
 @Component({
   selector: 'app-warehouse-card',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [IconComponent],
+  imports: [IconComponent, PendingReviewBadgeComponent],
   template: `
     @let w = warehouse();
+    @if (pendingReview() > 0) {
+      <div class="wc__alert">
+        <span>تحتاج مراجعة</span>
+        <app-pending-review-badge [count]="pendingReview()" (review)="review.emit()" />
+      </div>
+    }
     <header class="wc__head">
       <span class="wc__icon" [style.--tone]="typeView().color"><app-icon name="warehouse" [size]="22" /></span>
       <div class="wc__title">
@@ -75,6 +85,13 @@ export type WarehouseCardData = Pick<
   styles: [
     `
       :host { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+      .wc__alert {
+        display: flex; align-items: center; justify-content: space-between; gap: 8px;
+        margin: -2px 0 0; padding: 6px 6px 6px 10px; border-radius: 11px;
+        background: color-mix(in srgb, var(--am) 8%, transparent);
+        border: 1px dashed color-mix(in srgb, var(--am) 40%, transparent);
+        font-size: 11.5px; font-weight: 700; color: var(--am);
+      }
       .wc__head { display: flex; align-items: center; gap: 12px; min-width: 0; }
       .wc__icon {
         flex-shrink: 0; width: 46px; height: 46px; display: grid; place-items: center; border-radius: 14px;
@@ -119,6 +136,10 @@ export type WarehouseCardData = Pick<
 })
 export class WarehouseCardComponent {
   readonly warehouse = input.required<WarehouseCardData>();
+  /** Purchase invoices waiting for review here (directory only; 0 hides the strip). */
+  readonly pendingReview = input(0);
+  /** The attention badge was clicked — open this warehouse's review queue. */
+  readonly review = output<void>();
 
   protected readonly typeView = computed(() => WAREHOUSE_TYPE_VIEW[this.warehouse().type]);
   protected readonly tone = computed(() => usageTone(this.warehouse().usagePct));

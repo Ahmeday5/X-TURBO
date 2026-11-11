@@ -33,12 +33,14 @@ import {
   DOC_PAYMENT_LABEL,
   DOC_PAYMENT_METHODS,
   DocKind,
+  DocKindConfig,
   DocLinePayload,
   DocPaymentMethod,
   Document,
   DocumentPayload,
   docStatusView,
   docTotals,
+  isOpenStatus,
   lineTotal,
 } from '../../models/document.model';
 import { ApiError } from '../../../../core/models/api-response.model';
@@ -63,11 +65,22 @@ interface EditLine {
 
 let lineKey = 0;
 
+/** Toast after a save — what happened to the document, in the kind's own words. */
+function savedMessage(cfg: DocKindConfig, doc: Document, post: boolean): string {
+  if (doc.status === 'pending-review') return `تم حفظ ${cfg.singular} ${doc.number} — بانتظار مراجعة مدير المخازن`;
+  if (post) return `تم ${cfg.kind === 'quotation' ? 'اعتماد' : 'ترحيل'} ${cfg.singular} ${doc.number}`;
+  return `تم حفظ ${doc.number} كمسودة`;
+}
+
 /**
- * Create / edit a draft document of any kind. Fields, prices, payment and
- * stock checks all follow DOC_KIND_CONFIG[kind]. `docId` = 'new' → create.
+ * Create / edit an open document (draft, or pending-review for review-flow
+ * kinds) of any kind. Fields, prices, payment and stock checks all follow
+ * DOC_KIND_CONFIG[kind]. `docId` = 'new' → create.
  * Emits `saved` with the stored document, or `locked` when asked to edit a
- * document that is no longer a draft.
+ * document that is no longer open.
+ *
+ * Review-flow kinds (purchase invoices) can't be posted from here: saving
+ * sends them to the warehouse manager, who activates them.
  */
 @Component({
   selector: 'app-document-editor',
@@ -93,6 +106,8 @@ export class DocumentEditorComponent {
   readonly locked = output<string>();
 
   protected readonly cfg = computed(() => DOC_KIND_CONFIG[this.kind()]);
+  /** Saved documents go to the warehouse manager instead of being posted here. */
+  protected readonly reviewFlow = computed(() => !!this.cfg().reviewFlow);
   protected readonly isNew = computed(() => this.docId() === 'new');
   protected readonly title = computed(() => (this.isNew() ? newLabel(this.kind()) : `تعديل ${this.cfg().singular}`));
   protected readonly partyLabel = computed(() => partyLabel(this.cfg()));
@@ -355,9 +370,11 @@ export class DocumentEditorComponent {
 
   // ── Save ──
 
-  protected submit(post: boolean): void {
+  protected submit(postRequested: boolean): void {
     this.submitted.set(true);
     const cfg = this.cfg();
+    // The server ignores `post` for review-flow kinds; never ask for it.
+    const post = postRequested && !this.reviewFlow();
     const v = this.form.getRawValue();
     const problem =
       this.form.invalid
@@ -406,7 +423,7 @@ export class DocumentEditorComponent {
       .pipe(finalize(() => this.saving.set(null)))
       .subscribe({
         next: (doc) => {
-          this.toast.success(post ? `تم ترحيل ${cfg.singular} ${doc.number}` : `تم حفظ ${doc.number} كمسودة`);
+          this.toast.success(savedMessage(cfg, doc, post));
           this.saved.emit(doc);
         },
         // 422 → under each field / line. 409s (e.g. CREDIT_LIMIT_EXCEEDED,
@@ -424,8 +441,8 @@ export class DocumentEditorComponent {
       .pipe(finalize(() => this.loading.set(false)))
       .subscribe({
         next: (doc) => {
-          if (doc.status !== 'draft') {
-            this.toast.info(`${doc.number} مُرحّل — لا يمكن تعديله`);
+          if (!isOpenStatus(doc.status)) {
+            this.toast.info(`${doc.number} «${docStatusView(doc.kind, doc.status).label}» — لا يمكن تعديله`);
             this.locked.emit(doc.id);
             return;
           }

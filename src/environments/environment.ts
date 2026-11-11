@@ -11,11 +11,6 @@ export const environment = {
 
   /** Hosted backend. For a local API use 'https://localhost:5001/api'. */
   apiUrl: 'https://xturbo.runasp.net/api',
-  /**
-   * Serve the API from the in-browser mock (src/app/mock) instead of `apiUrl`.
-   * OFF: development talks to the real ASP.NET API at `apiUrl`.
-   */
-  mockApi: false,
   tokenKey: 'xturbo_access_token',
   refreshTokenKey: 'xturbo_refresh_token',
   /** Must match the key read by the anti-flash script in index.html. */

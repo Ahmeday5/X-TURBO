@@ -11,8 +11,6 @@
  *   (GET / PUT / DELETE one), `lookup` (lightweight options for selects),
  *   `stats` (counters), then sub-resources and actions.
  * - Every dynamic segment goes through `seg()` (URL-encoding).
- * - The dev mock (`src/app/mock/handlers`) matches routes against these same
- *   values, so the mock and the real API cannot drift apart.
  *
  * Contract: backend `docs/API-CONTRACT.md` / Swagger at `/swagger`.
  * Staff token only — customer-app routes (`/api/store/*`) are not used here.
@@ -134,6 +132,13 @@ export const API_ENDPOINTS = {
     /** Available to every signed-in staff member. */
     lookup: 'warehouses/lookup',
     byId: (id: string) => `warehouses/${seg(id)}`,
+    /**
+     * Warehouse manager's review queue: paged `DocumentSummary` of this
+     * warehouse's purchase invoices still `pending-review` (rows leave once
+     * activated or cancelled). `?pageIndex=&pageSize=&search=&sortBy=&sortDir=`.
+     * Warehouses.View — activate / cancel go through `documents.post` / `documents.cancel`.
+     */
+    purchaseInvoices: (id: string) => `warehouses/${seg(id)}/purchase-invoices`,
   },
 
   stock: {
