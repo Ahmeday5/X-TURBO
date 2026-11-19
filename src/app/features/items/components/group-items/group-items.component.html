@@ -18,7 +18,7 @@
           <strong>{{ money(i.discountPercent ? discounted(i) : i.salePrice) }}</strong>
           @if (i.discountPercent) {<small>خصم {{ i.discountPercent }}%</small>}
         </span>
-        <span class="gi__stock" [attr.data-level]="level(i)">{{ integer(i.stock) }} · {{ levelLabel[level(i)] }}</span>
+        <span class="gi__stock" [attr.data-level]="i.level" [title]="i.reserved ? 'الرصيد ' + integer(i.stock) + ' · محجوز ' + integer(i.reserved) : ''">{{ integer(i.available) }} · {{ levelLabel[i.level] }}</span>
         <app-icon class="gi__go" name="chevron-left" [size]="14" />
       </a>
     </li>

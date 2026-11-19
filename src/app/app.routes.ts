@@ -9,6 +9,7 @@ import { ACCOUNTS_PAGES } from './features/accounts/accounts.pages';
 import { ADMIN_PAGES } from './features/admin/admin.pages';
 import { CARS_PAGES } from './features/cars/cars.pages';
 import { DELIVERY_ZONES_PAGES } from './features/delivery-zones/delivery-zones.pages';
+import { DRIVERS_PAGES } from './features/drivers/drivers.pages';
 import { DOCUMENTS_PAGES } from './features/documents/documents.pages';
 import { NOTIFICATIONS_PAGES } from './features/notifications/notifications.pages';
 import { PART_REQUESTS_PAGES } from './features/part-requests/part-requests.pages';
@@ -45,6 +46,7 @@ const BUILT_PAGES: PageRegistry = {
   ...ADMIN_PAGES,
   ...CARS_PAGES,
   ...DELIVERY_ZONES_PAGES,
+  ...DRIVERS_PAGES,
   ...PART_REQUESTS_PAGES,
   ...NOTIFICATIONS_PAGES,
 };

@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input, signal, TemplateRef, viewChild } from '@angular/core';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { finalize, of, switchMap } from 'rxjs';
 import { NavigationService } from '../../../../core/services/navigation.service';
 import { ToastService } from '../../../../core/services/toast.service';
@@ -51,6 +51,9 @@ import {
 import { todayIsoDate } from '../../../../shared/utils/date-iso.util';
 import { RowMenuComponent } from '../../../../shared/components/row-menu/row-menu.component';
 import { DocAction, documentActions } from '../../utils/document-actions';
+import { orderSourceNumber } from '../../models/document.model';
+import { AuthService } from '../../../../core/auth/services/auth.service';
+import { PERMISSIONS } from '../../../../core/auth/permissions';
 
 const FILTERS = ['status', 'from', 'to', 'warehouseId', 'partyId', 'payment', 'channel', 'overdue'] as const;
 
@@ -66,6 +69,7 @@ const FILTERS = ['status', 'from', 'to', 'warehouseId', 'partyId', 'payment', 'c
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    RouterLink,
     DataTableComponent,
     DateRangeComponent,
     DocumentDrawerComponent,
@@ -86,6 +90,7 @@ const FILTERS = ['status', 'from', 'to', 'warehouseId', 'partyId', 'payment', 'c
 })
 export class DocumentsPage {
   private readonly docs = inject(DocumentsService);
+  private readonly authz = inject(AuthService);
   private readonly toast = inject(ToastService);
   private readonly nav = inject(NavigationService);
   private readonly router = inject(Router);
@@ -246,6 +251,9 @@ export class DocumentsPage {
   protected readonly int = formatInteger;
   protected readonly relative = formatRelative;
   protected readonly day = (iso: string) => formatDayMonth(iso.slice(0, 10));
+  /** Sales invoice issued for a delivered online order → its order number (links to the order). */
+  protected readonly orderSource = orderSourceNumber;
+  protected readonly canSeeOrders = computed(() => this.authz.hasPermission(PERMISSIONS.orders));
   protected readonly linesLabel = (n: number) => pluralAr(n, LINES_PLURAL);
   protected readonly overdue = (d: DocumentSummary) =>
     !!d.dueDate && d.status === 'posted' && d.remaining > 0 && d.dueDate < todayIsoDate();

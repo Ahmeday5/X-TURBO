@@ -1,0 +1,162 @@
+<!-- ── Cell templates ── -->
+<ng-template #nameCell [appRowOf]="list.items()" let-d>
+  <div class="dp-name">
+    <app-avatar [name]="d.name" [size]="32" />
+    <div>
+      <strong>{{ d.name }}</strong>
+      @if (d.notes) {<small [title]="d.notes">{{ d.notes }}</small>}
+    </div>
+  </div>
+</ng-template>
+
+<ng-template #phoneCell [appRowOf]="list.items()" let-d>
+  <a class="dp-phone ltr" [href]="tel(d.phone)" [title]="'اتصال بـ ' + d.name" (click)="$event.stopPropagation()">
+    {{ phone(d.phone) }}
+  </a>
+</ng-template>
+
+<ng-template #vehicleCell [appRowOf]="list.items()" let-d>
+  @if (d.vehicleType || d.plateNumber) {
+  <div class="dp-stack">
+    <span>{{ d.vehicleType || '—' }}</span>
+    @if (d.plateNumber) {<small class="dp-plate">{{ d.plateNumber }}</small>}
+  </div>
+  } @else {
+  <span class="dp-muted">—</span>
+  }
+</ng-template>
+
+<ng-template #statusCell [appRowOf]="list.items()" let-d>
+  <app-status-pill [view]="statusView[statusOf(d)]" />
+</ng-template>
+
+<ng-template #activeCell [appRowOf]="list.items()" let-d>
+  @if (d.activeOrders && canSeeOrders()) {
+  <a class="dp-count is-active" routerLink="/orders" [queryParams]="{ driverId: d.id }"
+    [title]="'عرض الطلبات الجارية مع ' + d.name" (click)="$event.stopPropagation()">{{ int(d.activeOrders) }}</a>
+  } @else {
+  <span class="dp-count" [class.is-active]="d.activeOrders">{{ int(d.activeOrders) }}</span>
+  }
+</ng-template>
+
+<ng-template #deliveredCell [appRowOf]="list.items()" let-d>
+  <span class="dp-count">{{ int(d.deliveredOrders) }}</span>
+</ng-template>
+
+<ng-template #loginCell [appRowOf]="list.items()" let-d>
+  @if (d.lastLoginAt) {
+  <span class="dp-login" [title]="dateTime(d.lastLoginAt)">{{ relative(d.lastLoginAt) }}</span>
+  } @else {
+  <span class="dp-login dp-muted">لم يسجل دخول</span>
+  }
+</ng-template>
+
+<ng-template #actions [appRowOf]="list.items()" let-d>
+  <button type="button" class="ui-icon-btn" title="التفاصيل" [attr.aria-label]="'تفاصيل ' + d.name" (click)="viewId.set(d.id)">
+    <app-icon name="eye" [size]="16" />
+  </button>
+  @if (canManage()) {
+  <button type="button" class="ui-icon-btn" title="تعديل" [attr.aria-label]="'تعديل ' + d.name" (click)="edit(d)">
+    <app-icon name="edit" [size]="16" />
+  </button>
+  <button type="button" class="ui-icon-btn" title="كلمة مرور جديدة" [attr.aria-label]="'كلمة مرور جديدة لـ ' + d.name"
+    (click)="resetting.set(d)">
+    <app-icon name="lock" [size]="16" />
+  </button>
+  <button type="button" class="ui-icon-btn" [class.is-loading]="busyId() === d.id" [disabled]="busyId() === d.id"
+    [title]="d.isActive ? 'إيقاف' : 'تفعيل'" [attr.aria-label]="(d.isActive ? 'إيقاف ' : 'تفعيل ') + d.name"
+    (click)="toggleActive(d)">
+    <app-icon [name]="d.isActive ? 'user-x' : 'user-check'" [size]="16" />
+  </button>
+  <button type="button" class="ui-icon-btn ui-icon-btn--danger" title="حذف" [attr.aria-label]="'حذف ' + d.name"
+    [disabled]="busyId() === d.id" (click)="remove(d)">
+    <app-icon name="trash" [size]="16" />
+  </button>
+  }
+</ng-template>
+
+<ng-template #card [appRowOf]="list.items()" let-d>
+  <article class="dp-card" [style.--tone]="statusView[statusOf(d)].color">
+    <header>
+      <app-avatar [name]="d.name" [size]="40" />
+      <div>
+        <strong>{{ d.name }}</strong>
+        <a class="ltr" [href]="tel(d.phone)" (click)="$event.stopPropagation()">{{ phone(d.phone) }}</a>
+      </div>
+      <app-status-pill [view]="statusView[statusOf(d)]" />
+    </header>
+    <dl>
+      <div><dt>جارية</dt><dd>{{ int(d.activeOrders) }}</dd></div>
+      <div><dt>تم تسليمها</dt><dd>{{ int(d.deliveredOrders) }}</dd></div>
+      <div><dt>آخر دخول</dt><dd>{{ d.lastLoginAt ? relative(d.lastLoginAt) : '—' }}</dd></div>
+    </dl>
+    @if (d.vehicleType || d.plateNumber) {
+    <p class="dp-card__vehicle"><app-icon name="truck" [size]="13" /> {{ d.vehicleType }} @if (d.plateNumber) {· {{ d.plateNumber }}}</p>
+    }
+  </article>
+</ng-template>
+
+<!-- ── Page ── -->
+<app-page-header [navId]="navId()">
+  <button type="button" class="refresh-btn" [class.is-spinning]="list.loading()" [disabled]="list.loading()" title="تحديث"
+    aria-label="تحديث المناديب" (click)="refresh()">
+    <app-icon name="refresh" [size]="16" />
+  </button>
+  @if (canManage()) {
+  <button type="button" class="ui-btn ui-btn--primary" (click)="openCreate()">
+    <app-icon name="plus" [size]="16" /> مندوب جديد
+  </button>
+  }
+</app-page-header>
+
+<app-summary-tiles [tiles]="tiles()" [refreshing]="delivery.loading() && !!stats()" />
+
+<app-status-tabs label="تصفية حسب الحالة" [tabs]="statusTabs()" [active]="state.query().filters['status']"
+  (activeChange)="state.setFilter('status', $event)" />
+
+<app-list-toolbar placeholder="ابحث بالاسم أو الموبايل أو رقم اللوحة…" [search]="state.query().search" [view]="state.view()"
+  [sort]="state.query().sort" [sortOptions]="sortOptions" [count]="list.count()" [activeFilters]="state.activeFilters()"
+  (searchChange)="state.setSearch($event)" (sortChange)="state.setSort($event)" (viewChange)="state.setView($event)"
+  (clearFilters)="state.clearFilters()" />
+
+<app-data-table [columns]="columns()" [data]="list.items()" [view]="state.view()" [sort]="state.query().sort"
+  [loading]="list.loading()" [initialLoading]="list.initialLoading()" [error]="list.error()"
+  [skeletonCount]="state.query().pageSize" [cardTemplate]="card" [actionsTemplate]="actions" [rowClickable]="true"
+  emptyIcon="truck" emptyTitle="لا يوجد مناديب مطابقون"
+  [emptyText]="canManage() ? 'جرّب تعديل البحث أو الحالة، أو أضف مندوبًا جديدًا.' : 'جرّب تعديل البحث أو الحالة.'"
+  (rowClick)="viewId.set($event.id)" (sortChange)="state.toggleSort($event)" (retry)="list.reload()">
+  @if (canManage()) {
+  <button empty-actions type="button" class="ui-btn ui-btn--primary" (click)="openCreate()">
+    <app-icon name="plus" [size]="16" /> مندوب جديد
+  </button>
+  }
+</app-data-table>
+
+<app-pagination class="dp-pager" [pageIndex]="state.query().pageIndex" [pageSize]="state.query().pageSize"
+  [count]="list.count()" [totalPages]="list.totalPages()" [pageSizeOptions]="[10, 25, 50, 100]"
+  [disabled]="list.loading()" (pageChange)="state.setPage($event)" (pageSizeChange)="state.setPageSize($event)" />
+
+<!-- ── Overlays ── -->
+@if (canManage()) {
+<app-driver-form-drawer [driverId]="editing()" (closed)="closeForm()" (saved)="onSaved()" />
+<app-driver-password-modal [driver]="resetting()" (closed)="resetting.set(null)" />
+}
+
+<app-details-drawer [open]="!!viewId()" label="تفاصيل المندوب" [details]="details()" [loading]="viewed.loading()"
+  [error]="viewed.error()" (retry)="viewed.reload()" (closed)="viewId.set(null)">
+  @if (viewed.value(); as d) {
+  @if (canSeeOrders()) {
+  <a drawer-actions class="ui-btn ui-btn--ghost" routerLink="/orders" [queryParams]="{ driverId: d.id }">
+    <app-icon name="cart" [size]="15" /> طلباته
+  </a>
+  <a drawer-actions class="ui-btn ui-btn--ghost" routerLink="/order-problems" [queryParams]="{ driverId: d.id, status: 'all' }">
+    <app-icon name="alert" [size]="15" /> بلاغاته
+  </a>
+  }
+  @if (canManage()) {
+  <button drawer-actions type="button" class="ui-btn ui-btn--primary" (click)="viewId.set(null); edit(d)">
+    <app-icon name="edit" [size]="15" /> تعديل
+  </button>
+  }
+  }
+</app-details-drawer>

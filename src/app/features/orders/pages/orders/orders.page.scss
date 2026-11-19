@@ -106,6 +106,12 @@
   align-items: flex-start;
   gap: 4px;
 
+  &__row {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
   small {
     display: inline-flex;
     align-items: center;
@@ -158,4 +164,31 @@
 .op-pager {
   display: block;
   margin-top: 14px;
+}
+
+.op-problem {
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  color: var(--am);
+  background: var(--am-l);
+}
+
+.op-driver {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--txt);
+  white-space: nowrap;
+
+  &--missing {
+    font-weight: 600;
+    color: var(--am);
+  }
+  &--none {
+    color: var(--txt3);
+  }
 }

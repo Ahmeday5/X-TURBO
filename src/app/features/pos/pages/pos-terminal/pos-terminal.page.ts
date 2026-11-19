@@ -45,6 +45,12 @@ import { ApiError } from '../../../../core/models/api-response.model';
 import { AppValidators, validationMessage } from '../../../../shared/validators/app-validators';
 import { HeldCartsService } from '../../services/held-carts.service';
 import { PosSettingsService } from '../../services/pos-settings.service';
+import { PERMISSIONS } from '../../../../core/auth/permissions';
+import { UrlListState } from '../../../../shared/list/url-list-state';
+import { CarFilterComponent } from '../../../cars/components/car-filter/car-filter.component';
+import { CAR_FILTER_KEYS, CarFilter, carFilterFrom, isCarFilterActive } from '../../../cars/models/car-filter.model';
+import { PosPriceEditorComponent, PosPriceTarget } from '../../../items/components/pos-price-editor/pos-price-editor.component';
+import { Item } from '../../../items/models/item.model';
 
 const ITEMS_PLURAL = { one: 'صنف واحد', two: 'صنفان', few: '# أصناف', other: '# صنف' };
 const WALK_IN = '';
@@ -58,7 +64,16 @@ const WALK_IN = '';
   selector: 'app-pos-terminal-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, PageHeaderComponent, IconComponent, ModalComponent, SearchableSelectComponent, ReceiptComponent],
+  imports: [
+    FormsModule,
+    PageHeaderComponent,
+    IconComponent,
+    ModalComponent,
+    SearchableSelectComponent,
+    ReceiptComponent,
+    CarFilterComponent,
+    PosPriceEditorComponent,
+  ],
   templateUrl: './pos-terminal.page.html',
   styleUrl: './pos-terminal.page.scss',
 })
@@ -103,11 +118,23 @@ export class PosTerminalPage {
     return list.find((w) => w.id === s.warehouseId) ?? list.find((w) => w.isDefault) ?? list[0];
   });
 
-  private readonly itemsQuery = computed(() => this.warehouse()?.id ?? null);
-  protected readonly items = createQueryResource(this.itemsQuery, (id) => this.stock.itemLookup(id), {
-    enabled: (id) => !!id,
+  /** Make → model → year, kept in the URL so a refresh keeps the filter. */
+  private readonly url = new UrlListState({ filters: CAR_FILTER_KEYS });
+  protected readonly car = computed(() => carFilterFrom(this.url.query().filters), {
+    equal: (a, b) => a.makeId === b.makeId && a.modelId === b.modelId && a.year === b.year,
+  });
+
+  /** The lookup is the whole catalogue (not paged): re-fetched per warehouse / car; text search stays local. */
+  private readonly itemsQuery = computed(() => ({ warehouseId: this.warehouse()?.id ?? null, car: this.car() }), {
+    equal: (a, b) => a.warehouseId === b.warehouseId && a.car === b.car,
+  });
+  protected readonly items = createQueryResource(this.itemsQuery, (q) => this.stock.itemLookup(q.warehouseId, q.car), {
+    enabled: (q) => !!q.warehouseId,
     errorMessage: 'تعذّر تحميل الأصناف',
   });
+
+  /** Items.View may change the cashier price from the card (a Pos.Access-only cashier may not). */
+  protected readonly canEditPrice = computed(() => this.auth.hasPermission(PERMISSIONS.items));
 
   private readonly refreshCustomers$ = new Subject<void>();
   protected readonly customers = toSignal(
@@ -259,14 +286,43 @@ export class PosTerminalPage {
       this.scanFeedback.ok();
     } else {
       this.scanFeedback.miss();
-      if (!target) this.toast.info(`لا يوجد صنف بالباركود أو الكود «${raw}»`);
+      if (!target) {
+        this.toast.info(
+          isCarFilterActive(this.car())
+            ? `لا يوجد صنف «${raw}» ضمن فلتر العربية الحالي — امسح الفلتر وحاول مرة أخرى`
+            : `لا يوجد صنف بالباركود أو الكود «${raw}»`,
+        );
+      }
     }
   }
 
-  /** Returns false when nothing could be added (out of stock). */
+  protected setCar(car: CarFilter): void {
+    this.url.setFilters({ ...car });
+  }
+
+  /** Lookup prices are always numbers — equal to the sale price means "no special POS price". */
+  protected priceTarget(item: ItemLookup): PosPriceTarget {
+    return { id: item.id, name: item.name, salePrice: item.salePrice, posPrice: item.posPrice === item.salePrice ? null : item.posPrice };
+  }
+
+  /** New cashier price: refresh the catalogue and re-price the item in the cart. */
+  protected onPriceSaved(updated: Item): void {
+    this.cart.update((lines) => lines.map((l) => (l.itemId === updated.id ? { ...l, price: updated.effectivePosPrice } : l)));
+    this.items.reload();
+  }
+
+  /**
+   * Returns false when nothing could be added. The net (`available`) already
+   * excludes open orders and reservations — the server only checks the
+   * warehouse balance when posting, so this is the guard against selling them.
+   */
   protected add(item: ItemLookup): boolean {
     if (item.available <= 0) {
-      this.toast.warning(`«${item.name}» غير متاح في ${this.warehouse()?.name ?? 'المخزن'}`);
+      this.toast.warning(
+        item.reserved > 0
+          ? `«${item.name}» غير متوفر — الكمية محجوزة لطلبات وحجوزات (${item.reserved} ${item.unit})`
+          : `«${item.name}» غير متوفر في ${this.warehouse()?.name ?? 'المخزن'}`,
+      );
       return false;
     }
     const existing = this.cart().find((l) => l.itemId === item.id);
@@ -291,6 +347,11 @@ export class PosTerminalPage {
   protected setQty(line: CartLine, qty: number): void {
     const q = Math.floor(Number(qty) || 0);
     if (q <= 0) return this.removeLine(line);
+    if (q > line.available) {
+      this.toast.warning(`المتاح من «${line.name}» ${Math.max(line.available, 0)} ${line.unit} فقط`);
+      if (line.available > 0 && line.qty !== line.available) this.setQty(line, line.available);
+      return;
+    }
     this.cart.update((lines) => lines.map((l) => (l.itemId === line.itemId ? { ...l, qty: q } : l)));
   }
 
@@ -509,7 +570,9 @@ export class PosTerminalPage {
     this.cart.update((lines) =>
       lines.map((l) => {
         const item = byId.get(l.itemId);
-        return item ? { ...l, available: item.available } : { ...l, available: 0 };
+        if (item) return { ...l, available: item.available, price: item.posPrice };
+        // Outside the car filter ≠ gone: keep the line as it was.
+        return isCarFilterActive(this.car()) ? l : { ...l, available: 0 };
       }),
     );
   }

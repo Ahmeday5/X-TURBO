@@ -1,12 +1,15 @@
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
-import { STOCK_LEVEL_LABEL, stockLevel } from '../../models/item.model';
+import { STOCK_LEVEL_LABEL, StockLevel, stockLevel } from '../../models/item.model';
 
-/** Quantity + a bar coloured by stock level; the reorder point sits at one third. */
+/**
+ * Quantity + a bar coloured by stock level; the reorder point sits at one third.
+ * Pass the server's `level` for catalogue items (computed on the net, after reservations).
+ */
 @Component({
   selector: 'app-stock-meter',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  host: { '[attr.data-level]': 'level()', '[attr.title]': 'label()' },
+  host: { '[attr.data-level]': 'resolved()', '[attr.title]': 'label()' },
   template: `
     <span class="sm__value">{{ stock() }}</span>
     <span class="sm__bar"><i [style.width.%]="fill()"></i></span>
@@ -34,11 +37,14 @@ import { STOCK_LEVEL_LABEL, stockLevel } from '../../models/item.model';
 export class StockMeterComponent {
   readonly stock = input.required<number>();
   readonly minStock = input.required<number>();
+  readonly level = input<StockLevel | null>(null);
 
-  protected readonly level = computed(() => stockLevel({ stock: this.stock(), minStock: this.minStock() }));
-  protected readonly label = computed(() => STOCK_LEVEL_LABEL[this.level()]);
+  protected readonly resolved = computed(() => this.level() ?? stockLevel({ stock: this.stock(), minStock: this.minStock() }));
+  protected readonly label = computed(() => STOCK_LEVEL_LABEL[this.resolved()]);
   protected readonly fill = computed(() => {
     const min = this.minStock();
-    return min > 0 ? Math.min(100, (this.stock() / (min * 3)) * 100) : 100;
+    const value = Math.max(0, this.stock());
+    if (this.resolved() === 'out') return 0;
+    return min > 0 ? Math.min(100, (value / (min * 3)) * 100) : 100;
   });
 }

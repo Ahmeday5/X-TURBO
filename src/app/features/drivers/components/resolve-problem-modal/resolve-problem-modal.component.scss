@@ -1,0 +1,120 @@
+.rp {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.rp-problem {
+  padding: 12px;
+  border: 1px solid color-mix(in srgb, var(--am) 35%, transparent);
+  border-radius: 12px;
+  background: var(--am-l);
+
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+
+    small {
+      font-size: 11px;
+      color: var(--txt3);
+    }
+  }
+
+  &__reason {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--am);
+  }
+
+  &__by {
+    margin: 6px 0 0;
+    font-size: 12px;
+    color: var(--txt2);
+  }
+
+  blockquote {
+    margin: 8px 0 0;
+    padding: 8px 10px;
+    border-inline-start: 3px solid var(--am);
+    border-radius: 8px;
+    font-size: 12.5px;
+    line-height: 1.6;
+    color: var(--txt);
+    background: var(--bg2);
+  }
+}
+
+.rp-text {
+  min-height: 76px;
+  resize: vertical;
+}
+
+.rp-quick {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.rp-chip {
+  padding: 4px 10px;
+  border: 1px solid var(--brd2);
+  border-radius: 999px;
+  background: var(--bg2);
+  color: var(--txt2);
+  font: inherit;
+  font-size: 11.5px;
+  cursor: pointer;
+  transition: border-color var(--dur-fast), color var(--dur-fast);
+
+  &:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+  }
+  &:focus-visible {
+    outline: none;
+    box-shadow: var(--focus-ring);
+  }
+}
+
+.rp-alt {
+  padding-top: 12px;
+  border-top: 1px dashed var(--brd2);
+
+  h4 {
+    margin: 0 0 8px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--txt3);
+  }
+
+  &__btns {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  &__danger {
+    color: var(--re);
+  }
+
+  &__note {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    margin: 8px 0 0;
+    line-height: 1.6;
+  }
+}
+
+.rp-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  width: 100%;
+}

@@ -18,6 +18,20 @@
       <app-order-progress [status]="o.status" [lastStep]="lastStep()" />
     </section>
 
+    @if (locked(); as reason) {
+    <section class="odd-next" role="status" style="--i: 1">
+      <span class="odd-next__icon"><app-icon name="truck" [size]="20" /></span>
+      <div class="odd-next__text">
+        <small>الخطوة التالية</small>
+        <strong>تعيين مندوب للطلب</strong>
+        <span>{{ reason }}. المندوب يستلم الطلب ويحدّث حالته من تطبيق التوصيل.</span>
+      </div>
+      <button type="button" class="ui-btn ui-btn--primary" [disabled]="!!busy()" (click)="openAssign(o)">
+        <app-icon name="truck" [size]="15" /> تعيين مندوب
+      </button>
+    </section>
+    }
+
     <section class="odd-stats" style="--i: 1">
       <div>
         <small>الإجمالي</small>
@@ -42,8 +56,67 @@
       </div>
     </section>
 
+    @if (o.driver; as d) {
+    <section class="odd-block odd-driver" style="--i: 2">
+      <app-avatar [name]="d.name" [size]="40" />
+      <div class="odd-driver__info">
+        <small>المندوب</small>
+        <strong>{{ d.name }}</strong>
+        <span>تم التعيين {{ relative(d.assignedAt) }}</span>
+      </div>
+      <a class="ui-icon-btn" [href]="tel(d.phone)" [title]="'اتصال بـ ' + d.name + ' ' + phone(d.phone)"
+        [attr.aria-label]="'اتصال بالمندوب ' + d.name">
+        <app-icon name="user" [size]="16" />
+      </a>
+      <span class="odd-driver__phone ltr">{{ phone(d.phone) }}</span>
+      @if (assignable()) {
+      <div class="odd-driver__actions">
+        <button type="button" class="ui-btn ui-btn--ghost ui-btn--sm" [disabled]="!!busy()" (click)="openAssign(o)">
+          <app-icon name="swap" [size]="14" /> تغيير
+        </button>
+        @if (unassignable()) {
+        <button type="button" class="ui-btn ui-btn--ghost ui-btn--sm odd-driver__remove" [class.is-loading]="busy() === 'unassign'"
+          [disabled]="!!busy()" (click)="unassign(o)">
+          <app-icon name="user-x" [size]="14" /> إلغاء التعيين
+        </button>
+        }
+      </div>
+      }
+    </section>
+    }
+
     @if (o.note) {
     <p class="odd-note" style="--i: 3"><app-icon name="alert" [size]="14" /> {{ o.note }}</p>
+    }
+
+    @if (problems().length) {
+    <section class="odd-block" style="--i: 3">
+      <h3 class="odd-h">
+        بلاغات التوصيل <span>{{ problems().length }}</span>
+        @if (openProblems()) {<span class="odd-h__open">{{ openProblems() }} مفتوح</span>}
+      </h3>
+      <ul class="odd-problems">
+        @for (p of problems(); track p.id) {
+        <li [class.is-open]="isOpen(p)">
+          <header>
+            <strong><app-icon name="alert" [size]="13" /> {{ p.reasonLabel }}</strong>
+            <small [title]="dateTime(p.createdAt)">{{ p.driverName }} · {{ relative(p.createdAt) }}</small>
+          </header>
+          @if (p.note) {<p class="odd-problems__note">{{ p.note }}</p>}
+          @if (isOpen(p)) {
+          <button type="button" class="ui-btn ui-btn--primary ui-btn--sm" (click)="openResolve(o, p)">
+            <app-icon name="check" [size]="14" /> رد على المندوب
+          </button>
+          } @else {
+          <p class="odd-problems__reply">
+            <app-icon name="check" [size]="12" />
+            <span>{{ p.resolution }}@if (p.resolvedBy) { — <em>{{ p.resolvedBy }}</em>}</span>
+          </p>
+          }
+        </li>
+        }
+      </ul>
+    </section>
     }
 
     <section class="odd-block" style="--i: 3">
@@ -71,7 +144,42 @@
       </dl>
     </section>
 
-    <section class="odd-block" style="--i: 4">
+    @if (showInvoices()) {
+    <section class="odd-block odd-invoices" style="--i: 4">
+      <h3 class="odd-h">فاتورة المبيعات @if (invoices().length > 1) {<span>{{ invoices().length }}</span>}</h3>
+      @if (invoices().length) {
+      <ul class="odd-invoices__list">
+        @for (inv of invoices(); track inv.id) {
+        <li [class.is-draft]="inv.status === 'draft'" [class.is-cancelled]="inv.status === 'cancelled'">
+          <div class="odd-invoices__main">
+            @if (canOpenInvoices()) {
+            <a class="ui-code ltr" [routerLink]="invoiceRoute" [queryParams]="{ view: inv.id }"
+              [title]="'فتح الفاتورة ' + inv.number">{{ inv.number }}</a>
+            } @else {
+            <span class="ui-code ltr">{{ inv.number }}</span>
+            }
+            <small><app-icon name="warehouse" [size]="11" /> {{ inv.warehouseName }}</small>
+          </div>
+          <strong class="odd-invoices__total">{{ money(inv.total) }}</strong>
+          <app-status-pill [view]="invoiceStatusView[inv.status]" />
+          @if (inv.status === 'draft' && canOpenInvoices()) {
+          <a class="ui-btn ui-btn--ghost ui-btn--sm odd-invoices__open" [routerLink]="invoiceRoute" [queryParams]="{ view: inv.id }">
+            <app-icon name="file-lines" [size]="14" /> فتح المستند
+          </a>
+          }
+        </li>
+        }
+      </ul>
+      @if (o.shipping && invoicedTotal() < o.total) {
+      <p class="ui-hint odd-invoices__note">الشحن ({{ money(o.shipping) }}) لا يدخل في فاتورة المبيعات، لذلك قد يقل إجماليها عن إجمالي الطلب.</p>
+      }
+      } @else {
+      <p class="odd-invoices__empty"><app-icon name="alert" [size]="14" /> لم تُنشأ فاتورة — راجع ملاحظة التسليم في سجل الطلب.</p>
+      }
+    </section>
+    }
+
+    <section class="odd-block" style="--i: 5">
       <h3 class="odd-h">سجل الطلب</h3>
       <ol class="odd-timeline">
         @for (e of o.timeline; track $index; let i = $index; let last = $last) {
@@ -110,6 +218,12 @@
       <app-icon name="bell" [size]="13" /> تغيير حالة هذا الطلب يرسل إشعارًا للعميل على تطبيق الموبايل
     </p>
     }
+    <button type="button" class="ui-icon-btn" title="طباعة الطلب" aria-label="طباعة الطلب" (click)="printer.print(o)">
+      <app-icon name="file-lines" [size]="16" />
+    </button>
+    @if (locked(); as reason) {
+    <p class="odd-actions__lock" role="note"><app-icon name="lock" [size]="13" /> {{ reason }}</p>
+    }
     @if (cancellable()) {
     <button type="button" class="ui-btn ui-btn--ghost odd-actions__cancel" [class.is-loading]="busy() === 'cancelled'"
       [disabled]="!!busy()" (click)="cancel(o)">
@@ -117,11 +231,26 @@
     </button>
     }
     @if (next(); as n) {
+    @if (locked(); as reason) {
+    <button type="button" class="ui-btn ui-btn--ghost odd-actions__locked" disabled [title]="reason" [attr.aria-label]="advanceLabel[n] + ' — ' + reason">
+      <app-icon name="lock" [size]="15" /> {{ advanceLabel[n] }}
+    </button>
+    <button type="button" class="ui-btn ui-btn--primary" [disabled]="!!busy()" (click)="openAssign(o)">
+      <app-icon name="truck" [size]="15" /> تعيين مندوب
+    </button>
+    } @else {
     <button type="button" class="ui-btn ui-btn--primary" [class.is-loading]="busy() === n" [disabled]="!!busy()"
       (click)="advance(o)">
       <app-icon name="check" [size]="15" /> {{ advanceLabel[n] }}
     </button>
     }
+    }
   </div>
   }
 </app-drawer>
+
+<app-assign-driver-modal [target]="assigning()" (closed)="assigning.set(null)" (assigned)="onAssigned()"
+  (stale)="assigning.set(null); afterChange()" />
+
+<app-resolve-problem-modal [target]="resolving()" (closed)="resolving.set(null)" (resolved)="onResolved()"
+  (stale)="resolving.set(null); afterChange()" (reassign)="reassignFromProblem()" (cancelOrder)="cancelFromProblem()" />

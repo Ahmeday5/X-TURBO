@@ -38,6 +38,12 @@
   @if (canReview()) {
   <div class="row-actions">
     <app-row-menu [actions]="actionsOf(d)" [quick]="true" [label]="'إجراءات ' + d.number" (run)="act(d, $event)" />
+    @if (d.linesCount) {
+    <button type="button" class="ui-icon-btn" title="طباعة باركود الأصناف" [attr.aria-label]="'طباعة باركود أصناف ' + d.number"
+      (click)="printLabels(d)">
+      <app-icon name="barcode" [size]="16" />
+    </button>
+    }
     <button type="button" class="ui-icon-btn" title="مراجعة" [attr.aria-label]="'مراجعة ' + d.number" (click)="open(d)">
       <app-icon name="eye" [size]="16" />
     </button>

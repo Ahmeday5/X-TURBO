@@ -119,7 +119,7 @@
         </label>
 
         <label class="ui-field">
-          <span class="ui-label is-required">سعر البيع</span>
+          <span class="ui-label is-required">سعر البيع <small class="if__app-tag">سعر التطبيق</small></span>
           <div class="ui-affix">
             <input class="ui-input" type="number" min="0" step="0.01" formControlName="salePrice" />
             <span class="ui-affix__text">ج.م</span>
@@ -166,6 +166,35 @@
       @if (discount().belowCost) {
       <p class="if__warn"><app-icon name="alert" [size]="15" /> السعر بعد الخصم أقل من سعر الشراء — البيع بخسارة.</p>
       }
+
+      <!-- POS price: independent of the app price above -->
+      <div class="if__pos">
+        <label class="ui-switch">
+          <input type="checkbox" formControlName="hasPosPrice" />
+          <span class="ui-switch__track"></span>
+          سعر مختلف لنقطة البيع
+        </label>
+        @if (form.controls.hasPosPrice.value) {
+        <div class="if__grid if__grid--3 if__pos-row">
+          <label class="ui-field">
+            <span class="ui-label is-required">سعر نقطة البيع</span>
+            <div class="ui-affix">
+              <input class="ui-input" type="number" min="0" step="0.01" formControlName="posPrice" />
+              <span class="ui-affix__text">ج.م</span>
+            </div>
+            <span class="ui-hint">سعر الكاشير فقط — سعر التطبيق يظل سعر البيع والخصم أعلاه.</span>
+            <app-form-error [control]="form.controls.posPrice" label="سعر نقطة البيع" />
+          </label>
+          <div class="if__margin" [class.is-negative]="posPreview().price < preview().purchasePrice">
+            <span>هامش الكاشير</span>
+            <strong>{{ posMargin() }}%</strong>
+            <small>{{ posPreview().price }} ج.م / {{ preview().unit }}</small>
+          </div>
+        </div>
+        } @else {
+        <p class="ui-hint if__pos-hint">الكاشير يبيع بسعر البيع ({{ preview().salePrice }} ج.م). فعّل الاختيار لتحديد سعر خاص بنقطة البيع دون تغيير سعر التطبيق.</p>
+        }
+      </div>
     </section>
 
     <!-- Stock & status -->

@@ -1,0 +1,116 @@
+<app-drawer [open]="open()" [label]="isNew() ? 'مندوب جديد' : 'تعديل مندوب'" (closed)="close()">
+  <div drawer-title class="df-title">
+    <app-avatar [name]="v().name.trim() || '؟'" [size]="40" />
+    <div>
+      <h2>{{ isNew() ? 'مندوب جديد' : 'تعديل مندوب' }}</h2>
+      <p>
+        @if (current(); as d) {
+        <span class="ltr">{{ v().phone }}</span>
+        } @else if (loading()) {
+        جارٍ التحميل…
+        } @else {
+        أنشئ حساب المندوب على تطبيق التوصيل
+        }
+      </p>
+    </div>
+  </div>
+
+  <form id="driver-form" class="df" [formGroup]="form" (ngSubmit)="submit()" [class.is-loading]="loading()" novalidate>
+    <section class="df-section">
+      <h3><app-icon name="id-card" [size]="15" /> بيانات المندوب</h3>
+      <div class="df-grid">
+        <label class="ui-field df-span">
+          <span class="ui-label is-required">الاسم</span>
+          <input class="ui-input" formControlName="name" placeholder="مثال: أحمد سعيد" autocomplete="off" />
+          <app-form-error [control]="form.controls.name" label="الاسم" />
+        </label>
+        <label class="ui-field df-span">
+          <span class="ui-label is-required">الموبايل</span>
+          <input class="ui-input ltr" formControlName="phone" inputmode="tel" maxlength="11" placeholder="01012345678"
+            autocomplete="off" />
+          <app-form-error [control]="form.controls.phone" label="الموبايل" />
+          <small class="ui-hint">المندوب يسجّل الدخول على التطبيق بهذا الرقم.</small>
+        </label>
+      </div>
+    </section>
+
+    <section class="df-section">
+      <h3><app-icon name="truck" [size]="15" /> المركبة</h3>
+      <div class="df-grid">
+        <label class="ui-field">
+          <span class="ui-label">نوع المركبة</span>
+          <input class="ui-input" formControlName="vehicleType" list="df-vehicle-types" placeholder="موتوسيكل" autocomplete="off" />
+          <datalist id="df-vehicle-types">
+            @for (t of vehicleTypes; track t) {<option [value]="t"></option>}
+          </datalist>
+          <app-form-error [control]="form.controls.vehicleType" label="نوع المركبة" />
+        </label>
+        <label class="ui-field">
+          <span class="ui-label">رقم اللوحة</span>
+          <input class="ui-input" formControlName="plateNumber" placeholder="ط ب 123" autocomplete="off" />
+          <app-form-error [control]="form.controls.plateNumber" label="رقم اللوحة" />
+        </label>
+        <label class="ui-field df-span">
+          <span class="ui-label">ملاحظات</span>
+          <textarea class="ui-input" formControlName="notes" rows="2" placeholder="مثال: منطقة مدينة نصر"></textarea>
+          <app-form-error [control]="form.controls.notes" label="الملاحظات" />
+        </label>
+      </div>
+    </section>
+
+    @if (isNew()) {
+    <section class="df-section">
+      <h3>
+        <app-icon name="lock" [size]="15" /> كلمة المرور
+        <span class="df-tools">
+          <button type="button" class="ui-btn ui-btn--ghost ui-btn--sm" (click)="generate()">
+            <app-icon name="bolt" [size]="14" /> توليد
+          </button>
+          <button type="button" class="ui-btn ui-btn--ghost ui-btn--sm" [disabled]="!v().password" (click)="copyPassword()">
+            <app-icon name="clipboard" [size]="14" /> نسخ
+          </button>
+        </span>
+      </h3>
+      <div class="df-grid">
+        <div class="ui-field">
+          <span class="ui-label is-required">كلمة المرور</span>
+          <app-password-input formControlName="password" autocomplete="new-password" placeholder="••••••••" />
+          <app-form-error [control]="form.controls.password" label="كلمة المرور" />
+        </div>
+        <div class="ui-field">
+          <span class="ui-label is-required">تأكيد كلمة المرور</span>
+          <app-password-input formControlName="confirm" autocomplete="new-password" placeholder="••••••••" />
+          <app-form-error [control]="form.controls.confirm" label="تأكيد كلمة المرور" />
+        </div>
+      </div>
+      <app-password-strength [value]="v().password" />
+    </section>
+    }
+
+    <section class="df-section">
+      <label class="ui-switch">
+        <input type="checkbox" formControlName="isActive" />
+        <span class="ui-switch__track"></span>
+        {{ v().isActive ? 'نشط — يستطيع الدخول واستلام الطلبات' : 'موقوف — لا يستطيع الدخول ولا يظهر في التعيين' }}
+      </label>
+      @if (current(); as d) {
+      <p class="ui-hint df-meta">
+        أُضيف {{ dateTime(d.createdAt) }} · آخر دخول {{ d.lastLoginAt ? dateTime(d.lastLoginAt) : 'لم يسجل الدخول بعد' }}
+      </p>
+      @if (d.isActive && !v().isActive) {
+      <p class="df-warn" role="note">
+        <app-icon name="alert" [size]="13" /> عند الحفظ سيتم تسجيل خروج المندوب من التطبيق فورًا.
+      </p>
+      }
+      }
+    </section>
+  </form>
+
+  <div drawer-footer class="df-foot">
+    <button type="button" class="ui-btn ui-btn--ghost" [disabled]="saving()" (click)="close()">إلغاء</button>
+    <button type="submit" form="driver-form" class="ui-btn ui-btn--primary" [class.is-loading]="saving()"
+      [disabled]="saving() || loading()">
+      <app-icon name="check" [size]="16" /> {{ isNew() ? 'إضافة المندوب' : 'حفظ التعديلات' }}
+    </button>
+  </div>
+</app-drawer>

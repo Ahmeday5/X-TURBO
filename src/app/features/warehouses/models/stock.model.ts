@@ -74,10 +74,16 @@ export interface ItemLookup {
   groupId: string;
   groupName: string;
   groupColor: string;
+  /** App price — never what the cashier charges. */
   salePrice: number;
+  /** Cashier price — always a number (falls back to `salePrice` server-side). Use it for POS lines. */
+  posPrice: number;
   purchasePrice: number;
+  /** Physical quantity in the requested warehouse. */
   stock: number;
-  /** stock − reserved in the requested warehouse. */
+  /** Held for the whole item: reservations + open orders. */
+  reserved: number;
+  /** What can be sold from this warehouse (capped by the item's overall net). Server-computed. */
   available: number;
   minStock: number;
 }

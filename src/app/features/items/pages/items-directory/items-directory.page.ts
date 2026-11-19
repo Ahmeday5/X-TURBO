@@ -17,11 +17,15 @@ import { RatingStarsComponent } from '../../../../shared/components/rating-stars
 import { toItemDetails } from '../../utils/item-details';
 import { ItemCardComponent } from '../../components/item-card/item-card.component';
 import { StockMeterComponent } from '../../components/stock-meter/stock-meter.component';
-import { discountedPrice, Item, ITEM_ERROR_CODES, marginPct, toItemPayload } from '../../models/item.model';
+import { discountedPrice, Item, ITEM_ERROR_CODES, marginPct, STOCK_FILTER_LABEL, StockFilter, toItemPayload } from '../../models/item.model';
+import { CarFilterComponent } from '../../../cars/components/car-filter/car-filter.component';
+import { CAR_FILTER_KEYS, CarFilter, carFilterFrom } from '../../../cars/models/car-filter.model';
+import { PosPriceEditorComponent } from '../../components/pos-price-editor/pos-price-editor.component';
 import { ApiError } from '../../../../core/models/api-response.model';
 import { hasErrorCode } from '../../../../core/http/api-error-codes';
 import { ItemGroupsService } from '../../services/item-groups.service';
 import { ItemsService } from '../../services/items.service';
+import { LabelPrintService } from '../../services/label-print.service';
 
 /** Item catalogue: search, filter, sort, page — all mirrored to the URL. */
 @Component({
@@ -39,6 +43,8 @@ import { ItemsService } from '../../services/items.service';
     StockMeterComponent,
     DetailsDrawerComponent,
     RatingStarsComponent,
+    CarFilterComponent,
+    PosPriceEditorComponent,
   ],
   templateUrl: './items-directory.page.html',
   styleUrl: './items-directory.page.scss',
@@ -48,6 +54,7 @@ export class ItemsDirectoryPage {
   private readonly dialog = inject(DialogService);
   private readonly toast = inject(ToastService);
   private readonly router = inject(Router);
+  private readonly labels = inject(LabelPrintService);
 
   /** Bound from route data. */
   readonly navId = input.required<string>();
@@ -55,7 +62,11 @@ export class ItemsDirectoryPage {
   protected readonly state = new UrlListState({
     pageSize: 12,
     defaultSort: { key: 'code', dir: 'desc' },
-    filters: ['groupId', 'status', 'stock'],
+    filters: ['groupId', 'status', 'stock', ...CAR_FILTER_KEYS],
+  });
+  /** Make → model → year, mirrored to the URL like every other filter. */
+  protected readonly car = computed(() => carFilterFrom(this.state.query().filters), {
+    equal: (a, b) => a.makeId === b.makeId && a.modelId === b.modelId && a.year === b.year,
   });
   protected readonly list = createListResource(this.state.query, (q) => this.items.list(q));
   protected readonly groups = toSignal(inject(ItemGroupsService).lookup(), { initialValue: [] });
@@ -77,12 +88,17 @@ export class ItemsDirectoryPage {
   private readonly statusCell = viewChild.required<TemplateRef<{ $implicit: Item }>>('statusCell');
   private readonly codeCell = viewChild.required<TemplateRef<{ $implicit: Item }>>('codeCell');
   private readonly ratingCell = viewChild.required<TemplateRef<{ $implicit: Item }>>('ratingCell');
+  private readonly reservedCell = viewChild.required<TemplateRef<{ $implicit: Item }>>('reservedCell');
+  private readonly availableCell = viewChild.required<TemplateRef<{ $implicit: Item }>>('availableCell');
 
   protected readonly sortOptions: SortOption[] = [
     { key: 'code', label: 'الكود' },
     { key: 'name', label: 'الاسم' },
     { key: 'salePrice', label: 'سعر البيع' },
+    { key: 'posPrice', label: 'سعر نقطة البيع' },
     { key: 'stock', label: 'الرصيد' },
+    { key: 'reserved', label: 'المحجوز' },
+    { key: 'available', label: 'الصافي' },
     { key: 'averageRating', label: 'التقييم' },
     { key: 'reviewsCount', label: 'عدد التقييمات' },
   ];
@@ -92,16 +108,42 @@ export class ItemsDirectoryPage {
     { key: 'code', label: 'الكود', sortable: true, width: '120px', cellTemplate: this.codeCell() },
     { key: 'name', label: 'الصنف', sortable: true, cellTemplate: this.nameCell() },
     { key: 'unit', label: 'الوحدة', width: '90px' },
-    { key: 'salePrice', label: 'السعر', sortable: true, align: 'end', cellTemplate: this.priceCell() },
+    { key: 'salePrice', label: 'السعر · التطبيق / نقطة البيع', sortable: true, align: 'end', cellTemplate: this.priceCell() },
     { key: 'stock', label: 'الرصيد', sortable: true, align: 'center', cellTemplate: this.stockCell() },
+    { key: 'reserved', label: 'المحجوز', sortable: true, align: 'center', cellTemplate: this.reservedCell() },
+    { key: 'available', label: 'الصافي', sortable: true, align: 'center', cellTemplate: this.availableCell() },
     { key: 'averageRating', label: 'التقييم', sortable: true, align: 'center', cellTemplate: this.ratingCell() },
     { key: 'isActive', label: 'الحالة', align: 'center', cellTemplate: this.statusCell() },
   ]);
+
+  protected readonly stockFilters: readonly StockFilter[] = ['ok', 'low', 'out', 'reserved'];
+  protected readonly stockFilterLabel = STOCK_FILTER_LABEL;
 
   protected readonly money = formatMoney;
   protected readonly int = formatInteger;
   protected readonly margin = marginPct;
   protected readonly discounted = discountedPrice;
+
+  protected setCar(car: CarFilter): void {
+    this.state.setFilters({ ...car });
+  }
+
+  /** The server answered with the updated item — reload so sorting by price stays right. */
+  protected onPosPriceSaved(item: Item): void {
+    this.list.reload();
+    if (this.viewId() === item.id) this.viewed.reload();
+  }
+
+  /** One label, printed now with this device's label settings. */
+  protected printLabel(item: Item): void {
+    this.labels.printItems([{ item, copies: 1 }]);
+  }
+
+  /** The labels page with this page's items queued — to set copies / template before printing. */
+  protected labelsForPage(): void {
+    const ids = this.list.items().map((i) => i.id);
+    if (ids.length) this.router.navigate(['/items/barcode-labels'], { queryParams: { items: ids.join(',') } });
+  }
 
   protected edit(item: Item): void {
     this.router.navigate(['/items/define'], { queryParams: { id: item.id } });

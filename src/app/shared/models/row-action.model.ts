@@ -14,4 +14,10 @@ export interface RowAction<K extends string = string> {
   tone?: 'primary' | 'danger';
   /** Draws a separator above (groups destructive actions at the bottom). */
   separated?: boolean;
+  /**
+   * Shown but locked, with this reason under the label — for a step that
+   * exists but has a prerequisite (e.g. "assign a driver first"). Hiding it
+   * would leave the user guessing why the step is missing.
+   */
+  disabledReason?: string;
 }

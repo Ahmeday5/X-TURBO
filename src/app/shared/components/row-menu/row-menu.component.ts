@@ -48,10 +48,15 @@ const GAP = 6;
           [style.width.px]="menuWidth" (keydown)="onKeydown($event)">
           @for (a of actions(); track a.key; let i = $index) {
             @if (a.separated && i > 0) {<div class="rm__sep" role="separator"></div>}
-            <button type="button" role="menuitem" class="rm__item" [class.is-primary]="a.tone === 'primary'"
-              [class.is-danger]="a.tone === 'danger'" [class.is-active]="i === active()" (mouseenter)="active.set(i)"
-              (click)="choose(a)">
-              <app-icon [name]="a.icon" [size]="15" /> {{ a.label }}
+            <button type="button" role="menuitem" class="rm__item" [class.is-primary]="a.tone === 'primary' && !a.disabledReason"
+              [class.is-danger]="a.tone === 'danger'" [class.is-active]="i === active()" [class.is-locked]="!!a.disabledReason"
+              [attr.aria-disabled]="a.disabledReason ? true : null" [title]="a.disabledReason ?? ''"
+              (mouseenter)="active.set(i)" (click)="choose(a)">
+              <app-icon [name]="a.disabledReason ? 'lock' : a.icon" [size]="15" />
+              <span class="rm__text">
+                {{ a.label }}
+                @if (a.disabledReason) {<small class="rm__reason">{{ a.disabledReason }}</small>}
+              </span>
             </button>
           }
         </div>
@@ -87,6 +92,9 @@ const GAP = 6;
     .rm__item.is-danger, .rm__item.is-danger app-icon { color: var(--re); }
     .rm__item.is-danger.is-active { background: var(--re-l); }
     .rm__sep { height: 1px; margin: 4px 6px; background: var(--brd); }
+    .rm__text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+    .rm__item.is-locked { color: var(--txt3); cursor: not-allowed; }
+    .rm__reason { font-size: 10.5px; line-height: 1.4; color: var(--am); white-space: normal; }
   `,
 })
 export class RowMenuComponent<K extends string = string> {
@@ -103,7 +111,8 @@ export class RowMenuComponent<K extends string = string> {
   protected readonly active = signal(0);
   protected readonly pos = signal({ top: 0, left: 0 });
   protected readonly menuWidth = MENU_WIDTH;
-  protected readonly primary = computed(() => this.actions().find((a) => a.tone === 'primary') ?? null);
+  /** The quick button never offers a locked step. */
+  protected readonly primary = computed(() => this.actions().find((a) => a.tone === 'primary' && !a.disabledReason) ?? null);
 
   constructor() {
     inject(DestroyRef).onDestroy(() => this.listen(false));
@@ -119,6 +128,7 @@ export class RowMenuComponent<K extends string = string> {
   }
 
   protected choose(action: RowAction<K>): void {
+    if (action.disabledReason) return;
     this.close();
     this.run.emit(action.key);
   }
@@ -166,7 +176,7 @@ export class RowMenuComponent<K extends string = string> {
     const rect = this.trigger()?.nativeElement.getBoundingClientRect();
     if (!rect) return;
     const rtl = getComputedStyle(this.host.nativeElement).direction === 'rtl';
-    const estimatedHeight = this.actions().length * 36 + 16;
+    const estimatedHeight = this.actions().reduce((h, a) => h + (a.disabledReason ? 52 : 36), 16);
     let left = rtl ? rect.left : rect.right - MENU_WIDTH;
     left = Math.min(Math.max(8, left), window.innerWidth - MENU_WIDTH - 8);
     const below = rect.bottom + GAP;

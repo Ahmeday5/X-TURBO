@@ -95,6 +95,21 @@ export interface LabelSettings {
   fields: LabelFields;
 }
 
+/** What a label shows about an item — satisfied by both `ItemLookup` and the directory's `Item`. */
+export type LabelItem = Pick<ItemLookup, 'id' | 'code' | 'name' | 'barcode' | 'brand' | 'salePrice'> & {
+  /** Cashier price; `null` / missing = the sale price. */
+  posPrice?: number | null;
+};
+
+/** Shelf labels show what the customer pays at the counter — the POS price. */
+export const labelPrice = (item: LabelItem): number => item.posPrice ?? item.salePrice;
+
+/** One item and how many labels to print for it. */
+export interface LabelJobRow {
+  item: LabelItem;
+  copies: number;
+}
+
 /** One item in the print queue. */
 export interface LabelRow {
   item: ItemLookup;

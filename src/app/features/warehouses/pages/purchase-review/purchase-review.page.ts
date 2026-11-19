@@ -24,6 +24,7 @@ import { DOC_KIND_CONFIG, DocumentSummary } from '../../../documents/models/docu
 import { DocAction, documentActions } from '../../../documents/utils/document-actions';
 import { LINES_PLURAL, PAYMENT_STATE_VIEW, paymentState } from '../../../documents/utils/document-view';
 import { WarehousesService } from '../../services/warehouses.service';
+import { LabelPrintService } from '../../../items/services/label-print.service';
 
 const PURCHASE = DOC_KIND_CONFIG.purchase;
 
@@ -64,6 +65,7 @@ const EMPTY_PAGE: PagedResponse<DocumentSummary> = { pageIndex: 1, pageSize: 0, 
   styleUrl: './purchase-review.page.scss',
 })
 export class PurchaseReviewPage {
+  private readonly labels = inject(LabelPrintService);
   private readonly api = inject(WarehousesService);
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
@@ -178,14 +180,16 @@ export class PurchaseReviewPage {
     if (this.canReview()) this.state.setParam('view', d.id);
   }
 
+  /** One label per received unit, printed here with this device's label settings. */
+  protected printLabels(d: Pick<DocumentSummary, 'id'>): void {
+    this.labels.printDocument(d.id);
+  }
+
   /** Row action → the drawer runs it (its confirm dialogs, rules and errors — one implementation). */
   protected act(d: DocumentSummary, action: DocAction): void {
     // Pure navigations go straight there — no drawer round-trip.
     if (action === 'edit') return this.edit(d.id);
-    if (action === 'labels') {
-      void this.router.navigate(['/items/barcode-labels'], { queryParams: { doc: d.id } });
-      return;
-    }
+    if (action === 'labels') return this.printLabels(d);
     this.state.setParams({ view: d.id, do: action });
   }
 

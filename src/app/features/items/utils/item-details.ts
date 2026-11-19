@@ -1,13 +1,13 @@
 import { EntityDetails } from '../../../shared/components/details-drawer/details-drawer.model';
 import { formatDateTime, formatInteger, formatMoney } from '../../../shared/utils/format.util';
 import { ItemGroup } from '../models/item-group.model';
-import { discountedPrice, Item, marginPct, STOCK_LEVEL_LABEL, stockLevel } from '../models/item.model';
+import { discountedPrice, Item, marginPct, STOCK_LEVEL_LABEL } from '../models/item.model';
 
 const LEVEL_TONE = { ok: 'good', low: 'warning', out: 'danger' } as const;
 
 /** Read-only details of an item (eye action in the items directory). */
 export function toItemDetails(item: Item): EntityDetails {
-  const level = stockLevel(item);
+  const level = item.level;
   return {
     header: {
       title: item.name,
@@ -36,7 +36,12 @@ export function toItemDetails(item: Item): EntityDetails {
         icon: 'coins',
         fields: [
           { label: 'سعر الشراء', value: formatMoney(item.purchasePrice) },
-          { label: 'سعر البيع', value: formatMoney(item.salePrice) },
+          { label: 'سعر البيع (التطبيق)', value: formatMoney(item.salePrice) },
+          {
+            label: 'سعر نقطة البيع',
+            value: item.posPrice === null ? `${formatMoney(item.effectivePosPrice)} — نفس سعر البيع` : formatMoney(item.effectivePosPrice),
+            tone: item.posPrice === null ? 'muted' : 'info',
+          },
           { label: 'الخصم', value: item.discountPercent ? `${item.discountPercent}%` : 'بدون خصم', tone: item.discountPercent ? 'good' : 'muted' },
           ...(item.discountPercent
             ? [{ label: 'السعر بعد الخصم', value: formatMoney(discountedPrice(item.salePrice, item.discountPercent)) }]
@@ -53,7 +58,13 @@ export function toItemDetails(item: Item): EntityDetails {
         title: 'المخزون',
         icon: 'layers',
         fields: [
-          { label: 'الرصيد', value: `${formatInteger(item.stock)} ${item.unit}`, tone: LEVEL_TONE[level] },
+          { label: 'الرصيد', value: `${formatInteger(item.stock)} ${item.unit}` },
+          {
+            label: 'المحجوز',
+            value: item.reserved ? `${formatInteger(item.reserved)} ${item.unit} — حجوزات وطلبات لم تُسلَّم` : '—',
+            tone: item.reserved ? 'warning' : 'muted',
+          },
+          { label: 'الصافي (المتاح للبيع)', value: `${formatInteger(item.available)} ${item.unit}`, tone: LEVEL_TONE[level] },
           { label: 'حالة الرصيد', value: STOCK_LEVEL_LABEL[level], tone: LEVEL_TONE[level] },
           { label: 'حد الطلب', value: `${formatInteger(item.minStock)} ${item.unit}` },
         ],

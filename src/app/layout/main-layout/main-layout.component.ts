@@ -4,6 +4,7 @@ import { TopbarComponent } from './topbar/topbar.component';
 import { SidebarComponent } from './sidebar/sidebar.component';
 import { ConfirmDialogComponent } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { LayoutService } from '../../core/services/layout.service';
+import { DeliveryStatsService } from '../../features/drivers/services/delivery-stats.service';
 
 @Component({
   selector: 'app-main-layout',
@@ -15,4 +16,9 @@ import { LayoutService } from '../../core/services/layout.service';
 })
 export class MainLayoutComponent {
   protected readonly layout = inject(LayoutService);
+
+  constructor() {
+    // Starts the delivery counters poll (sidebar badge) for the signed-in session.
+    inject(DeliveryStatsService);
+  }
 }

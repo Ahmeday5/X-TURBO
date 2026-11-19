@@ -19,6 +19,10 @@
       <kbd class="pt-kbd ltr">F2</kbd>
     </div>
 
+    <div class="pt-cars">
+      <app-car-filter [value]="car()" (valueChange)="setCar($event)" />
+    </div>
+
     <div class="pt-chips" role="group" aria-label="المجموعات">
       <button type="button" class="pt-chip" [attr.aria-pressed]="!groupId()" (click)="groupId.set(null)">الكل</button>
       @for (g of groups(); track g.id) {
@@ -47,18 +51,27 @@
     } @else {
     <div class="pt-grid" [class.is-refreshing]="items.loading()">
       @for (i of visibleItems(); track i.id) {
-      <button type="button" class="pt-item" [style.--chip]="i.groupColor" [disabled]="i.available <= 0"
-        [class.is-low]="i.available > 0 && i.available <= i.minStock / 5" (click)="add(i)"
-        [attr.aria-label]="'إضافة ' + i.name">
-        @if (inCart(i.id)) {<span class="pt-item__qty">{{ inCart(i.id) }}</span>}
-        <span class="pt-item__group">{{ i.groupName }}</span>
-        <span class="pt-item__name">{{ i.name }}</span>
-        <span class="pt-item__code ltr">{{ i.code }}</span>
-        <span class="pt-item__foot">
-          <strong>{{ money(i.salePrice) }}</strong>
-          <small>{{ i.available > 0 ? 'متاح ' + i.available : 'نفد' }}</small>
-        </span>
-      </button>
+      <div class="pt-item-cell">
+        <button type="button" class="pt-item" [style.--chip]="i.groupColor" [disabled]="i.available <= 0"
+          [class.is-low]="i.available > 0 && i.available <= i.minStock / 5" (click)="add(i)"
+          [attr.aria-label]="'إضافة ' + i.name">
+          @if (inCart(i.id)) {<span class="pt-item__qty">{{ inCart(i.id) }}</span>}
+          @if (i.available <= 0) {<span class="pt-item__out">غير متوفر</span>}
+          <span class="pt-item__group">{{ i.groupName }}</span>
+          <span class="pt-item__name">{{ i.name }}</span>
+          <span class="pt-item__code ltr">{{ i.code }}</span>
+          <span class="pt-item__foot">
+            <strong [class.pt-item__price--under]="canEditPrice()">{{ money(i.posPrice) }}</strong>
+            <span class="pt-item__stock">
+              <small>{{ i.available > 0 ? 'متاح ' + i.available : 'غير متوفر' }}</small>
+              @if (i.reserved > 0) {<small class="pt-item__reserved">محجوز {{ i.reserved }}</small>}
+            </span>
+          </span>
+        </button>
+        @if (canEditPrice()) {
+        <app-pos-price-editor class="pt-item__price" [item]="priceTarget(i)" [showHint]="false" (saved)="onPriceSaved($event)" />
+        }
+      </div>
       }
     </div>
     }

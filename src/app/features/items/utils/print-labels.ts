@@ -1,13 +1,13 @@
 import { environment } from '../../../../environments/environment';
 import { barcodeSvg } from '../../../shared/barcode/code128';
 import { formatMoney } from '../../../shared/utils/format.util';
-import { LabelFields, LabelRow, LabelTemplate, labelValue } from '../models/barcode-label.model';
+import { LabelFields, LabelItem, LabelJobRow, labelPrice, LabelTemplate, labelValue } from '../models/barcode-label.model';
 
 const esc = (value: unknown): string =>
   String(value ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
 
 /** Markup of one label (shared by the on-screen preview and the print window). */
-export function labelHtml(row: Pick<LabelRow, 'item'>, fields: LabelFields): string {
+export function labelHtml(row: { item: LabelItem }, fields: LabelFields): string {
   const { item } = row;
   const value = labelValue(item);
   const svg = barcodeSvg(value);
@@ -20,7 +20,7 @@ export function labelHtml(row: Pick<LabelRow, 'item'>, fields: LabelFields): str
     ${fields.name ? `<div class="l-name">${esc(item.name)}</div>` : ''}
     <div class="l-bars">${svg ?? `<span class="l-missing">لا يمكن تحويل «${esc(value)}» إلى باركود</span>`}</div>
     ${fields.barcodeText ? `<div class="l-digits">${esc(value)}</div>` : ''}
-    ${meta || fields.price ? `<div class="l-foot"><div class="l-meta">${meta}</div>${fields.price ? `<strong class="l-price">${esc(formatMoney(item.salePrice))}</strong>` : ''}</div>` : ''}
+    ${meta || fields.price ? `<div class="l-foot"><div class="l-meta">${meta}</div>${fields.price ? `<strong class="l-price">${esc(formatMoney(labelPrice(item)))}</strong>` : ''}</div>` : ''}
   </div>`;
 }
 
@@ -54,12 +54,19 @@ export function labelCss(t: LabelTemplate): string {
  * roll → one page per label (the printer driver's paper = the label);
  * sheet → A4 grid with the sheet's margins.
  */
-export function printLabels(rows: readonly LabelRow[], template: LabelTemplate, fields: LabelFields): boolean {
+export function printLabels(
+  rows: readonly LabelJobRow[],
+  template: LabelTemplate,
+  fields: LabelFields,
+  /** A window opened earlier, synchronously in the click (an async load in between would get a new one blocked). */
+  target?: Window | null,
+): boolean {
   const labels = rows.flatMap((row) => Array.from({ length: row.copies }, () => labelHtml(row, fields)));
   if (!labels.length) return false;
 
-  const win = window.open('', '_blank', 'width=900,height=900');
+  const win = target ?? window.open('', '_blank', 'width=900,height=900');
   if (!win) return false;
+  win.document.open();
 
   const page =
     template.stock === 'roll'

@@ -23,6 +23,7 @@ import { OrderCardComponent } from '../../components/order-card/order-card.compo
 import { OrderDetailsDrawerComponent } from '../../components/order-details-drawer/order-details-drawer.component';
 import { OrderStatusTabsComponent } from '../../components/order-status-tabs/order-status-tabs.component';
 import {
+  awaitsDriver,
   CHANNEL_LABEL,
   ORDER_CHANNELS,
   ORDER_ITEMS_PLURAL,
@@ -38,7 +39,11 @@ import {
   PAYMENT_STATUS_VIEW,
 } from '../../models/order.model';
 import { OrdersService } from '../../services/orders.service';
+import { MAX_ORDERS_PER_PRINT, OrderPrintService } from '../../services/order-print.service';
 import { todayIsoDate } from '../../../../shared/utils/date-iso.util';
+import { FilterOption } from '../../../../shared/components/filter-select/filter-select.component';
+import { NO_DRIVER } from '../../../drivers/models/driver.model';
+import { DriversService } from '../../../drivers/services/drivers.service';
 
 interface SummaryTile {
   label: string;
@@ -55,7 +60,7 @@ const SUMMARY_TILES: readonly SummaryTile[] = [
   { label: 'بانتظار التجهيز', icon: 'clock', value: (s) => s.byStatus.pending + s.byStatus.processing, format: formatInteger, tone: 'var(--am)' },
 ];
 
-const ORDER_FILTERS = ['status', 'channel', 'payment', 'period'] as const;
+const ORDER_FILTERS = ['status', 'channel', 'payment', 'period', 'driverId'] as const;
 
 /** Orders: status tabs, search, filters, sort, paging, table/cards, details drawer — all in the URL. */
 @Component({
@@ -83,6 +88,8 @@ const ORDER_FILTERS = ['status', 'channel', 'payment', 'period'] as const;
 })
 export class OrdersPage {
   private readonly orders = inject(OrdersService);
+  private readonly drivers = inject(DriversService);
+  private readonly printer = inject(OrderPrintService);
   private readonly toast = inject(ToastService);
 
   /** Bound from route data. */
@@ -109,11 +116,26 @@ export class OrdersPage {
   protected readonly openOrderId = this.state.param('order');
   protected readonly activeStatus = computed(() => (this.state.query().filters['status'] as OrderStatus) ?? null);
   protected readonly exporting = signal(false);
+  protected readonly maxPrint = MAX_ORDERS_PER_PRINT;
 
   protected readonly tiles = SUMMARY_TILES;
   protected readonly channelOptions = toFilterOptions(ORDER_CHANNELS, (c) => CHANNEL_LABEL[c]);
   protected readonly paymentOptions = toFilterOptions(PAYMENT_STATUSES, (p) => PAYMENT_STATUS_VIEW[p].label);
   protected readonly periodOptions = ORDER_PERIODS;
+
+  private readonly driverLookup = createQueryResource(signal(true), () => this.drivers.lookup(), {
+    errorMessage: 'تعذّر تحميل المناديب',
+  });
+  /** "No driver" first, then active drivers; keeps a filtered driver that is no longer active. */
+  protected readonly driverOptions = computed<FilterOption[]>(() => {
+    const options: FilterOption[] = (this.driverLookup.value() ?? []).map((d) => ({ value: d.id, label: d.name }));
+    const selected = this.state.query().filters['driverId'];
+    if (selected && selected !== NO_DRIVER && !options.some((o) => o.value === selected)) {
+      const name = this.list.items().find((o) => o.driverId === selected)?.driverName ?? 'مندوب غير نشط';
+      options.unshift({ value: selected, label: name });
+    }
+    return [{ value: NO_DRIVER, label: 'بدون مندوب' }, ...options];
+  });
 
   protected readonly sortOptions: SortOption[] = [
     { key: 'createdAt', label: 'التاريخ' },
@@ -128,6 +150,7 @@ export class OrdersPage {
   private readonly totalCell = viewChild.required<TemplateRef<{ $implicit: OrderSummary }>>('totalCell');
   private readonly paymentCell = viewChild.required<TemplateRef<{ $implicit: OrderSummary }>>('paymentCell');
   private readonly statusCell = viewChild.required<TemplateRef<{ $implicit: OrderSummary }>>('statusCell');
+  private readonly driverCell = viewChild.required<TemplateRef<{ $implicit: OrderSummary }>>('driverCell');
 
   protected readonly columns = computed<TableColumn<OrderSummary>[]>(() => [
     { key: 'createdAt', label: 'الطلب', sortable: true, width: '150px', cellTemplate: this.numberCell() },
@@ -135,6 +158,7 @@ export class OrdersPage {
     { key: 'channel', label: 'القناة', cellTemplate: this.channelCell() },
     { key: 'total', label: 'الإجمالي', sortable: true, align: 'end', cellTemplate: this.totalCell() },
     { key: 'paymentStatus', label: 'الدفع', align: 'center', cellTemplate: this.paymentCell() },
+    { key: 'driverName', label: 'المندوب', cellTemplate: this.driverCell() },
     { key: 'status', label: 'الحالة', align: 'center', cellTemplate: this.statusCell() },
   ]);
 
@@ -145,6 +169,7 @@ export class OrdersPage {
   protected readonly money = formatMoney;
   protected readonly relative = formatRelative;
   protected readonly items = (n: number) => pluralAr(n, ORDER_ITEMS_PLURAL);
+  protected readonly awaitsDriver = awaitsDriver;
 
   /** Row action requested from the table — run by the drawer (one implementation). */
   private readonly doParam = this.state.param('do');
@@ -156,6 +181,8 @@ export class OrdersPage {
   }
 
   protected act(order: OrderSummary, action: OrderAction): void {
+    // Printing opens its window inside the click — going through the drawer would get it blocked.
+    if (action === 'print') return this.printer.printByIds([order.id]);
     this.state.setParams({ order: order.id, do: action });
   }
 
@@ -170,6 +197,11 @@ export class OrdersPage {
   protected refresh(): void {
     this.list.reload();
     this.stats.reload();
+  }
+
+  /** Every order on this page, one A4 page each (e.g. the day's deliveries for the drivers). */
+  protected printPage(): void {
+    this.printer.printByIds(this.list.items().map((o) => o.id));
   }
 
   /** Exports every order matching the current search/filters, not just this page. */
@@ -191,6 +223,8 @@ export class OrdersPage {
           { label: 'طريقة الدفع', value: (o) => PAYMENT_METHOD_LABEL[o.paymentMethod] },
           { label: 'حالة الدفع', value: (o) => PAYMENT_STATUS_VIEW[o.paymentStatus].label },
           { label: 'الحالة', value: (o) => ORDER_STATUS_VIEW[o.status].label },
+          { label: 'المندوب', value: (o) => o.driverName ?? '' },
+          { label: 'بلاغ مفتوح', value: (o) => (o.hasOpenProblem ? 'نعم' : '') },
         ]);
         this.toast.success(`تم تصدير ${formatInteger(rows.length)} طلب`);
       });

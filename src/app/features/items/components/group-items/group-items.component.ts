@@ -4,7 +4,7 @@ import { ListQuery } from '../../../../core/models/list-query.model';
 import { IconComponent } from '../../../../shared/components/icon/icon.component';
 import { createQueryResource } from '../../../../shared/list/query-resource';
 import { formatInteger, formatMoney } from '../../../../shared/utils/format.util';
-import { discountedPrice, Item, STOCK_LEVEL_LABEL, stockLevel } from '../../models/item.model';
+import { discountedPrice, Item, STOCK_LEVEL_LABEL } from '../../models/item.model';
 import { ItemsService } from '../../services/items.service';
 
 /** Rows fetched per "show more". */
@@ -48,7 +48,6 @@ export class GroupItemsComponent {
 
   protected readonly money = formatMoney;
   protected readonly integer = formatInteger;
-  protected readonly level = stockLevel;
   protected readonly levelLabel = STOCK_LEVEL_LABEL;
   protected readonly discounted = (i: Item) => discountedPrice(i.salePrice, i.discountPercent);
 

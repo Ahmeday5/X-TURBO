@@ -145,6 +145,123 @@
   color: var(--am);
 }
 
+/* ── driver ── */
+.odd-driver {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 12px;
+
+  &__info {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    font-size: 11.5px;
+    color: var(--txt3);
+
+    strong {
+      font-size: 13.5px;
+      color: var(--txt);
+    }
+  }
+
+  &__phone {
+    font-size: 12px;
+    color: var(--txt2);
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__actions {
+    display: flex;
+    flex-basis: 100%;
+    justify-content: flex-end;
+    gap: 6px;
+  }
+
+  &__remove {
+    color: var(--re);
+  }
+}
+
+/* ── delivery problems ── */
+.odd-h__open {
+  background: var(--am-l) !important;
+  color: var(--am) !important;
+}
+
+.odd-problems {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  li {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    padding: 10px 12px;
+    border: 1px solid var(--brd);
+    border-radius: 12px;
+    background: var(--bg3);
+
+    &.is-open {
+      border-color: color-mix(in srgb, var(--am) 45%, transparent);
+      background: var(--am-l);
+    }
+  }
+
+  header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 4px 10px;
+    width: 100%;
+
+    strong {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12.5px;
+      color: var(--txt);
+    }
+    small {
+      font-size: 11px;
+      color: var(--txt3);
+    }
+  }
+  li.is-open header strong {
+    color: var(--am);
+  }
+
+  &__note {
+    margin: 0;
+    font-size: 12px;
+    line-height: 1.6;
+    color: var(--txt2);
+  }
+
+  &__reply {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    margin: 0;
+    font-size: 12px;
+    line-height: 1.6;
+    color: var(--gr);
+
+    em {
+      font-style: normal;
+      color: var(--txt3);
+    }
+  }
+}
+
 /* ── lines ── */
 .odd-lines {
   list-style: none;
@@ -334,4 +451,151 @@
   .odd-timeline li {
     animation: none;
   }
+}
+
+/* ── sales invoices (issued by the server on delivery) ── */
+.odd-invoices__list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  li {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 12px;
+    padding: 10px 12px;
+    border: 1px solid var(--brd);
+    border-radius: 12px;
+    background: var(--bg3);
+
+    &.is-draft {
+      border-color: color-mix(in srgb, var(--am) 45%, transparent);
+      background: var(--am-l);
+    }
+    &.is-cancelled {
+      opacity: 0.65;
+    }
+  }
+}
+
+.odd-invoices__main {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  min-width: 0;
+
+  a {
+    text-decoration: none;
+  }
+  small {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    color: var(--txt3);
+  }
+}
+
+.odd-invoices__total {
+  font-size: 13px;
+  color: var(--txt);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.odd-invoices__open {
+  flex-basis: 100%;
+  justify-content: center;
+}
+
+.odd-invoices__note {
+  margin: 8px 0 0;
+}
+
+.odd-invoices__empty {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 12.5px;
+  color: var(--am);
+  background: var(--am-l);
+}
+
+/* ── next step: a driver is required before the order can move on ── */
+.odd-next {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 14px;
+  padding: 14px 16px;
+  border: 1px solid color-mix(in srgb, var(--am) 50%, transparent);
+  border-inline-start: 4px solid var(--am);
+  border-radius: var(--rl);
+  background: var(--am-l);
+
+  &__icon {
+    display: grid;
+    flex-shrink: 0;
+    place-items: center;
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    color: var(--am);
+    background: var(--bg2);
+    box-shadow: 0 6px 16px -10px var(--am);
+  }
+
+  &__text {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 180px;
+
+    small {
+      font-size: 10.5px;
+      font-weight: 700;
+      letter-spacing: 0.2px;
+      color: var(--am);
+    }
+    strong {
+      font-size: 14px;
+      color: var(--txt);
+    }
+    span {
+      font-size: 12px;
+      line-height: 1.6;
+      color: var(--txt2);
+    }
+  }
+
+  @media (max-width: 575.98px) {
+    .ui-btn {
+      flex: 1 1 100%;
+    }
+  }
+}
+
+.odd-actions__lock {
+  flex-basis: 100%;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--am);
+}
+
+.odd-actions__locked {
+  cursor: not-allowed;
 }

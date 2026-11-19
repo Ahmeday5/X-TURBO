@@ -92,7 +92,7 @@
                 <a class="bl__link" [routerLink]="'/items/define'" [queryParams]="{ id: r.item.id }">توليد باركود</a>
                 }
               </td>
-              <td class="num">{{ money(r.item.salePrice) }}</td>
+              <td class="num">{{ money(r.item.posPrice) }}</td>
               <td class="num">
                 <input class="ui-input bl__copies" type="number" min="1" [max]="maxCopies" [value]="r.copies"
                   (change)="setCopies(i, $any($event.target).value)" [attr.aria-label]="'عدد نسخ ' + r.item.name" />

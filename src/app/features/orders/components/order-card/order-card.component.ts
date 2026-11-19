@@ -5,6 +5,7 @@ import { StatusPillComponent } from '../../../../shared/components/status-pill/s
 import { formatMoney, formatRelative } from '../../../../shared/utils/format.util';
 import { pluralAr } from '../../../../shared/utils/plural.util';
 import {
+  awaitsDriver,
   CHANNEL_LABEL,
   ORDER_ITEMS_PLURAL,
   ORDER_STATUS_VIEW,
@@ -24,7 +25,12 @@ import { OrderProgressComponent } from '../order-progress/order-progress.compone
     @let o = order();
     <header class="oc__head">
       <div>
-        <span class="ui-code ltr">{{ o.number }}</span>
+        <span class="oc__num">
+          <span class="ui-code ltr">{{ o.number }}</span>
+          @if (o.hasOpenProblem) {
+            <span class="oc__problem" title="يوجد بلاغ توصيل مفتوح على هذا الطلب"><app-icon name="alert" [size]="12" /></span>
+          }
+        </span>
         <span class="oc__time"><app-icon name="clock" [size]="11" /> {{ relative(o.createdAt) }}</span>
       </div>
       <app-status-pill [view]="statusView[o.status]" />
@@ -35,6 +41,11 @@ import { OrderProgressComponent } from '../order-progress/order-progress.compone
       <div class="oc__who">
         <strong>{{ o.customerName }}</strong>
         <span>{{ o.city }} · {{ channel[o.channel] }}</span>
+        @if (o.driverName) {
+          <span class="oc__driver"><app-icon name="truck" [size]="11" /> {{ o.driverName }}</span>
+        } @else if (awaitsDriver(o)) {
+          <span class="oc__driver oc__driver--missing">— لم يُعيَّن مندوب</span>
+        }
       </div>
     </div>
 
@@ -53,6 +64,10 @@ import { OrderProgressComponent } from '../order-progress/order-progress.compone
       :host { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
       .oc__head { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
       .oc__head > div { display: flex; flex-direction: column; gap: 4px; }
+      .oc__num { display: inline-flex; align-items: center; gap: 6px; }
+      .oc__problem { display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 6px; color: var(--am); background: var(--am-l); }
+      .oc__driver { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; color: var(--txt2); }
+      .oc__driver--missing { font-weight: 600; color: var(--am); }
       .oc__time { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; color: var(--txt3); }
       .oc__customer { display: flex; align-items: center; gap: 10px; min-width: 0; }
       .oc__customer app-avatar { transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); }
@@ -80,4 +95,5 @@ export class OrderCardComponent {
   protected readonly money = formatMoney;
   protected readonly relative = formatRelative;
   protected readonly items = (n: number) => pluralAr(n, ORDER_ITEMS_PLURAL);
+  protected readonly awaitsDriver = awaitsDriver;
 }

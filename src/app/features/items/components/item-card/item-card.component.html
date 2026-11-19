@@ -20,13 +20,15 @@
   <div>
     <small>سعر البيع</small>
     <strong>{{ price() }}</strong>
+    @if (it.posPrice !== undefined && it.posPrice !== null) {<small class="ic__pos">نقطة البيع {{ posPrice(it.posPrice) }}</small>}
   </div>
   <div>
     <small>الهامش</small>
     <strong [class.is-negative]="margin() < 0">{{ margin() }}%</strong>
   </div>
   <div>
-    <small>الرصيد · {{ it.unit }}</small>
-    <app-stock-meter [stock]="it.stock" [minStock]="it.minStock" />
+    <small>{{ it.available !== undefined ? 'الصافي' : 'الرصيد' }} · {{ it.unit }}</small>
+    <app-stock-meter [stock]="net()" [minStock]="it.minStock" [level]="it.level ?? null" />
+    @if (it.reserved) {<small class="ic__reserved">محجوز {{ it.reserved }}</small>}
   </div>
 </div>

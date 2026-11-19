@@ -13,7 +13,8 @@
  * - Every dynamic segment goes through `seg()` (URL-encoding).
  *
  * Contract: backend `docs/API-CONTRACT.md` / Swagger at `/swagger`.
- * Staff token only — customer-app routes (`/api/store/*`) are not used here.
+ * Staff token — customer-app routes (`/api/store/*`) are not used here, except
+ * the public car catalogue (`storeCars`), which every staff member may read.
  */
 
 /** URL-encodes one path segment (ids are GUIDs today, but never trust that). */
@@ -51,6 +52,11 @@ export const API_ENDPOINTS = {
     byId: (id: string) => `orders/${seg(id)}`,
     /** PATCH `{ status, note? }` — pending → processing → shipped → delivered | cancelled. */
     status: (id: string) => `orders/${seg(id)}/status`,
+    /**
+     * PATCH `{ driverId }` (`null` unassigns) → the updated order. Only from
+     * processing / shipped. Notifies the new driver (and the previous one).
+     */
+    driver: (id: string) => `orders/${seg(id)}/driver`,
   },
 
   /** Customer "find this part from a photo" requests (mobile app). */
@@ -85,11 +91,14 @@ export const API_ENDPOINTS = {
   items: {
     list: 'items',
     /**
-     * Item options for pickers, with per-warehouse balance (`?warehouseId=`).
+     * Every active item (not paged) for pickers and POS, with per-warehouse
+     * balance (`?warehouseId=`) and car filters (`&makeId=&modelId=&year=`).
      * Allowed for Items.View | Inventory.View | Invoices.View | Pos.Access.
      */
     lookup: 'items/lookup',
     byId: (id: string) => `items/${seg(id)}`,
+    /** PATCH `{ posPrice }` (`null` = sell at the sale price) → the updated item. App price untouched. */
+    posPrice: (itemId: string) => `items/${seg(itemId)}/pos-price`,
     /** Mobile-store data: GET / PUT `{ isPublished, isFastDelivery, priceTiers }`. */
     store: (itemId: string) => `items/${seg(itemId)}/store`,
     /** Car compatibility: GET / PUT `[{ modelId, yearFrom?, yearTo? }]` (replaces all). */
@@ -119,6 +128,17 @@ export const API_ENDPOINTS = {
   carMakes: {
     list: 'car-makes',
     byId: (id: string) => `car-makes/${seg(id)}`,
+  },
+
+  /**
+   * Public car catalogue (no token needed, active makes / models only) — the
+   * make → model → year filters, usable by a cashier without Items.View.
+   */
+  storeCars: {
+    makes: 'store/car-makes',
+    models: (makeId: string) => `store/car-makes/${seg(makeId)}/models`,
+    /** Newest first. */
+    years: (modelId: string) => `store/car-models/${seg(modelId)}/years`,
   },
 
   carModels: {
@@ -224,6 +244,28 @@ export const API_ENDPOINTS = {
   deliveryZones: {
     list: 'delivery-zones',
     byId: (id: string) => `delivery-zones/${seg(id)}`,
+  },
+
+  /** Delivery drivers (the driver app's accounts). Read: Orders.View | Users.Manage · write: Users.Manage. */
+  drivers: {
+    list: 'drivers',
+    /** Counters for the drivers screen and the sidebar badge (open problems). */
+    stats: 'drivers/stats',
+    /** Active drivers for pickers, least busy first — a plain array, not paged. */
+    lookup: 'drivers/lookup',
+    byId: (id: string) => `drivers/${seg(id)}`,
+    /** POST `{ isActive }` — suspending signs the driver out at once. */
+    status: (id: string) => `drivers/${seg(id)}/status`,
+    /** POST `{ password }` — signs the driver out of every device. */
+    resetPassword: (id: string) => `drivers/${seg(id)}/reset-password`,
+  },
+
+  /** Delivery problems reported from the driver app (Orders.View). */
+  orderProblems: {
+    /** `?status=open|resolved&driverId=&search=&pageIndex=&pageSize=`. */
+    list: 'order-problems',
+    /** POST `{ resolution }` — pushed to the driver. */
+    resolve: (id: string) => `order-problems/${seg(id)}/resolve`,
   },
 } as const;
 

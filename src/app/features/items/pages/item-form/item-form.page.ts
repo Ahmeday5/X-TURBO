@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input, signal, untracked } from '@angular/core';
-import { toSignal } from '@angular/core/rxjs-interop';
-import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
+import { AbstractControl, NonNullableFormBuilder, ReactiveFormsModule, ValidationErrors, ValidatorFn, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { finalize, map, switchMap } from 'rxjs';
 import { ToastService } from '../../../../core/services/toast.service';
@@ -32,6 +32,7 @@ import {
   ITEM_UNITS,
   ItemPayload,
   marginPct,
+  POS_PRICE_RULE,
 } from '../../models/item.model';
 import { acceptsItems, flattenGroups, ItemGroupNode } from '../../models/item-group.model';
 import { ItemGroupsService } from '../../services/item-groups.service';
@@ -149,6 +150,9 @@ export class ItemFormPage {
     purchasePrice: [0, [Validators.required, Validators.min(0)]],
     salePrice: [0, [Validators.required, Validators.min(0)]],
     discountPercent: [0, [Validators.min(DISCOUNT_RANGE.min), Validators.max(DISCOUNT_RANGE.max)]],
+    /** Off → `posPrice: null` (the cashier sells at the sale price). */
+    hasPosPrice: [false],
+    posPrice: [null as number | null, posPriceValidator()],
     minStock: [0, [Validators.required, Validators.min(0)]],
     description: ['', Validators.maxLength(500)],
     compatibleWith: ['', Validators.maxLength(COMPATIBLE_WITH_MAX)],
@@ -194,7 +198,22 @@ export class ItemFormPage {
     return { pct, after, saved: Math.round((sale - after) * 100) / 100, belowCost: pct > 0 && after < this.preview().purchasePrice };
   });
 
+  protected readonly posMargin = computed(() => marginPct(this.preview().purchasePrice, this.posPreview().price));
+
+  /** What the cashier will charge, live. */
+  protected readonly posPreview = computed(() => {
+    const d = { ...this.form.getRawValue(), ...this.draft() };
+    const custom = d.hasPosPrice && d.posPrice !== null && `${d.posPrice}` !== '';
+    return { custom, price: custom ? Number(d.posPrice) || 0 : this.preview().salePrice };
+  });
+
   constructor() {
+    this.form.controls.hasPosPrice.valueChanges.pipe(takeUntilDestroyed()).subscribe((on) => {
+      const ctrl = this.form.controls.posPrice;
+      if (on && (ctrl.value === null || `${ctrl.value}` === '')) ctrl.setValue(Number(this.form.controls.salePrice.value) || 0);
+      ctrl.updateValueAndValidity();
+    });
+
     // React to ?id= changes (edit ↔ create) without leaving the page.
     effect(() => {
       const id = this.id();
@@ -301,6 +320,8 @@ export class ItemFormPage {
             purchasePrice: item.purchasePrice,
             salePrice: item.salePrice,
             discountPercent: item.discountPercent ?? 0,
+            hasPosPrice: item.posPrice !== null,
+            posPrice: item.posPrice,
             minStock: item.minStock,
             description: item.description,
             compatibleWith: item.compatibleWith ?? '',
@@ -319,9 +340,11 @@ export class ItemFormPage {
   }
 
   private payload(): ItemPayload {
-    const v = this.form.getRawValue();
+    const { hasPosPrice, ...v } = this.form.getRawValue();
     return {
       ...v,
+      // Always sent: a PUT without it would reset the POS price to the sale price.
+      posPrice: hasPosPrice && v.posPrice !== null && `${v.posPrice}` !== '' ? Math.round(Number(v.posPrice) * 100) / 100 : null,
       name: v.name.trim(),
       brand: v.brand.trim(),
       barcode: v.barcode.trim(),
@@ -335,4 +358,17 @@ export class ItemFormPage {
       minStock: Number(v.minStock),
     };
   }
+}
+
+/** Required and ≥ 0 only while "سعر مختلف لنقطة البيع" is ticked. */
+function posPriceValidator(): ValidatorFn {
+  return (control: AbstractControl): ValidationErrors | null => {
+    if (!control.parent?.get('hasPosPrice')?.value) return null;
+    const raw = control.value;
+    if (raw === null || `${raw}` === '') return { posPrice: 'اكتب سعر نقطة البيع، أو ألغِ اختيار «سعر مختلف لنقطة البيع» — مثال: 420' };
+    const n = Number(raw);
+    if (!Number.isFinite(n)) return { posPrice: 'سعر نقطة البيع أرقام فقط — مثال: 420.50' };
+    if (n < 0) return { posPrice: `${POS_PRICE_RULE} — مثال: 420` };
+    return null;
+  };
 }

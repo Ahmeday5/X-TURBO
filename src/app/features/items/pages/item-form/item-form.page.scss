@@ -319,3 +319,27 @@
 .if-create-bar {
   margin-top: 16px;
 }
+
+.if__pos {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px dashed var(--brd2);
+}
+
+.if__pos-row {
+  margin-top: 12px;
+}
+
+.if__pos-hint {
+  margin: 8px 0 0;
+}
+
+.if__app-tag {
+  margin-inline-start: 6px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--txt3);
+  background: var(--bg3);
+}

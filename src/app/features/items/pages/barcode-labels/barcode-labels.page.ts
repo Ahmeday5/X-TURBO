@@ -17,8 +17,6 @@ import { ItemLookup } from '../../../warehouses/models/stock.model';
 import { StockService } from '../../../warehouses/services/stock.service';
 import { LabelPreviewComponent } from '../../components/label-preview/label-preview.component';
 import {
-  DEFAULT_FIELDS,
-  DEFAULT_TEMPLATE_ID,
   LABEL_FIELD_OPTIONS,
   LABEL_TEMPLATES,
   LabelFields,
@@ -30,8 +28,8 @@ import {
   templateById,
 } from '../../models/barcode-label.model';
 import { printLabels } from '../../utils/print-labels';
+import { loadLabelSettings, saveLabelSettings } from '../../utils/label-settings';
 
-const SETTINGS_KEY = 'xturbo.barcode-labels.settings';
 /** Recent purchase invoices offered as a source (the usual "label what just arrived" flow). */
 const RECENT_PURCHASES = 50;
 
@@ -111,7 +109,7 @@ export class BarcodeLabelsPage {
   );
 
   protected readonly rows = signal<LabelRow[]>([]);
-  protected readonly settings = signal<LabelSettings>(loadSettings());
+  protected readonly settings = signal<LabelSettings>(loadLabelSettings());
   protected readonly loadingDoc = signal(false);
   /** Picker value; cleared after its lines are added so the same invoice can be picked again. */
   protected readonly docId = signal('');
@@ -138,7 +136,7 @@ export class BarcodeLabelsPage {
   protected readonly integer = formatInteger;
 
   constructor() {
-    effect(() => saveSettings(this.settings()));
+    effect(() => saveLabelSettings(this.settings()));
 
     // Deep links are applied once, as soon as the catalogue is available.
     let applied = false;
@@ -238,25 +236,4 @@ export class BarcodeLabelsPage {
 
 function clampCopies(n: number): number {
   return Number.isFinite(n) ? Math.min(MAX_COPIES, Math.max(1, Math.round(n))) : 1;
-}
-
-/** Per-device preference (each counter has its own label printer). */
-function loadSettings(): LabelSettings {
-  try {
-    const saved = JSON.parse(localStorage.getItem(SETTINGS_KEY) ?? 'null') as Partial<LabelSettings> | null;
-    return {
-      templateId: templateById(saved?.templateId ?? DEFAULT_TEMPLATE_ID).id,
-      fields: { ...DEFAULT_FIELDS, ...(saved?.fields ?? {}) },
-    };
-  } catch {
-    return { templateId: DEFAULT_TEMPLATE_ID, fields: { ...DEFAULT_FIELDS } };
-  }
-}
-
-function saveSettings(settings: LabelSettings): void {
-  try {
-    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
-  } catch {
-    /* storage unavailable (private mode) — settings just won't persist */
-  }
 }

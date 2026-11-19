@@ -69,6 +69,9 @@
         [style.--i]="row.order" (click)="onNavigate()">
         <span class="sb__icon"><app-icon [name]="row.icon" [size]="18" /></span>
         <span class="sb__text"><app-highlight [text]="row.label" [query]="query()" /></span>
+        @if (badges()[row.id]; as n) {
+        <span class="sb__badge" [attr.aria-label]="n + ' بحاجة لمتابعة'">{{ n > 99 ? '99+' : n }}</span>
+        }
       </a>
       }
       }

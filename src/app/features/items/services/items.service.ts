@@ -28,6 +28,15 @@ export class ItemsService {
   }
 
   /**
+   * Sets the cashier price only (`null` = back to the sale price); the app
+   * price never changes. Returns the updated item. Silent — the editor shows
+   * the 422 next to its input.
+   */
+  setPosPrice(id: string, posPrice: number | null): Observable<Item> {
+    return this.api.patch<Item>(API_ENDPOINTS.items.posPrice(id), { posPrice }, { context: withSilentErrors() });
+  }
+
+  /**
    * Errors are NOT toasted — the caller decides (409 `ITEM_HAS_MOVEMENTS`
    * offers to deactivate the item instead).
    */

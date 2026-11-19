@@ -3,6 +3,14 @@
   <div class="dp-number">
     <span class="ui-code ltr">{{ d.number }}</span>
     <small><app-icon name="calendar" [size]="11" /> {{ day(d.date) }}@if (d.channel === 'pos') { · نقطة البيع}</small>
+    @if (orderSource(d); as orderNo) {
+    @if (canSeeOrders()) {
+    <a class="dp-order ltr" routerLink="/orders" [queryParams]="{ order: orderNo }" [title]="'فاتورة تلقائية — فتح الطلب ' + orderNo"
+      (click)="$event.stopPropagation()"><app-icon name="cart" [size]="11" /> {{ orderNo }}</a>
+    } @else {
+    <small class="dp-order"><app-icon name="cart" [size]="11" /> {{ orderNo }}</small>
+    }
+    }
   </div>
 </ng-template>
 

@@ -129,3 +129,17 @@
   display: block;
   margin-top: 14px;
 }
+
+/* Sales invoice issued automatically for a delivered online order. */
+.dp-order {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--primary);
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}

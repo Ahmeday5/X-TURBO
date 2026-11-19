@@ -86,3 +86,47 @@
 .id-price small.id-price__discount {
   color: var(--gr);
 }
+.id-price__row {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+
+  &--pos {
+    margin-top: 4px;
+  }
+}
+
+.id-price small.id-price__tag {
+  font-size: 10px;
+  color: var(--txt3);
+}
+
+.id-price small.id-price__same {
+  color: var(--txt3);
+}
+
+.id-qty {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--txt2);
+}
+
+.id-reserved {
+  display: inline-grid;
+  place-items: center;
+  min-width: 30px;
+  height: 24px;
+  padding: 0 8px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--am);
+  background: var(--am-l);
+  cursor: help;
+}
+
+.id-muted {
+  color: var(--txt3);
+}

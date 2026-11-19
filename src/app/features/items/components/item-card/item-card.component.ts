@@ -8,7 +8,8 @@ import { StockMeterComponent } from '../stock-meter/stock-meter.component';
 export type ItemCardData = Pick<
   Item,
   'code' | 'name' | 'groupName' | 'groupColor' | 'unit' | 'salePrice' | 'purchasePrice' | 'stock' | 'minStock' | 'isActive'
->;
+> &
+  Partial<Pick<Item, 'reserved' | 'available' | 'level' | 'posPrice'>>;
 
 /** Item summary used by the directory's card view and the form's live preview. */
 @Component({
@@ -23,5 +24,8 @@ export class ItemCardComponent {
   readonly item = input.required<ItemCardData>();
 
   protected readonly price = computed(() => formatMoney(this.item().salePrice || 0));
+  /** Saved items show the net (after reservations); the form preview has only the stock. */
+  protected readonly net = computed(() => this.item().available ?? this.item().stock);
+  protected readonly posPrice = formatMoney;
   protected readonly margin = computed(() => marginPct(this.item().purchasePrice || 0, this.item().salePrice || 0));
 }

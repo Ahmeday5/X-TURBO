@@ -18,6 +18,7 @@ import { IsActiveMatchOptions, NavigationEnd, Router, RouterLink, RouterLinkActi
 import { filter, map } from 'rxjs';
 import { LayoutService } from '../../../core/services/layout.service';
 import { NavigationService } from '../../../core/services/navigation.service';
+import { NavBadgeService } from '../../../core/services/nav-badge.service';
 import { isNavGroup, NavLink } from '../../../core/models/nav.model';
 import { IconComponent, IconName } from '../../../shared/components/icon/icon.component';
 import { HighlightComponent } from '../../../shared/components/highlight/highlight.component';
@@ -93,6 +94,8 @@ const toChild = (link: NavLink, index: number): ChildRow => ({
 export class SidebarComponent {
   protected readonly layout = inject(LayoutService);
   private readonly nav = inject(NavigationService);
+  /** Live counters per nav id (e.g. open delivery problems). */
+  protected readonly badges = inject(NavBadgeService).all;
   private readonly router = inject(Router);
   private readonly injector = inject(Injector);
   private readonly host: HTMLElement = inject(ElementRef).nativeElement;

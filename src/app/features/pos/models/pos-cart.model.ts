@@ -7,6 +7,7 @@ export interface CartLine {
   code: string;
   name: string;
   unit: string;
+  /** The cashier price (`posPrice`) — never the app's sale price. */
   price: number;
   qty: number;
   discountPct: number;
@@ -31,7 +32,7 @@ export function toCartLine(item: ItemLookup): CartLine {
     code: item.code,
     name: item.name,
     unit: item.unit,
-    price: item.salePrice,
+    price: item.posPrice,
     qty: 1,
     discountPct: 0,
     available: item.available,

@@ -1,0 +1,56 @@
+<app-modal [open]="!!target()" [title]="(target()?.driverId ? 'تغيير المندوب — ' : 'تعيين مندوب — ') + (target()?.number ?? '')"
+  size="md" [closeOnBackdrop]="!saving()" (closed)="close()">
+  <div class="ad">
+    <label class="ad-search">
+      <app-icon name="search" [size]="15" />
+      <input class="ui-input" type="search" placeholder="ابحث بالاسم أو الموبايل…" autocomplete="off"
+        aria-label="ابحث عن مندوب" [value]="query()" (input)="query.set($any($event.target).value)" />
+    </label>
+
+    @if (lookup.value() === null && lookup.loading()) {
+    <div class="ad-list" aria-busy="true">
+      @for (i of [1, 2, 3]; track i) {<span class="skeleton" style="height: 58px"></span>}
+    </div>
+    } @else if (lookup.error() && !lookup.value()) {
+    <div class="page-state">
+      <span class="page-state__icon"><app-icon name="alert" [size]="22" /></span>
+      <p class="panel__title">{{ lookup.error() }}</p>
+      <button type="button" class="ui-btn ui-btn--ghost" (click)="lookup.reload()">
+        <app-icon name="refresh" [size]="15" /> إعادة المحاولة
+      </button>
+    </div>
+    } @else if (!(lookup.value() ?? []).length) {
+    <div class="page-state">
+      <span class="page-state__icon"><app-icon name="truck" [size]="22" /></span>
+      <p class="panel__title">لا يوجد مناديب نشطون</p>
+      <p class="ui-hint">أضف مندوبًا أو فعّل مندوبًا موقوفًا من شاشة المناديب.</p>
+    </div>
+    } @else {
+    <div class="ad-list" role="radiogroup" aria-label="المناديب المتاحون" [class.is-refreshing]="lookup.loading()">
+      @for (d of options(); track d.id) {
+      <button type="button" class="ad-opt" role="radio" [attr.aria-checked]="selected() === d.id"
+        [class.is-current]="isCurrent(d)" [disabled]="isCurrent(d) || saving()" (click)="pick(d)"
+        (dblclick)="pick(d); submit()">
+        <app-avatar [name]="d.name" [size]="36" />
+        <span class="ad-opt__info">
+          <strong>{{ d.name }} @if (isCurrent(d)) {<span class="ad-opt__tag">الحالي</span>}</strong>
+          <small class="ltr">{{ phone(d.phone) }}</small>
+        </span>
+        <span class="ad-opt__load" [class.is-busy]="d.activeOrders >= 3">{{ load(d.activeOrders) }}</span>
+      </button>
+      } @empty {
+      <p class="ad-empty">لا يوجد مندوب يطابق «{{ query() }}»</p>
+      }
+    </div>
+    <p class="ui-hint ad-hint"><app-icon name="bell" [size]="12" /> المناديب مرتّبون من الأقل انشغالًا. المندوب الذي تختاره يصله إشعار بالطلب فورًا.</p>
+    }
+  </div>
+
+  <div modal-footer class="ad-foot">
+    <button type="button" class="ui-btn ui-btn--ghost" [disabled]="saving()" (click)="close()">إلغاء</button>
+    <button type="button" class="ui-btn ui-btn--primary" [class.is-loading]="saving()" [disabled]="!selected() || saving()"
+      (click)="submit()">
+      <app-icon name="truck" [size]="15" /> {{ target()?.driverId ? 'تغيير المندوب' : 'تعيين المندوب' }}
+    </button>
+  </div>
+</app-modal>

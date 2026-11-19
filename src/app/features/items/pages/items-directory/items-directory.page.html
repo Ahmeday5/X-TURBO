@@ -15,17 +15,39 @@
 
 <ng-template #priceCell let-item>
   <div class="id-price">
-    <strong>{{ money(item.salePrice) }}</strong>
+    <span class="id-price__row">
+      <small class="id-price__tag">التطبيق</small>
+      <strong>{{ money(item.salePrice) }}</strong>
+    </span>
     @if (item.discountPercent) {
     <small class="id-price__discount">خصم {{ item.discountPercent }}% ← {{ money(discounted(item.salePrice, item.discountPercent)) }}</small>
+    }
+    <span class="id-price__row id-price__row--pos">
+      <small class="id-price__tag">نقطة البيع</small>
+      <app-pos-price-editor [item]="item" [showHint]="false" (saved)="onPosPriceSaved($event)" />
+    </span>
+    @if (item.posPrice === null) {
+    <small class="id-price__same">نفس سعر البيع</small>
     } @else {
-    <small>هامش {{ margin(item.purchasePrice, item.salePrice) }}%</small>
+    <small>هامش الكاشير {{ margin(item.purchasePrice, item.effectivePosPrice) }}%</small>
     }
   </div>
 </ng-template>
 
 <ng-template #stockCell let-item>
-  <app-stock-meter [stock]="item.stock" [minStock]="item.minStock" />
+  <span class="id-qty">{{ int(item.stock) }}</span>
+</ng-template>
+
+<ng-template #reservedCell let-item>
+  @if (item.reserved > 0) {
+  <span class="id-reserved" title="حجوزات + طلبات لم تُسلَّم بعد">{{ int(item.reserved) }}</span>
+  } @else {
+  <span class="id-muted">—</span>
+  }
+</ng-template>
+
+<ng-template #availableCell let-item>
+  <app-stock-meter [stock]="item.available" [minStock]="item.minStock" [level]="item.level" />
 </ng-template>
 
 <ng-template #statusCell let-item>
@@ -51,6 +73,10 @@
     (click)="viewId.set(item.id)">
     <app-icon name="eye" [size]="16" />
   </button>
+  <button type="button" class="ui-icon-btn" title="طباعة ملصق باركود" [attr.aria-label]="'طباعة باركود ' + item.name"
+    (click)="printLabel(item)">
+    <app-icon name="barcode" [size]="16" />
+  </button>
   <button type="button" class="ui-icon-btn" title="تعديل" [attr.aria-label]="'تعديل ' + item.name" (click)="edit(item)">
     <app-icon name="edit" [size]="16" />
   </button>
@@ -64,6 +90,10 @@
 
 <!-- Page -->
 <app-page-header [navId]="navId()">
+  <button type="button" class="ui-btn ui-btn--ghost" [disabled]="!list.items().length" (click)="labelsForPage()"
+    title="فتح صفحة الملصقات بأصناف هذه الصفحة لتحديد عدد النسخ قبل الطباعة">
+    <app-icon name="barcode" [size]="16" /> باركود الصفحة
+  </button>
   <a class="ui-btn ui-btn--ghost" routerLink="/items/groups"><app-icon name="folder" [size]="16" /> المجموعات</a>
   <a class="ui-btn ui-btn--primary" routerLink="/items/define"><app-icon name="plus" [size]="16" /> صنف جديد</a>
 </app-page-header>
@@ -86,10 +116,11 @@
   </select>
   <select filters class="ui-input" aria-label="الرصيد" (change)="state.setFilter('stock', $any($event.target).value)">
     <option value="" [selected]="!state.query().filters['stock']">كل الأرصدة</option>
-    <option value="ok" [selected]="state.query().filters['stock'] === 'ok'">متوفر</option>
-    <option value="low" [selected]="state.query().filters['stock'] === 'low'">منخفض</option>
-    <option value="out" [selected]="state.query().filters['stock'] === 'out'">نفد</option>
+    @for (f of stockFilters; track f) {
+    <option [value]="f" [selected]="state.query().filters['stock'] === f">{{ stockFilterLabel[f] }}</option>
+    }
   </select>
+  <app-car-filter filters [value]="car()" (valueChange)="setCar($event)" />
 </app-list-toolbar>
 
 <app-data-table [rowClickable]="true" (rowClick)="viewId.set($event.id)" [columns]="columns()" [data]="list.items()" [view]="state.view()" [sort]="state.query().sort"
@@ -107,9 +138,9 @@
   @if (details()) {
   <!-- One root node per @if so both buttons reach the actions slot. -->
   <ng-container ngProjectAs="[drawer-actions]">
-    <a class="ui-btn ui-btn--ghost" routerLink="/items/barcode-labels" [queryParams]="{ items: viewed.value()!.id }">
-      <app-icon name="barcode" [size]="15" /> ملصق باركود
-    </a>
+    <button type="button" class="ui-btn ui-btn--ghost" (click)="printLabel(viewed.value()!)">
+      <app-icon name="barcode" [size]="15" /> طباعة باركود
+    </button>
     <button type="button" class="ui-btn ui-btn--ghost" (click)="openReviews(viewed.value()!)">
       <app-icon name="star" [size]="15" /> التقييمات
     </button>

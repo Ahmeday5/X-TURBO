@@ -17,9 +17,20 @@ export interface Item {
   salePrice: number;
   /** 0–100. Shown to customers in the mobile app as a sale price cut. */
   discountPercent: number;
+  /** Cashier (POS) price; `null` = sells at `salePrice`. Never changes the app price. */
+  posPrice: number | null;
+  /** What the cashier actually charges: `posPrice ?? salePrice` (server-computed). */
+  effectivePosPrice: number;
   /** Reorder level — below it the item is flagged as low stock. */
   minStock: number;
+  /** Physical quantity in all warehouses (moves only with documents). */
   stock: number;
+  /** Reservation documents + quantities on open orders (pending / processing / shipped). */
+  reserved: number;
+  /** What can actually be sold: `stock − reserved` — may go negative. Server-computed, never derive it here. */
+  available: number;
+  /** Stock badge, computed by the server on `available`. */
+  level: StockLevel;
   description: string;
   /** Free-text compatibility ("تويوتا كورولا 2014–2019، ياريس 2016"), ≤ 500 chars. Searchable. Separate from fitments. */
   compatibleWith: string | null;
@@ -44,6 +55,7 @@ export type ItemPayload = Pick<
   | 'purchasePrice'
   | 'salePrice'
   | 'discountPercent'
+  | 'posPrice'
   | 'minStock'
   | 'description'
   | 'compatibleWith'
@@ -80,9 +92,12 @@ export function discountedPrice(salePrice: number, discountPercent: number): num
   return Math.round(salePrice * (1 - pct / 100) * 100) / 100;
 }
 
-/** Full update payload from a loaded item (e.g. to toggle `isActive`). */
+/**
+ * Full update payload from a loaded item (e.g. to toggle `isActive`). Keeps
+ * `posPrice` — a PUT without it resets the POS price to the sale price.
+ */
 export function toItemPayload(item: Item, patch: Partial<ItemPayload> = {}): ItemPayload {
-  const { name, groupId, unit, barcode, sku, brand, purchasePrice, salePrice, discountPercent, minStock, description, compatibleWith, isActive } =
+  const { name, groupId, unit, barcode, sku, brand, purchasePrice, salePrice, discountPercent, posPrice, minStock, description, compatibleWith, isActive } =
     item;
   return {
     name,
@@ -94,6 +109,7 @@ export function toItemPayload(item: Item, patch: Partial<ItemPayload> = {}): Ite
     purchasePrice,
     salePrice,
     discountPercent: discountPercent ?? 0,
+    posPrice: posPrice ?? null,
     minStock,
     description,
     compatibleWith,
@@ -107,16 +123,31 @@ export type ItemUnit = (typeof ITEM_UNITS)[number];
 
 export type StockLevel = 'out' | 'low' | 'ok';
 
+/** `items?stock=` filter; `reserved` = has quantity held by reservations / open orders. */
+export type StockFilter = StockLevel | 'reserved';
+
+/**
+ * Level of a plain warehouse quantity (stock screens). Catalogue items carry
+ * the server's `level`, computed on `available` — use that for them.
+ */
 export function stockLevel(item: Pick<Item, 'stock' | 'minStock'>): StockLevel {
   if (item.stock <= 0) return 'out';
   return item.stock <= item.minStock ? 'low' : 'ok';
 }
 
 export const STOCK_LEVEL_LABEL: Record<StockLevel, string> = {
-  out: 'نفد',
+  out: 'غير متوفر',
   low: 'منخفض',
   ok: 'متوفر',
 };
+
+export const STOCK_FILTER_LABEL: Record<StockFilter, string> = {
+  ...STOCK_LEVEL_LABEL,
+  reserved: 'عليه حجز',
+};
+
+/** Business-rule message the server sends for a negative POS price (422). */
+export const POS_PRICE_RULE = 'سعر نقطة البيع لا يمكن أن يكون سالبًا';
 
 /** Gross margin as a percentage of the sale price (0 when there is no price). */
 export function marginPct(purchase: number, sale: number): number {

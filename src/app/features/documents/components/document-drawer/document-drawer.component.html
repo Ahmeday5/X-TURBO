@@ -65,7 +65,15 @@
         }
         @if (d.reference) {<div><dt>المرجع</dt><dd>{{ d.reference }}</dd></div>}
         @if (d.postedAt) {<div><dt>تاريخ الترحيل</dt><dd>{{ dateTime(d.postedAt) }}</dd></div>}
-        @if (d.sourceId) {
+        @if (orderSource(d); as orderNo) {
+        <div><dt>من طلب</dt><dd>
+          @if (canSeeOrders()) {
+          <a class="dd-link ltr" routerLink="/orders" [queryParams]="{ order: orderNo }" [title]="'فتح الطلب ' + orderNo">{{ orderNo }}</a>
+          } @else {
+          <span class="ltr">{{ orderNo }}</span>
+          }
+        </dd></div>
+        } @else if (d.sourceId) {
         <div><dt>من مستند</dt><dd><button type="button" class="dd-link ltr" (click)="openLinked(d.sourceId)">{{ d.sourceNumber }}</button></dd></div>
         }
         @if (d.targetId) {

@@ -887,3 +887,35 @@
     transform: none;
   }
 }
+
+/* Live counter on a page (e.g. open delivery problems). In the rail it
+   shrinks to a dot on the icon. */
+.sb__badge {
+  margin-inline-start: auto;
+  min-width: 20px;
+  height: 18px;
+  display: grid;
+  place-items: center;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--re);
+  color: #fff;
+  font-size: 10.5px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  transition: opacity 0.2s, transform 0.2s;
+}
+
+@media (min-width: 992px) {
+  .sb.is-collapsed .sb__badge {
+    position: absolute;
+    top: 6px;
+    inset-inline-start: 30px;
+    min-width: 8px;
+    width: 8px;
+    height: 8px;
+    padding: 0;
+    font-size: 0;
+    box-shadow: 0 0 0 2px var(--bg2);
+  }
+}

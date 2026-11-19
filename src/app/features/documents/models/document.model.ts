@@ -107,6 +107,19 @@ export interface Document extends DocumentHeader {
   lines: DocLine[];
 }
 
+/** `createdBy` of the sales invoices the server issues when an order is delivered. */
+export const ORDER_INVOICE_CREATOR = 'النظام — تسليم طلب';
+
+/**
+ * The order a sales invoice was issued for, or `null`. Server-issued order
+ * invoices carry the order number in both `sourceNumber` and `reference`
+ * (document prefixes are configurable, so the number format can't tell).
+ */
+export function orderSourceNumber(d: Pick<DocumentHeader, 'kind' | 'sourceNumber' | 'reference' | 'createdBy'>): string | null {
+  if (d.kind !== 'sale' || !d.sourceNumber) return null;
+  return d.sourceNumber === d.reference || d.createdBy === ORDER_INVOICE_CREATOR ? d.sourceNumber : null;
+}
+
 /** Business-rule codes the documents API answers with (409). */
 export const DOCUMENT_ERROR_CODES = {
   /** Only open documents (draft / pending-review) can be edited / deleted / posted. */

@@ -1,0 +1,112 @@
+<!-- ── Cell templates ── -->
+<ng-template #orderCell [appRowOf]="list.items()" let-p>
+  <div class="pp-order">
+    <a class="ui-code ltr" routerLink="/orders" [queryParams]="{ order: p.orderId }" (click)="$event.stopPropagation()">
+      {{ p.orderNumber }}
+    </a>
+    <app-status-pill [view]="orderStatusView[p.orderStatus]" />
+  </div>
+</ng-template>
+
+<ng-template #customerCell [appRowOf]="list.items()" let-p>
+  <div class="pp-person">
+    <strong>{{ p.customerName }}</strong>
+    <a class="ltr" [href]="tel(p.customerPhone)" [title]="'اتصال بـ ' + p.customerName" (click)="$event.stopPropagation()">
+      <app-icon name="user" [size]="11" /> {{ phone(p.customerPhone) }}
+    </a>
+  </div>
+</ng-template>
+
+<ng-template #driverCell [appRowOf]="list.items()" let-p>
+  <div class="pp-driver">
+    <app-avatar [name]="p.driverName" [size]="28" />
+    <strong>{{ p.driverName }}</strong>
+  </div>
+</ng-template>
+
+<ng-template #reasonCell [appRowOf]="list.items()" let-p>
+  <div class="pp-reason" [class.is-open]="isOpen(p)">
+    <strong>{{ p.reasonLabel }}</strong>
+    @if (p.note) {<small [title]="p.note">{{ p.note }}</small>}
+  </div>
+</ng-template>
+
+<ng-template #sinceCell [appRowOf]="list.items()" let-p>
+  <span class="pp-since" [title]="dateTime(p.createdAt)">{{ relative(p.createdAt) }}</span>
+</ng-template>
+
+<ng-template #statusCell [appRowOf]="list.items()" let-p>
+  <div class="pp-status">
+    <app-status-pill [view]="statusView[statusOf(p)]" />
+    @if (p.resolution) {
+    <small [title]="p.resolution + (p.resolvedBy ? ' — ' + p.resolvedBy : '')">
+      {{ p.resolvedBy ? p.resolvedBy + ': ' : '' }}{{ p.resolution }}
+    </small>
+    }
+  </div>
+</ng-template>
+
+<ng-template #actions [appRowOf]="list.items()" let-p>
+  <div class="row-actions">
+    @if (isOpen(p)) {
+    <button type="button" class="ui-btn ui-btn--primary ui-btn--sm" [disabled]="busyId() === p.id"
+      [attr.aria-label]="'الرد على بلاغ ' + p.orderNumber" (click)="run(p, 'resolve')">
+      <app-icon name="check" [size]="14" /> رد
+    </button>
+    }
+    <app-row-menu [actions]="actionsOf(p)" [label]="'إجراءات بلاغ ' + p.orderNumber" (run)="run(p, $event)" />
+  </div>
+</ng-template>
+
+<ng-template #card [appRowOf]="list.items()" let-p>
+  <article class="pp-card" [style.--tone]="statusView[statusOf(p)].color">
+    <header>
+      <span class="ui-code ltr">{{ p.orderNumber }}</span>
+      <app-status-pill [view]="statusView[statusOf(p)]" />
+    </header>
+    <p class="pp-card__reason"><app-icon name="alert" [size]="13" /> {{ p.reasonLabel }}</p>
+    @if (p.note) {<blockquote>{{ p.note }}</blockquote>}
+    <dl>
+      <div><dt>المندوب</dt><dd>{{ p.driverName }}</dd></div>
+      <div><dt>العميل</dt><dd>{{ p.customerName }}</dd></div>
+      <div><dt>منذ</dt><dd>{{ relative(p.createdAt) }}</dd></div>
+    </dl>
+    @if (p.resolution) {<p class="pp-card__reply"><app-icon name="check" [size]="12" /> {{ p.resolution }}</p>}
+  </article>
+</ng-template>
+
+<!-- ── Page ── -->
+<app-page-header [navId]="navId()">
+  <button type="button" class="refresh-btn" [class.is-spinning]="list.loading()" [disabled]="list.loading()" title="تحديث"
+    aria-label="تحديث البلاغات" (click)="refresh()">
+    <app-icon name="refresh" [size]="16" />
+  </button>
+</app-page-header>
+
+<app-status-tabs label="حالة البلاغ" [tabs]="tabs()" [active]="state.query().filters['status']"
+  (activeChange)="state.setFilter('status', $event)" />
+
+<app-list-toolbar placeholder="ابحث برقم الطلب أو اسم العميل أو المندوب…" [search]="state.query().search"
+  [view]="state.view()" [count]="list.count()" [activeFilters]="state.activeFilters()"
+  (searchChange)="state.setSearch($event)" (viewChange)="state.setView($event)" (clearFilters)="state.clearFilters()">
+  <app-filter-select filters label="المندوب" allLabel="كل المناديب" [options]="driverOptions()"
+    [value]="state.query().filters['driverId']" (valueChange)="state.setFilter('driverId', $event)" />
+</app-list-toolbar>
+
+<app-data-table [columns]="columns()" [data]="list.items()" [view]="state.view()" [loading]="list.loading()"
+  [initialLoading]="list.initialLoading()" [error]="list.error()" [skeletonCount]="state.query().pageSize"
+  [cardTemplate]="card" [actionsTemplate]="actions" [rowClickable]="true" emptyIcon="check"
+  [emptyTitle]="state.query().filters['status'] ? 'لا توجد بلاغات مطابقة' : 'لا توجد بلاغات مفتوحة'"
+  [emptyText]="state.query().filters['status'] ? 'جرّب تعديل البحث أو الفلاتر.' : 'كل بلاغات المناديب تم الرد عليها.'"
+  (rowClick)="openOrder($event)" (retry)="list.reload()" />
+
+<app-pagination class="pp-pager" [pageIndex]="state.query().pageIndex" [pageSize]="state.query().pageSize"
+  [count]="list.count()" [totalPages]="list.totalPages()" [pageSizeOptions]="[10, 25, 50]" [disabled]="list.loading()"
+  (pageChange)="state.setPage($event)" (pageSizeChange)="state.setPageSize($event)" />
+
+<!-- ── Overlays ── -->
+<app-resolve-problem-modal [target]="resolving()" (closed)="resolving.set(null)" (resolved)="onResolved()"
+  (stale)="onStale()" (reassign)="reassign($event)" (cancelOrder)="cancelOrder($event)" />
+
+<app-assign-driver-modal [target]="assigning()" (closed)="assigning.set(null)" (assigned)="onAssigned()"
+  (stale)="onStale()" />

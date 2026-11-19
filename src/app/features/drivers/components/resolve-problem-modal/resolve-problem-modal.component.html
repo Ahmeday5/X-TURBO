@@ -1,0 +1,60 @@
+<app-modal [open]="!!target()" [title]="'الرد على بلاغ — ' + (target()?.orderNumber ?? '')" size="md"
+  [closeOnBackdrop]="!saving()" (closed)="close()">
+  @if (target(); as t) {
+  <div class="rp">
+    <section class="rp-problem">
+      <header>
+        <span class="rp-problem__reason"><app-icon name="alert" [size]="13" /> {{ t.problem.reasonLabel }}</span>
+        <small [title]="dateTime(t.problem.createdAt)">{{ relative(t.problem.createdAt) }}</small>
+      </header>
+      <p class="rp-problem__by">من المندوب <strong>{{ t.problem.driverName }}</strong></p>
+      @if (t.problem.note) {<blockquote>{{ t.problem.note }}</blockquote>}
+    </section>
+
+    <form id="resolve-form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+      <label class="ui-field">
+        <span class="ui-label is-required">الرد على المندوب</span>
+        <textarea class="ui-input rp-text" formControlName="resolution" rows="3" maxlength="500"
+          placeholder="مثال: كلمنا العميل، حاول تاني بعد ساعة"></textarea>
+        <app-form-error [control]="form.controls.resolution" label="الرد" />
+      </label>
+      <div class="rp-quick" aria-label="ردود سريعة">
+        @for (r of quickReplies; track r) {
+        <button type="button" class="rp-chip" (click)="useReply(r)">{{ r }}</button>
+        }
+      </div>
+    </form>
+
+    @if (canReassign() || canCancel() || isShipped()) {
+    <section class="rp-alt">
+      <h4>أو أغلق البلاغ بإجراء على الطلب</h4>
+      <div class="rp-alt__btns">
+        @if (canReassign()) {
+        <button type="button" class="ui-btn ui-btn--ghost ui-btn--sm" [disabled]="saving()" (click)="reassign.emit(t)">
+          <app-icon name="swap" [size]="14" /> تحويل لمندوب آخر
+        </button>
+        }
+        @if (canCancel()) {
+        <button type="button" class="ui-btn ui-btn--ghost ui-btn--sm rp-alt__danger" [disabled]="saving()"
+          (click)="cancelOrder.emit(t)">
+          <app-icon name="x" [size]="14" /> إلغاء الطلب
+        </button>
+        }
+      </div>
+      @if (isShipped()) {
+      <p class="ui-hint rp-alt__note">
+        <app-icon name="alert" [size]="12" /> الطلب في الطريق مع المندوب، فلا يمكن إلغاؤه. رد عليه بالتعليمات (مثلًا: «رجّع الطلب للمحل»).
+      </p>
+      }
+    </section>
+    }
+  </div>
+  }
+
+  <div modal-footer class="rp-foot">
+    <button type="button" class="ui-btn ui-btn--ghost" [disabled]="saving()" (click)="close()">إغلاق</button>
+    <button type="submit" form="resolve-form" class="ui-btn ui-btn--primary" [class.is-loading]="saving()" [disabled]="saving()">
+      <app-icon name="check" [size]="15" /> إرسال الرد
+    </button>
+  </div>
+</app-modal>

@@ -57,4 +57,12 @@ export class OrdersService {
   changeStatus(id: string, change: OrderStatusChange): Observable<Order> {
     return this.api.patch<Order>(API_ENDPOINTS.orders.status(id), change, { context: withSilentErrors() });
   }
+
+  /**
+   * Assign or reassign a driver to an order. Pass `driverId: null` to unassign.
+   * Returns the full updated order. Errors NOT toasted — the caller handles them.
+   */
+  assignDriver(id: string, driverId: string | null): Observable<Order> {
+    return this.api.patch<Order>(API_ENDPOINTS.orders.driver(id), { driverId }, { context: withSilentErrors() });
+  }
 }

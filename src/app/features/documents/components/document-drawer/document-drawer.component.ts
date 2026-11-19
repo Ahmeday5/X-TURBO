@@ -26,6 +26,11 @@ import { printDocument } from '../../utils/print-document';
 import { convertTarget, DocAction, documentActions, isConvertAction, postVerb } from '../../utils/document-actions';
 import { runDrawerIntent } from '../../../../shared/utils/drawer-intent.util';
 import { todayIsoDate } from '../../../../shared/utils/date-iso.util';
+import { LabelPrintService } from '../../../items/services/label-print.service';
+import { RouterLink } from '@angular/router';
+import { PERMISSIONS } from '../../../../core/auth/permissions';
+import { AuthService } from '../../../../core/auth/services/auth.service';
+import { orderSourceNumber } from '../../models/document.model';
 
 type Busy = 'post' | 'complete' | 'cancel' | 'delete' | 'convert' | null;
 
@@ -43,11 +48,13 @@ function postConfirmMessage(d: Document): string {
   selector: 'app-document-drawer',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DrawerComponent, IconComponent, ModalComponent, StatusPillComponent],
+  imports: [RouterLink, DrawerComponent, IconComponent, ModalComponent, StatusPillComponent],
   templateUrl: './document-drawer.component.html',
   styleUrl: './document-drawer.component.scss',
 })
 export class DocumentDrawerComponent {
+  private readonly auth = inject(AuthService);
+  private readonly labels = inject(LabelPrintService);
   private readonly docs = inject(DocumentsService);
   private readonly dialog = inject(DialogService);
   private readonly toast = inject(ToastService);
@@ -143,8 +150,9 @@ export class DocumentDrawerComponent {
   }
 
   /** One label per received unit, in the label-printing screen. */
+  /** Printed right here (no trip to the labels page, which needs Items.View) with this device's label settings. */
   protected printLabels(d: Document): void {
-    this.router.navigate(['/items/barcode-labels'], { queryParams: { doc: d.id } });
+    this.labels.printDocument(d.id);
   }
 
   protected post(d: Document): void {
@@ -209,6 +217,10 @@ export class DocumentDrawerComponent {
         error: (err: ApiError) => this.onActionError(d, err),
       });
   }
+
+  /** Sales invoice issued for an online order on delivery → its order number (opens the order). */
+  protected readonly orderSource = orderSourceNumber;
+  protected readonly canSeeOrders = computed(() => this.auth.hasPermission(PERMISSIONS.orders));
 
   /** Jump to a linked document (source / target) in its own screen. */
   protected openLinked(id: string): void {

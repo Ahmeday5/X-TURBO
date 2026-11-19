@@ -6,6 +6,7 @@ import { PagedResponse } from '../../../core/models/api-response.model';
 import { ListQuery, toListParams } from '../../../core/models/list-query.model';
 import { ItemLookup, ItemStockDetails, StockRow, StockSummary } from '../models/stock.model';
 import { API_ENDPOINTS } from '../../../core/constants/api-endpoints.const';
+import { CarFilter, carFilterParams } from '../../cars/models/car-filter.model';
 
 @Injectable({ providedIn: 'root' })
 export class StockService {
@@ -27,11 +28,12 @@ export class StockService {
 
   /**
    * Active items for pickers. With `warehouseId`, `stock`/`available` are that
-   * warehouse's balance; otherwise totals across warehouses.
+   * warehouse's balance; otherwise totals across warehouses. `car` narrows to
+   * items fitting that make / model / year.
    */
-  itemLookup(warehouseId?: string | null): Observable<ItemLookup[]> {
+  itemLookup(warehouseId?: string | null, car?: CarFilter): Observable<ItemLookup[]> {
     return this.api.get<ItemLookup[]>(API_ENDPOINTS.items.lookup, {
-      params: { warehouseId: warehouseId ?? undefined },
+      params: { warehouseId: warehouseId ?? undefined, ...carFilterParams(car) },
       context: withSkipLoader(),
     });
   }

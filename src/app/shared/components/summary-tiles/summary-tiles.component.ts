@@ -1,4 +1,6 @@
 import { ChangeDetectionStrategy, Component, input } from '@angular/core';
+import { NgTemplateOutlet } from '@angular/common';
+import { Params, RouterLink } from '@angular/router';
 import { CountUpDirective } from '../../directives/count-up.directive';
 import { IconComponent, IconName } from '../icon/icon.component';
 
@@ -12,6 +14,8 @@ export interface SummaryTile {
   tone?: string;
   /** Small line under the value (e.g. "12 مستند"). */
   hint?: string;
+  /** Makes the tile a link to the list behind the number (e.g. pre-filtered orders). */
+  link?: { route: string; queryParams?: Params; label: string };
 }
 
 /**
@@ -23,24 +27,35 @@ export interface SummaryTile {
   selector: 'app-summary-tiles',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CountUpDirective, IconComponent],
+  imports: [CountUpDirective, IconComponent, NgTemplateOutlet, RouterLink],
   template: `
     <div class="st" [class.is-refreshing]="refreshing()" [style.--cols]="columns() || tiles().length">
       @for (t of tiles(); track t.label; let i = $index) {
-        <article class="panel panel--interactive st__tile reveal" [style.--i]="i" [style.--tone]="t.tone ?? 'var(--primary)'">
-          <span class="st__icon"><app-icon [name]="t.icon" [size]="18" /></span>
-          <div class="st__text">
-            <span class="st__label">{{ t.label }}</span>
-            @if (t.value !== null) {
-              <strong [appCountUp]="t.value" [countUpFormat]="t.format"></strong>
-            } @else {
-              <span class="skeleton" style="width: 90px; height: 22px"></span>
-            }
-            @if (t.hint) {<small>{{ t.hint }}</small>}
-          </div>
-        </article>
+        @if (t.link; as link) {
+          <a class="panel panel--interactive st__tile st__tile--link reveal" [style.--i]="i" [style.--tone]="t.tone ?? 'var(--primary)'"
+            [routerLink]="link.route" [queryParams]="link.queryParams" [attr.aria-label]="link.label" [title]="link.label">
+            <ng-container [ngTemplateOutlet]="body" [ngTemplateOutletContext]="{ $implicit: t }" />
+          </a>
+        } @else {
+          <article class="panel panel--interactive st__tile reveal" [style.--i]="i" [style.--tone]="t.tone ?? 'var(--primary)'">
+            <ng-container [ngTemplateOutlet]="body" [ngTemplateOutletContext]="{ $implicit: t }" />
+          </article>
+        }
       }
     </div>
+
+    <ng-template #body let-t>
+      <span class="st__icon"><app-icon [name]="t.icon" [size]="18" /></span>
+      <div class="st__text">
+        <span class="st__label">{{ t.label }}</span>
+        @if (t.value !== null) {
+          <strong [appCountUp]="t.value" [countUpFormat]="t.format"></strong>
+        } @else {
+          <span class="skeleton" style="width: 90px; height: 22px"></span>
+        }
+        @if (t.hint) {<small>{{ t.hint }}</small>}
+      </div>
+    </ng-template>
   `,
   styles: [
     `
@@ -60,6 +75,8 @@ export interface SummaryTile {
         transition: transform 0.5s var(--ease-out), opacity var(--dur);
       }
       .st__tile:hover::after { transform: scale(1.6); opacity: 0.12; }
+      .st__tile--link { color: inherit; text-decoration: none; cursor: pointer; }
+      .st__tile--link:focus-visible { outline: none; box-shadow: var(--focus-ring); }
       .st__icon {
         flex-shrink: 0; width: 42px; height: 42px; display: grid; place-items: center; border-radius: 13px;
         color: var(--tone); background: color-mix(in srgb, var(--tone) 12%, transparent);
