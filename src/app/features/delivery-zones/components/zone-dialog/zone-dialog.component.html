@@ -28,7 +28,7 @@
             placeholder="1500" />
           <span class="ui-affix__text">ج.م</span>
         </div>
-        <span class="ui-hint">اتركه فارغًا لو مفيش شحن مجاني.</span>
+        <span class="ui-hint">اتركه فارغًا لو مفيش شحن مجاني. يسري على التوصيل العادي فقط — لا يشمل السريع أو الموعد.</span>
         <app-form-error [control]="form.controls.freeShippingThreshold" label="حد الشحن المجاني" />
       </label>
 
@@ -54,6 +54,51 @@
       </label>
     </div>
 
+    <!-- Extra delivery types: unticked = not offered in this governorate (sent as null) -->
+    <fieldset class="zd__types">
+      <legend class="zd__types-title">أنواع توصيل إضافية</legend>
+
+      <div class="ui-field zd__opt" [class.is-off]="!form.controls.expressEnabled.value">
+        <div class="zd__opt-head">
+          <span class="ui-label" id="zd-express-label"><app-icon name="bolt" [size]="13" /> رسوم التوصيل السريع</span>
+          <label class="zd__check">
+            <input type="checkbox" formControlName="expressEnabled" aria-describedby="zd-express-label" /> متاح
+          </label>
+        </div>
+        <div class="ui-affix">
+          <input class="ui-input ltr" type="number" min="0" step="0.5" inputmode="decimal" formControlName="expressFee"
+            aria-labelledby="zd-express-label" [placeholder]="form.controls.expressEnabled.value ? '120' : 'غير متاح'" />
+          <span class="ui-affix__text">ج.م</span>
+        </div>
+        <span class="ui-hint">
+          {{ form.controls.expressEnabled.value ? '0 = توصيل سريع مجاني.' : 'غير متاح — لن يظهر «سريع» لعملاء هذه المحافظة.' }}
+        </span>
+        <app-form-error [control]="form.controls.expressFee" label="رسوم التوصيل السريع" />
+      </div>
+
+      <div class="ui-field zd__opt" [class.is-off]="!form.controls.scheduledEnabled.value">
+        <div class="zd__opt-head">
+          <span class="ui-label" id="zd-scheduled-label"><app-icon name="calendar" [size]="13" /> رسوم التوصيل في موعد</span>
+          <label class="zd__check">
+            <input type="checkbox" formControlName="scheduledEnabled" aria-describedby="zd-scheduled-label" /> متاح
+          </label>
+        </div>
+        <div class="ui-affix">
+          <input class="ui-input ltr" type="number" min="0" step="0.5" inputmode="decimal" formControlName="scheduledFee"
+            aria-labelledby="zd-scheduled-label" [placeholder]="form.controls.scheduledEnabled.value ? '70' : 'غير متاح'" />
+          <span class="ui-affix__text">ج.م</span>
+        </div>
+        <span class="ui-hint">
+          {{ form.controls.scheduledEnabled.value ? '0 = حجز الموعد بدون رسوم.' : 'غير متاح — لن يظهر «حدد موعد» لعملاء هذه المحافظة.' }}
+        </span>
+        <app-form-error [control]="form.controls.scheduledFee" label="رسوم التوصيل في موعد" />
+      </div>
+
+      <p class="ui-hint zd__types-note">
+        <app-icon name="alert" [size]="12" /> يظهر النوع في التطبيق فقط إذا كان مفعّلًا أيضًا من شاشة «إعدادات التوصيل».
+      </p>
+    </fieldset>
+
     <label class="ui-switch">
       <input type="checkbox" formControlName="isActive" />
       <span class="ui-switch__track"></span>
@@ -69,6 +114,12 @@
           <strong>التوصيل إلى {{ preview().governorate }}</strong>
           <small>{{ preview().fee }} · خلال {{ preview().days }}</small>
           @if (preview().free; as free) {<small class="zd__free">{{ free }}</small>}
+          @if (preview().express; as express) {
+          <small class="zd__extra zd__extra--express"><app-icon name="bolt" [size]="11" /> توصيل سريع: {{ express }}</small>
+          }
+          @if (preview().scheduled; as scheduled) {
+          <small class="zd__extra zd__extra--scheduled"><app-icon name="calendar" [size]="11" /> حدد موعد: {{ scheduled }}</small>
+          }
         </div>
       </div>
     </div>

@@ -4,4 +4,6 @@ import { PageRegistry } from '../../core/models/page-registry.model';
 export const DELIVERY_ZONES_PAGES: PageRegistry = {
   '/delivery-zones': () =>
     import('./pages/delivery-zones/delivery-zones.page').then((m) => m.DeliveryZonesPage),
+  '/delivery-settings': () =>
+    import('./pages/delivery-settings/delivery-settings.page').then((m) => m.DeliverySettingsPage),
 };

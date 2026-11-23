@@ -47,6 +47,11 @@ export const API_ENDPOINTS = {
 
   // ────────────────────────────── Sales ───────────────────────────────
   orders: {
+    /**
+     * Paged `OrderSummary`. Filters: `status`, `channel`, `payment`, `period`,
+     * `driverId`, `deliveryType` (standard | express | scheduled) and
+     * `scheduledDate` (YYYY-MM-DD — scheduled orders booked for that day).
+     */
     list: 'orders',
     stats: 'orders/stats',
     byId: (id: string) => `orders/${seg(id)}`,
@@ -127,7 +132,13 @@ export const API_ENDPOINTS = {
 
   carMakes: {
     list: 'car-makes',
+    /** DELETE also removes the make's logo file. */
     byId: (id: string) => `car-makes/${seg(id)}`,
+    /**
+     * POST multipart (`file`: JPG / PNG / WEBP ≤ 5 MB) uploads / replaces the
+     * logo · DELETE removes it. Both → the full make (new `logoUrl` / `null`).
+     */
+    logo: (id: string) => `car-makes/${seg(id)}/logo`,
   },
 
   /**
@@ -217,11 +228,25 @@ export const API_ENDPOINTS = {
   },
 
   // ─────────────────────────── Mobile app ─────────────────────────────
+  /**
+   * Customers who signed up from the mobile app (Customers.View). New sign-ups
+   * are `pending` until approved; `blocked` signs the customer out at once.
+   */
+  appCustomers: {
+    /** `?status=pending|active|blocked&search=&sortBy=&sortDir=&includeUnverified=&pageIndex=&pageSize=`. */
+    list: 'app-customers',
+    /** `{ total, pending, active, blocked }` — status tabs and the sidebar badge. */
+    stats: 'app-customers/stats',
+    byId: (id: string) => `app-customers/${seg(id)}`,
+    /** POST `{ status: 'active' | 'blocked' }` → the updated customer. Idempotent. */
+    status: (id: string) => `app-customers/${seg(id)}/status`,
+  },
+
   /** Push notifications to customers of the mobile app. */
   notificationCampaigns: {
     list: 'notification-campaigns',
     byId: (id: string) => `notification-campaigns/${seg(id)}`,
-    /** Recipient picker: `?search=&hasFcmToken=&sortBy=&pageIndex=&pageSize=`. */
+    /** Recipient picker: `?search=&status=&hasFcmToken=&sortBy=&pageIndex=&pageSize=`. */
     customers: 'notification-campaigns/customers',
   },
 
@@ -244,6 +269,14 @@ export const API_ENDPOINTS = {
   deliveryZones: {
     list: 'delivery-zones',
     byId: (id: string) => `delivery-zones/${seg(id)}`,
+  },
+
+  /** Express / scheduled delivery options of the mobile app (Settings.Manage). */
+  deliverySettings: {
+    /** GET / PUT — one record, saved whole. */
+    root: 'delivery-settings',
+    /** The bookable hour slots exactly as the customer sees them now. */
+    slots: 'delivery-settings/slots',
   },
 
   /** Delivery drivers (the driver app's accounts). Read: Orders.View | Users.Manage · write: Users.Manage. */

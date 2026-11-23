@@ -1,0 +1,57 @@
+.cmd-logo {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-bottom: 14px;
+  border-bottom: 1px dashed var(--brd);
+
+  &__note {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 5px;
+    margin: 0;
+    padding: 7px 10px;
+    border-radius: 9px;
+    background: var(--am-l);
+    color: var(--am);
+    font-size: 12px;
+    font-weight: 600;
+
+    &--info {
+      background: var(--bl-l);
+      color: var(--bl);
+    }
+  }
+
+  &__undo {
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    text-decoration: underline;
+    cursor: pointer;
+
+    &:disabled {
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+  }
+}
+
+/* Inline spinner: the label stays visible to show the save step and upload progress. */
+.cmd-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: cmd-spin 0.7s linear infinite;
+}
+
+@keyframes cmd-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

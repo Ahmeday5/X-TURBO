@@ -4,6 +4,7 @@
     <div class="odd-title__row">
       <h2 class="ltr">{{ o.number }}</h2>
       <app-status-pill [view]="statusView[o.status]" />
+      @if (o.delivery) {<app-delivery-badge [delivery]="o.delivery" [showSlot]="false" />}
     </div>
     <p>{{ dateTime(o.createdAt) }} · {{ channel[o.channel] }}</p>
     } @else {
@@ -17,6 +18,21 @@
     <section class="odd-block odd-progress" style="--i: 0">
       <app-order-progress [status]="o.status" [lastStep]="lastStep()" />
     </section>
+
+    @if (expressAlert(); as alert) {
+    <section class="odd-express" role="alert" style="--i: 1">
+      <span class="odd-express__icon"><app-icon name="bolt" [size]="22" /></span>
+      <div class="odd-express__text">
+        <strong>طلب توصيل سريع — له الأولوية</strong>
+        <span>{{ alert.step }}</span>
+      </div>
+      @if (alert.needsDriver) {
+      <button type="button" class="ui-btn ui-btn--primary" [disabled]="!!busy()" (click)="openAssign(o)">
+        <app-icon name="truck" [size]="15" /> تعيين مندوب
+      </button>
+      }
+    </section>
+    }
 
     @if (locked(); as reason) {
     <section class="odd-next" role="status" style="--i: 1">
@@ -55,6 +71,28 @@
         <span><app-icon name="truck" [size]="12" /> {{ o.address }}</span>
       </div>
     </section>
+
+    @if (o.delivery; as delivery) {
+    <section class="odd-block odd-delivery" [class.is-express]="delivery.type === 'express'" style="--i: 2">
+      <h3 class="odd-h">التوصيل</h3>
+      <dl class="odd-delivery__facts">
+        <div>
+          <dt>النوع</dt>
+          <dd><app-delivery-badge [delivery]="delivery" [showSlot]="false" size="lg" /></dd>
+        </div>
+        <div>
+          <dt>رسوم الشحن</dt>
+          <dd>{{ o.shipping ? money(o.shipping) : 'مجاني' }}</dd>
+        </div>
+        @if (delivery.slot; as slot) {
+        <div class="odd-delivery__slot">
+          <dt>الموعد</dt>
+          <dd><app-icon name="calendar" [size]="14" /> {{ slot.label }}</dd>
+        </div>
+        }
+      </dl>
+    </section>
+    }
 
     @if (o.driver; as d) {
     <section class="odd-block odd-driver" style="--i: 2">

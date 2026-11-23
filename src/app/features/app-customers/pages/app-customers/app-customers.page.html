@@ -1,0 +1,127 @@
+<!-- ── Cell templates ── -->
+<ng-template #nameCell [appRowOf]="list.items()" let-c>
+  <div class="ac-name">
+    <app-avatar [name]="c.name" [size]="32" />
+    <div>
+      <strong>{{ c.name }}</strong>
+      @if (!c.phoneVerified) {
+      <small class="ac-unverified-tag" title="لم يُدخل كود الـ SMS — لا يمكن تفعيله">غير مؤكد</small>
+      } @else if (c.email) {
+      <small class="ltr" [title]="c.email">{{ c.email }}</small>
+      }
+    </div>
+  </div>
+</ng-template>
+
+<ng-template #phoneCell [appRowOf]="list.items()" let-c>
+  <a class="ac-phone ltr" [href]="tel(c.phone)" [title]="'اتصال بـ ' + c.name" (click)="$event.stopPropagation()">
+    {{ phone(c.phone) }}
+  </a>
+</ng-template>
+
+<ng-template #governorateCell [appRowOf]="list.items()" let-c>
+  <span [class.ac-muted]="!c.governorate">{{ c.governorate || '—' }}</span>
+</ng-template>
+
+<ng-template #statusCell [appRowOf]="list.items()" let-c>
+  <app-status-pill [view]="statusView(c.status)" />
+</ng-template>
+
+<ng-template #ordersCell [appRowOf]="list.items()" let-c>
+  <span class="ac-count" [class.is-active]="c.ordersCount">{{ int(c.ordersCount) }}</span>
+</ng-template>
+
+<ng-template #createdCell [appRowOf]="list.items()" let-c>
+  <span class="ac-date" [title]="dateTime(c.createdAt)">{{ shortDate(c.createdAt) }}</span>
+</ng-template>
+
+<ng-template #loginCell [appRowOf]="list.items()" let-c>
+  @if (c.lastLoginAt) {
+  <span class="ac-date" [title]="dateTime(c.lastLoginAt)">{{ relative(c.lastLoginAt) }}</span>
+  } @else {
+  <span class="ac-date ac-muted">لم يدخل</span>
+  }
+</ng-template>
+
+<ng-template #actions [appRowOf]="list.items()" let-c>
+  <div class="row-actions">
+    <app-customer-actions [customer]="c" [busy]="busy()?.id === c.id" [busyAction]="busy()?.action ?? null"
+      (run)="run(c, $event)" />
+    <button type="button" class="ui-icon-btn" title="التفاصيل" [attr.aria-label]="'تفاصيل ' + c.name" (click)="open(c)">
+      <app-icon name="eye" [size]="16" />
+    </button>
+  </div>
+</ng-template>
+
+<ng-template #card [appRowOf]="list.items()" let-c>
+  <article class="ac-card" [style.--tone]="statusView(c.status).color">
+    <header>
+      <app-avatar [name]="c.name" [size]="40" />
+      <div>
+        <strong>{{ c.name }}</strong>
+        <a class="ltr" [href]="tel(c.phone)" (click)="$event.stopPropagation()">{{ phone(c.phone) }}</a>
+      </div>
+      <app-status-pill [view]="statusView(c.status)" />
+    </header>
+    <dl>
+      <div><dt>المحافظة</dt><dd>{{ c.governorate || '—' }}</dd></div>
+      <div><dt>الطلبات</dt><dd>{{ int(c.ordersCount) }}</dd></div>
+      <div><dt>التسجيل</dt><dd>{{ shortDate(c.createdAt) }}</dd></div>
+    </dl>
+    @if (!c.phoneVerified) {<p class="ac-card__warn"><app-icon name="alert" [size]="12" /> لم يؤكد رقم الموبايل بعد</p>}
+    <app-customer-actions [customer]="c" [busy]="busy()?.id === c.id" [busyAction]="busy()?.action ?? null"
+      (run)="run(c, $event)" />
+  </article>
+</ng-template>
+
+<!-- ── Page ── -->
+<app-page-header [navId]="navId()">
+  <button type="button" class="refresh-btn" [class.is-spinning]="list.loading() || counters.loading()"
+    [disabled]="list.loading()" title="تحديث" aria-label="تحديث عملاء التطبيق" (click)="refresh()">
+    <app-icon name="refresh" [size]="16" />
+  </button>
+</app-page-header>
+
+<app-status-tabs label="تصفية حسب الحالة" [tabs]="tabs()" [active]="activeTab()" (activeChange)="setTab($event)" />
+
+<app-list-toolbar placeholder="ابحث بالاسم أو الموبايل أو البريد الإلكتروني…" [search]="state.query().search"
+  [view]="state.view()" [sort]="state.query().sort" [sortOptions]="sortOptions" [count]="list.count()"
+  [activeFilters]="state.activeFilters()" (searchChange)="state.setSearch($event)" (sortChange)="state.setSort($event)"
+  (viewChange)="state.setView($event)" (clearFilters)="state.clearFilters()">
+  <label filters class="ac-toggle" title="عرض من سجّل ولم يُدخل كود الـ SMS">
+    <input type="checkbox" [checked]="includeUnverified()" (change)="setIncludeUnverified($any($event.target).checked)" />
+    إظهار غير المؤكدين
+  </label>
+</app-list-toolbar>
+
+<app-data-table [columns]="columns()" [data]="list.items()" [view]="state.view()" [sort]="state.query().sort"
+  [loading]="list.loading()" [initialLoading]="list.initialLoading() || waitingForTab()" [error]="list.error()"
+  [skeletonCount]="state.query().pageSize" [cardTemplate]="card" [actionsTemplate]="actions" [rowClickable]="true"
+  emptyIcon="users" [emptyTitle]="emptyTitle()" emptyText="جرّب تعديل البحث أو اختيار تبويب آخر."
+  (rowClick)="open($event)" (sortChange)="state.toggleSort($event)" (retry)="list.reload()" />
+
+<app-pagination class="ac-pager" [pageIndex]="state.query().pageIndex" [pageSize]="state.query().pageSize"
+  [count]="list.count()" [totalPages]="list.totalPages()" [pageSizeOptions]="[20, 50, 100]"
+  [disabled]="list.loading()" (pageChange)="state.setPage($event)" (pageSizeChange)="state.setPageSize($event)" />
+
+<!-- ── Details ── -->
+<app-details-drawer [open]="!!viewId()" label="تفاصيل عميل التطبيق" [details]="details()" [loading]="viewed.loading()"
+  [error]="viewed.error()" (retry)="viewed.reload()" (closed)="closeDrawer()">
+  @if (viewedCustomer(); as c) {
+  <ng-container drawer-actions>
+    @if (c.partyId) {
+    <a class="ui-btn ui-btn--ghost" routerLink="/customers/card" [queryParams]="{ id: c.partyId }"
+      [title]="'فتح حساب العميل في العملاء والموردين' + (c.partyCode ? ' — كود ' + c.partyCode : '')">
+      <app-icon name="id-card" [size]="15" /> حسابه في العملاء والموردين
+    </a>
+    }
+    @if (maps(c); as url) {
+    <a class="ui-btn ui-btn--ghost" [href]="url" target="_blank" rel="noopener noreferrer">
+      <app-icon name="target" [size]="15" /> الموقع
+    </a>
+    }
+    <app-customer-actions size="md" [customer]="c" [busy]="busy()?.id === c.id" [busyAction]="busy()?.action ?? null"
+      (run)="run(c, $event)" />
+  </ng-container>
+  }
+</app-details-drawer>

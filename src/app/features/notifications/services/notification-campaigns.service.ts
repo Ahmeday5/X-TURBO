@@ -36,7 +36,10 @@ export class NotificationCampaignsService {
     return this.api.post<Campaign>(API_ENDPOINTS.notificationCampaigns.list, payload);
   }
 
-  /** Recipient picker. Filters: `hasFcmToken=true|false`. Sort: `name | createdAt | lastLoginAt`. */
+  /**
+   * Recipient picker. Filters: `status=pending|active|blocked`, `hasFcmToken=true|false`.
+   * Sort: `name | createdAt | lastLoginAt`. The picker always sends `status=active`.
+   */
   customers(query: ListQuery): Observable<PagedResponse<CampaignCustomer>> {
     return this.api.get<PagedResponse<CampaignCustomer>>(API_ENDPOINTS.notificationCampaigns.customers, {
       params: toListParams(query),

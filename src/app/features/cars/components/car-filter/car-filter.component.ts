@@ -58,6 +58,12 @@ import { StoreCarsService } from '../../services/store-cars.service';
       .cf__icon { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 9px; color: var(--txt3); background: var(--bg3); }
       .cf__select { width: auto; min-width: 118px; max-width: 170px; }
       .cf__select--year { min-width: 96px; }
+      /* Inside a list toolbar's filter grid: make/model/year share two columns, the whole row when narrow. */
+      :host-context(.lt__filters) .cf { display: flex; flex-wrap: nowrap; grid-column: span 2; min-width: 0; }
+      :host-context(.lt__filters) .cf__select { flex: 1 1 0; width: auto; min-width: 0; max-width: none; }
+      @container lt-filters (max-width: 420px) {
+        :host-context(.lt__filters) .cf { grid-column: 1 / -1; }
+      }
       .cf__select.is-active { border-color: var(--primary); color: var(--primary-strong); }
       .cf__select:disabled { opacity: 0.55; cursor: not-allowed; }
       @media (max-width: 575.98px) {

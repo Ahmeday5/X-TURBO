@@ -46,6 +46,14 @@ import { RouterLink } from '@angular/router';
 import { PERMISSIONS } from '../../../../core/auth/permissions';
 import { AuthService } from '../../../../core/auth/services/auth.service';
 import { DOC_KIND_CONFIG } from '../../../documents/models/document.model';
+import { DeliveryBadgeComponent } from '../../../delivery-zones/components/delivery-badge/delivery-badge.component';
+import { isExpress } from '../../../delivery-zones/models/delivery-type.model';
+
+/** What to do now with an open express order, by status — `null` once it's out for delivery or closed. */
+const EXPRESS_NEXT_STEP: Partial<Record<OrderStatus, string>> = {
+  pending: 'أكّد الطلب وابدأ تجهيزه فورًا، ثم عيّن له مندوبًا.',
+  processing: 'جهّز الطلب وسلّمه للمندوب في أسرع وقت.',
+};
 
 /** Full order view in a side drawer: fulfilment actions, the assigned driver and its delivery problems. */
 @Component({
@@ -56,6 +64,7 @@ import { DOC_KIND_CONFIG } from '../../../documents/models/document.model';
     RouterLink,
     AssignDriverModalComponent,
     AvatarComponent,
+    DeliveryBadgeComponent,
     DrawerComponent,
     IconComponent,
     OrderProgressComponent,
@@ -176,6 +185,19 @@ export class OrderDetailsDrawerComponent {
   protected readonly invoiceStatusView = ORDER_INVOICE_STATUS_VIEW;
 
   protected readonly openProblems = computed(() => this.problems().filter(isProblemOpen).length);
+
+  /**
+   * Express orders must be prepared and dispatched first — a loud banner while
+   * there is still something to do (pending / processing), with the next step.
+   */
+  protected readonly expressAlert = computed(() => {
+    const o = this.current();
+    if (!o || !isExpress(o.delivery)) return null;
+    const step = EXPRESS_NEXT_STEP[o.status];
+    if (!step) return null;
+    const needsDriver = o.status === 'processing' && !o.driverId;
+    return { step: needsDriver ? 'عيّن مندوبًا الآن — الطلب مؤكد وبانتظار التوصيل السريع.' : step, needsDriver };
+  });
 
   /** Last real step before a cancellation, so the stepper shows how far it got. */
   protected readonly lastStep = computed(() => {

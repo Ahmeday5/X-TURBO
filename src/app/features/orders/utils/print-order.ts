@@ -17,6 +17,8 @@ function orderPage(o: Order): string {
   const meta: Array<[string, string]> = [
     ['التاريخ', formatDateTime(o.createdAt)],
     ['القناة', CHANNEL_LABEL[o.channel]],
+    ...(o.delivery ? ([['التوصيل', o.delivery.typeName]] as Array<[string, string]>) : []),
+    ...(o.delivery?.slot ? ([['موعد التوصيل', o.delivery.slot.label]] as Array<[string, string]>) : []),
     ['الحالة', ORDER_STATUS_VIEW[o.status].label],
     ['طريقة الدفع', PAYMENT_METHOD_LABEL[o.paymentMethod]],
     ['حالة الدفع', PAYMENT_STATUS_VIEW[o.paymentStatus].label],

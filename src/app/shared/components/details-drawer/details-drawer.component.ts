@@ -28,7 +28,8 @@ import { EntityDetails } from './details-drawer.model';
       <div drawer-title class="dd-title">
         @if (details(); as d) {
           @if (d.header.imageUrl) {
-            <img class="dd-title__icon dd-title__img" [src]="d.header.imageUrl" alt="" />
+            <img class="dd-title__icon dd-title__img" [class.dd-title__img--contain]="d.header.imageFit === 'contain'"
+              [src]="d.header.imageUrl" alt="" />
           } @else {
             <span class="dd-title__icon"><app-icon [name]="d.header.icon ?? 'file-lines'" [size]="18" /></span>
           }
@@ -85,6 +86,7 @@ import { EntityDetails } from './details-drawer.model';
         background: var(--primary-soft); color: var(--primary);
       }
       .dd-title__img { object-fit: cover; border: 1px solid var(--brd); }
+      .dd-title__img--contain { object-fit: contain; padding: 3px; background: #fff; }
       .dd-title__text { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
       .dd-title__text strong { font-size: 15px; font-weight: 700; color: var(--txt); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
       .dd-title__text small { font-size: 11.5px; color: var(--txt3); }

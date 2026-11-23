@@ -6,16 +6,24 @@ import { createListResource } from '../../../../shared/list/list-resource';
 import { formatInteger, formatRelative } from '../../../../shared/utils/format.util';
 import { CAMPAIGN_RULES, CampaignCustomer } from '../../models/notification-campaign.model';
 import { NotificationCampaignsService } from '../../services/notification-campaigns.service';
+import { AppCustomerStatus } from '../../../app-customers/models/app-customer.model';
 
 type DeviceFilter = '' | 'true' | 'false';
 
 const PAGE_SIZE = 10;
+/** Only activated customers can receive a notification — pending / blocked ones are never offered. */
+const RECIPIENT_STATUS: AppCustomerStatus = 'active';
+
+function recipientFilters(device: DeviceFilter): Record<string, string> {
+  return device ? { status: RECIPIENT_STATUS, hasFcmToken: device } : { status: RECIPIENT_STATUS };
+}
 const SEARCH_DEBOUNCE_MS = 300;
 /** Chips shown before collapsing into "+N". */
 const VISIBLE_CHIPS = 24;
 
 /**
- * Pick specific customers (1–1000) for a campaign: server search, a
+ * Pick specific customers (1–1000) for a campaign — active customers only
+ * (`status=active`), since pending / blocked accounts can't receive it: server search, a
  * "has a registered phone" filter, paging, and a selection that survives
  * paging/searching. Two-way bound: `[(selected)]`.
  */
@@ -42,7 +50,7 @@ export class RecipientPickerComponent {
     pageSize: PAGE_SIZE,
     search: this.search(),
     sort: { key: 'name', dir: 'asc' },
-    filters: this.device() ? { hasFcmToken: this.device() } : ({} as Record<string, string>),
+    filters: recipientFilters(this.device()),
   }));
   protected readonly list = createListResource(this.query, (q) => this.service.customers(q));
 

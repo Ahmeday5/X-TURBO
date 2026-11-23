@@ -14,13 +14,14 @@ import {
   PAYMENT_STATUS_VIEW,
 } from '../../models/order.model';
 import { OrderProgressComponent } from '../order-progress/order-progress.component';
+import { DeliveryBadgeComponent } from '../../../delivery-zones/components/delivery-badge/delivery-badge.component';
 
 /** Order summary for the card view (and every phone). */
 @Component({
   selector: 'app-order-card',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [AvatarComponent, IconComponent, StatusPillComponent, OrderProgressComponent],
+  imports: [AvatarComponent, DeliveryBadgeComponent, IconComponent, StatusPillComponent, OrderProgressComponent],
   template: `
     @let o = order();
     <header class="oc__head">
@@ -48,6 +49,10 @@ import { OrderProgressComponent } from '../order-progress/order-progress.compone
         }
       </div>
     </div>
+
+    @if (o.delivery) {
+      <app-delivery-badge [delivery]="o.delivery" />
+    }
 
     <app-order-progress [status]="o.status" [compact]="true" />
 

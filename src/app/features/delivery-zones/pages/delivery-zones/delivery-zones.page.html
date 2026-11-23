@@ -37,6 +37,15 @@
       </button>
     </div>
     } @else {
+    @if (missingExtraFees().length) {
+    <p class="dz__notice" role="note">
+      <app-icon name="alert" [size]="14" />
+      <span>
+        {{ missingExtraFees().length }} محافظة مفعّلة بدون رسوم للتوصيل السريع أو في موعد — لن يظهر لعملائها إلا التوصيل العادي.
+        حدّد الرسوم من «تعديل» لتفعيلها.
+      </span>
+    </p>
+    }
     <div class="dz__table-wrap">
       <table class="dz__table">
         <thead>
@@ -45,6 +54,8 @@
             <th>الرسوم</th>
             <th>مدة التوصيل</th>
             <th>الشحن المجاني</th>
+            <th title="رسوم التوصيل السريع — «—» = غير متاح"><span class="dz__type dz__type--express"><app-icon name="bolt" [size]="11" /> سريع</span></th>
+            <th title="رسوم التوصيل في موعد — «—» = غير متاح"><span class="dz__type dz__type--scheduled"><app-icon name="calendar" [size]="11" /> موعد</span></th>
             <th class="dz__c">الحالة</th>
             <th class="dz__c" aria-label="إجراءات"></th>
           </tr>
@@ -57,6 +68,8 @@
             <td>{{ z.fee === 0 ? 'مجاني' : money(z.fee) }}</td>
             <td>{{ days(z.estimatedDaysMin, z.estimatedDaysMax) }}</td>
             <td>{{ z.freeShippingThreshold ? 'من ' + money(z.freeShippingThreshold) : '—' }}</td>
+            <td [class.dz__na]="z.expressFee === null">{{ optionalFee(z.expressFee) }}</td>
+            <td [class.dz__na]="z.scheduledFee === null">{{ optionalFee(z.scheduledFee) }}</td>
             <td class="dz__c">
               <label class="ui-switch dz__switch" [title]="z.isActive ? 'إيقاف التوصيل' : 'تفعيل التوصيل'">
                 <input type="checkbox" [checked]="z.isActive" [disabled]="busyId() === z.id"

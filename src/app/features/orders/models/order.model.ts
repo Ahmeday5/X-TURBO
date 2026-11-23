@@ -2,6 +2,7 @@ import { RowAction } from '../../../shared/models/row-action.model';
 import { StatusView } from '../../../shared/models/status-tone.model';
 import { ArabicPluralForms } from '../../../shared/utils/plural.util';
 import type { OrderProblemBase } from '../../drivers/models/order-problem.model';
+import type { OrderDelivery } from '../../delivery-zones/models/delivery-type.model';
 
 /**
  * Wire contract of the orders API. The list returns `OrderSummary` rows;
@@ -34,6 +35,11 @@ export interface OrderSummary {
   driverName: string | null;
   /** A driver reported a delivery problem nobody answered yet. */
   hasOpenProblem: boolean;
+  /**
+   * Delivery type picked in the app (standard / express / scheduled) and the
+   * booked hour for scheduled orders. `null` when the order has no delivery (e.g. a POS sale).
+   */
+  delivery: OrderDelivery | null;
 }
 
 export interface OrderLine {

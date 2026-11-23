@@ -161,6 +161,12 @@
   font-variant-numeric: tabular-nums;
 }
 
+.op-date.is-active {
+  border-color: rgba(var(--primary-rgb), 0.45);
+  color: var(--primary-strong);
+  font-weight: 600;
+}
+
 .op-pager {
   display: block;
   margin-top: 14px;

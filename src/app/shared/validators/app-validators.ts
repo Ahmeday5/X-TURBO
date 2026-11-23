@@ -183,6 +183,15 @@ export const AppValidators = {
     });
   },
 
+  /** Zero or more (fees that may be free). `subject` names the field — feminine wording ("الرسوم"). */
+  nonNegative(subject = 'القيمة'): ValidatorFn {
+    return formatValidator('nonNegative', (v) => {
+      const n = Number(v);
+      if (!Number.isFinite(n)) return `${subject} تقبل أرقامًا فقط — مثال: 50`;
+      return n >= 0 ? null : `${subject} لا يمكن أن تكون سالبة (المكتوب ${v}) — اكتب 0 للمجاني أو مبلغًا مثل 50`;
+    });
+  },
+
   /** ISO-4217 currency code: exactly 3 capital English letters. */
   currencyCode(): ValidatorFn {
     return formatValidator('currencyCode', (v) => {

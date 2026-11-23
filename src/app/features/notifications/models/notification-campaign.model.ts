@@ -1,3 +1,5 @@
+import type { AppCustomerStatus } from '../../app-customers/models/app-customer.model';
+
 /**
  * Push notifications to mobile-app customers (Firebase) — `/api/notification-campaigns`
  * (`Customers.View`). A campaign is sent once; its delivery counters settle within
@@ -50,7 +52,8 @@ export interface CampaignCustomer {
   phone: string;
   email: string | null;
   governorate: string;
-  isActive: boolean;
+  /** Replaced `isActive` (breaking API change). Only `active` customers can receive a push. */
+  status: AppCustomerStatus;
   phoneVerified: boolean;
   /** Registered devices; 0 → the push can't reach a phone. */
   fcmTokens: number;

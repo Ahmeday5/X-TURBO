@@ -531,6 +531,102 @@
 }
 
 /* ── next step: a driver is required before the order can move on ── */
+/* ── delivery ── */
+.odd-delivery {
+  &.is-express {
+    border-color: color-mix(in srgb, var(--re) 45%, transparent);
+  }
+
+  &__facts {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px 16px;
+    margin: 0;
+
+    dt {
+      margin-bottom: 4px;
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--txt3);
+    }
+    dd {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin: 0;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--txt);
+      font-variant-numeric: tabular-nums;
+    }
+  }
+
+  &__slot {
+    grid-column: 1 / -1;
+    padding: 9px 11px;
+    border-radius: 10px;
+    background: var(--bl-l);
+
+    dd {
+      color: var(--bl);
+    }
+  }
+}
+
+/* Express: the loudest block of the drawer — prepare and dispatch first. */
+.odd-express {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 14px;
+  padding: 14px 16px;
+  border: 1px solid color-mix(in srgb, var(--re) 55%, transparent);
+  border-inline-start: 4px solid var(--re);
+  border-radius: var(--rl);
+  background: var(--re-l);
+
+  &__icon {
+    display: grid;
+    flex-shrink: 0;
+    place-items: center;
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    color: #fff;
+    background: var(--re);
+    box-shadow: 0 6px 16px -8px var(--re);
+    animation: odd-express-pulse 2s ease-out infinite;
+  }
+
+  &__text {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 180px;
+
+    strong {
+      font-size: 14px;
+      color: var(--re);
+    }
+    span {
+      font-size: 12.5px;
+      color: var(--txt2);
+    }
+  }
+}
+
+@keyframes odd-express-pulse {
+  0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--re) 50%, transparent); }
+  70%, 100% { box-shadow: 0 0 0 10px transparent; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .odd-express__icon {
+    animation: none;
+  }
+}
+
 .odd-next {
   display: flex;
   flex-wrap: wrap;

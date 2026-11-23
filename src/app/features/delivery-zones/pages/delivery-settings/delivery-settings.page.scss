@@ -1,0 +1,295 @@
+:host {
+  display: block;
+}
+
+/* Type colours: express red, scheduled blue (same code as the orders badges). */
+.ds-icon--express {
+  background: var(--re-l) !important;
+  color: var(--re) !important;
+}
+.ds-icon--scheduled {
+  background: var(--bl-l) !important;
+  color: var(--bl) !important;
+}
+
+/* ── Closed days ── */
+
+.ds-days {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 8px;
+
+  @media (max-width: 767.98px) {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  @media (max-width: 420px) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.ds-day {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 9px 6px;
+  border: 1px solid var(--brd2);
+  border-radius: var(--rl);
+  background: var(--bg2);
+  cursor: pointer;
+  user-select: none;
+  transition: border-color var(--dur-fast), background var(--dur-fast), color var(--dur-fast);
+
+  input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+  }
+  span {
+    font-size: 12.5px;
+    font-weight: 700;
+    color: var(--txt);
+  }
+  small {
+    font-size: 10.5px;
+    font-weight: 600;
+    color: var(--gr);
+  }
+
+  &:hover {
+    border-color: var(--txt3);
+  }
+  &:focus-within {
+    box-shadow: var(--focus-ring);
+  }
+
+  &.is-closed {
+    border-color: color-mix(in srgb, var(--re) 40%, transparent);
+    background: var(--re-l);
+
+    span {
+      color: var(--re);
+      text-decoration: line-through;
+    }
+    small {
+      color: var(--re);
+    }
+  }
+}
+
+/* ── Summary aside ── */
+
+.ds-sum {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  &__row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: opacity var(--dur-fast);
+
+    &.is-off {
+      opacity: 0.5;
+    }
+    > div {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      min-width: 0;
+    }
+    strong {
+      font-size: 13.5px;
+      color: var(--txt);
+    }
+    small {
+      font-size: 12px;
+      color: var(--txt2);
+    }
+  }
+
+  &__icon {
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    display: grid;
+    place-items: center;
+    border-radius: 10px;
+  }
+
+  &__facts {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin: 0;
+
+    div {
+      padding: 7px 9px;
+      border-radius: 10px;
+      background: var(--bg3);
+    }
+    dt {
+      font-size: 10.5px;
+      color: var(--txt3);
+    }
+    dd {
+      margin: 2px 0 0;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--txt);
+    }
+  }
+
+  &__slots {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+
+    li {
+      padding: 3px 8px;
+      border-radius: 999px;
+      background: var(--bl-l);
+      color: var(--bl);
+      font-size: 11px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+  }
+}
+
+/* ── Live slots ── */
+
+.ds-live {
+  margin-top: 18px;
+
+  &__booked {
+    color: var(--am);
+  }
+
+  &__dirty {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0 0 12px;
+    padding: 8px 12px;
+    border-radius: var(--rl);
+    background: var(--am-l);
+    color: var(--am);
+    font-size: 12.5px;
+  }
+
+  &__days {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 12px;
+    transition: opacity var(--dur);
+
+    &.is-refreshing {
+      opacity: 0.6;
+    }
+  }
+
+  &__day {
+    padding: 12px;
+    border: 1px solid var(--brd);
+    border-radius: var(--rl);
+    background: var(--bg2);
+
+    header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+
+      strong {
+        font-size: 13px;
+        color: var(--txt);
+      }
+      small {
+        margin-inline-start: auto;
+        font-size: 11px;
+        color: var(--txt3);
+        white-space: nowrap;
+      }
+    }
+    ul {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+  }
+
+  &__tag {
+    padding: 1px 8px;
+    border-radius: 999px;
+    background: var(--primary-soft);
+    color: var(--primary-strong);
+    font-size: 10.5px;
+    font-weight: 700;
+  }
+
+  &__skeleton {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 12px;
+
+    .skeleton {
+      height: 120px;
+      border-radius: var(--rl);
+    }
+  }
+}
+
+.ds-slot {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border: 1px solid color-mix(in srgb, var(--bl) 35%, transparent);
+  border-radius: 9px;
+  background: var(--bl-l);
+  color: var(--bl);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+
+  small {
+    font-size: 10.5px;
+    font-weight: 700;
+  }
+
+  /* Full: faded and struck through, labelled «محجوز». */
+  &.is-full {
+    border-color: var(--brd);
+    background: var(--bg3);
+    color: var(--txt3);
+    opacity: 0.7;
+
+    span {
+      text-decoration: line-through;
+    }
+  }
+}
+
+.ds-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 32px 12px;
+  color: var(--txt3);
+  text-align: center;
+
+  p {
+    margin: 0;
+    font-size: 13px;
+  }
+}

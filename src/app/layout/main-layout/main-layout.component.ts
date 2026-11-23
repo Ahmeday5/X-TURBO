@@ -5,6 +5,7 @@ import { SidebarComponent } from './sidebar/sidebar.component';
 import { ConfirmDialogComponent } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { LayoutService } from '../../core/services/layout.service';
 import { DeliveryStatsService } from '../../features/drivers/services/delivery-stats.service';
+import { AppCustomerStatsService } from '../../features/app-customers/services/app-customer-stats.service';
 
 @Component({
   selector: 'app-main-layout',
@@ -20,5 +21,7 @@ export class MainLayoutComponent {
   constructor() {
     // Starts the delivery counters poll (sidebar badge) for the signed-in session.
     inject(DeliveryStatsService);
+    // Pending app sign-ups (sidebar badge on "عملاء التطبيق").
+    inject(AppCustomerStatsService);
   }
 }

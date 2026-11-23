@@ -23,6 +23,10 @@
   </div>
 </ng-template>
 
+<ng-template #deliveryCell [appRowOf]="list.items()" let-o>
+  <app-delivery-badge [delivery]="o.delivery" />
+</ng-template>
+
 <ng-template #channelCell [appRowOf]="list.items()" let-o>
   <div class="op-stack">
     <span>{{ channel[o.channel] }}</span>
@@ -66,6 +70,11 @@
 
 <!-- Page -->
 <app-page-header [navId]="navId()" subtitle="متابعة الطلبات من كل القنوات وتحديث حالاتها">
+  <button type="button" class="ui-btn" [class.ui-btn--primary]="todayScheduleActive()" [class.ui-btn--ghost]="!todayScheduleActive()"
+    [attr.aria-pressed]="todayScheduleActive()"
+    [title]="todayScheduleActive() ? 'إلغاء فلتر مواعيد اليوم' : 'طلبات «حدد موعد» المحجوزة لليوم'" (click)="toggleTodaySchedule()">
+    <app-icon name="calendar" [size]="16" /> مواعيد النهارده
+  </button>
   <button type="button" class="refresh-btn" [class.is-spinning]="list.loading()" [disabled]="list.loading()"
     title="تحديث" aria-label="تحديث الطلبات" (click)="refresh()">
     <app-icon name="refresh" [size]="16" />
@@ -111,6 +120,13 @@
     [value]="state.query().filters['payment']" (valueChange)="state.setFilter('payment', $event)" />
   <app-filter-select filters label="المندوب" allLabel="كل المناديب" [options]="driverOptions()"
     [value]="state.query().filters['driverId']" (valueChange)="state.setFilter('driverId', $event)" />
+  <app-filter-select filters label="نوع التوصيل" allLabel="كل أنواع التوصيل" [options]="deliveryTypeOptions"
+    [value]="deliveryType()" (valueChange)="setDeliveryType($event)" />
+  @if (showScheduledDate()) {
+  <input filters type="date" class="ui-input op-date" [class.is-active]="!!scheduledDate()" [value]="scheduledDate() ?? ''"
+    aria-label="يوم الموعد" title="طلبات «حدد موعد» المحجوزة في هذا اليوم"
+    (change)="setScheduledDate($any($event.target).value || null)" />
+  }
 </app-list-toolbar>
 
 <app-data-table [columns]="columns()" [data]="list.items()" [view]="state.view()" [sort]="state.query().sort"

@@ -54,6 +54,41 @@
     text-align: center !important;
   }
 
+  &__type {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+
+    &--express {
+      color: var(--re);
+    }
+    &--scheduled {
+      color: var(--bl);
+    }
+  }
+
+  &__na {
+    color: var(--txt3) !important;
+  }
+
+  &__notice {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin: 0 0 12px;
+    padding: 9px 12px;
+    border-radius: var(--rl);
+    background: var(--am-l);
+    color: var(--am);
+    font-size: 12.5px;
+    line-height: 1.6;
+
+    app-icon {
+      flex-shrink: 0;
+      margin-top: 3px;
+    }
+  }
+
   &__switch {
     justify-content: center;
   }

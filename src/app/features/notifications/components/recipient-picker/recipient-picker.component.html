@@ -59,7 +59,7 @@
             } @else if (list.error()) {
             {{ list.error() }} — <button type="button" class="rp__link" (click)="list.reload()">إعادة المحاولة</button>
             } @else {
-            لا يوجد عملاء مطابقون للبحث.
+            لا يوجد عملاء مفعّلون مطابقون للبحث — العملاء قيد المراجعة أو المحظورون لا يظهرون هنا.
             }
           </td>
         </tr>

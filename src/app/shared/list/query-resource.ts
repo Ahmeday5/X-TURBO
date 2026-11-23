@@ -10,6 +10,11 @@ export interface QueryResource<T> {
   readonly loading: Signal<boolean>;
   readonly error: Signal<string | null>;
   reload(): void;
+  /**
+   * Patch the loaded value locally with a write's response (e.g. upsert the
+   * saved row) — no refetch. Ignored while nothing is loaded.
+   */
+  update(fn: (current: T) => T): void;
 }
 
 export interface QueryResourceOptions<Q> {
@@ -67,5 +72,9 @@ export function createQueryResource<Q, T>(
     loading: loading.asReadonly(),
     error: error.asReadonly(),
     reload: () => reload$.next(),
+    update: (fn) => {
+      const current = value();
+      if (current !== null) value.set(fn(current));
+    },
   };
 }

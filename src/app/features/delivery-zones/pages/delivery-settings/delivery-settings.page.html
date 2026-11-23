@@ -1,0 +1,236 @@
+<app-page-header [navId]="navId()"
+  [subtitle]="current()?.updatedAt ? 'آخر تعديل ' + dateTime(current()!.updatedAt!) + (current()!.updatedBy ? ' — ' + current()!.updatedBy : '') : ''">
+  <a class="ui-btn ui-btn--ghost" routerLink="/delivery-zones">
+    <app-icon name="truck" [size]="16" /> رسوم المحافظات
+  </a>
+</app-page-header>
+
+@if (loadError(); as err) {
+<section class="panel ds-state" role="alert">
+  <app-icon name="alert" [size]="24" />
+  <p>{{ err }}</p>
+  <button type="button" class="ui-btn ui-btn--ghost ui-btn--sm" (click)="load()">إعادة المحاولة</button>
+</section>
+} @else {
+<form class="fp" [formGroup]="form" (ngSubmit)="submit()" [class.is-loading]="loading()" novalidate>
+  <div class="fp__main">
+    <!-- ── Express ── -->
+    <section class="fp__section" style="--i: 0">
+      <header class="fp__section-head">
+        <span class="fp__section-icon ds-icon--express"><app-icon name="bolt" [size]="17" /></span>
+        <div>
+          <h2>التوصيل السريع</h2>
+          <p>رسومه تُحدَّد لكل محافظة من «مناطق التوصيل» — المحافظة بدون رسوم سريع لا يظهر لها</p>
+        </div>
+      </header>
+      <div class="fp__grid fp__grid--wide">
+        <div class="ui-field fp__switch">
+          <span class="ui-label">الحالة</span>
+          <label class="ui-switch">
+            <input type="checkbox" formControlName="expressEnabled" />
+            <span class="ui-switch__track"></span>
+            {{ form.controls.expressEnabled.value ? 'تفعيل التوصيل السريع — يظهر في التطبيق' : 'التوصيل السريع موقوف' }}
+          </label>
+        </div>
+        <label class="ui-field">
+          <span class="ui-label" [class.is-required]="form.controls.expressEnabled.value">مدة التوصيل السريع</span>
+          <input class="ui-input" formControlName="expressEtaText" [maxlength]="rules.etaMax" placeholder="خلال 24 ساعة" />
+          <span class="ui-hint">نص يراه العميل تحت «سريع» — {{ form.controls.expressEtaText.value.length }}/{{ rules.etaMax }} حرف.</span>
+          <app-form-error [control]="form.controls.expressEtaText" label="مدة التوصيل السريع" />
+        </label>
+      </div>
+    </section>
+
+    <!-- ── Scheduled ── -->
+    <section class="fp__section" style="--i: 1">
+      <header class="fp__section-head">
+        <span class="fp__section-icon ds-icon--scheduled"><app-icon name="calendar" [size]="17" /></span>
+        <div>
+          <h2>حجز موعد التوصيل</h2>
+          <p>العميل يحجز ساعة واحدة (مثل 10 ص – 11 ص) من المواعيد المتاحة</p>
+        </div>
+      </header>
+
+      <div class="fp__grid">
+        <div class="ui-field fp__switch fp__span-full">
+          <span class="ui-label">الحالة</span>
+          <label class="ui-switch">
+            <input type="checkbox" formControlName="scheduledEnabled" />
+            <span class="ui-switch__track"></span>
+            {{ form.controls.scheduledEnabled.value ? 'تفعيل حجز موعد — يظهر «حدد موعد» في التطبيق' : 'حجز الموعد موقوف' }}
+          </label>
+        </div>
+
+        <label class="ui-field">
+          <span class="ui-label is-required">من الساعة</span>
+          <select class="ui-input" formControlName="slotStartHour">
+            @for (h of startHours; track h) {<option [ngValue]="h">{{ hourOption(h) }}</option>}
+          </select>
+          <span class="ui-hint">بداية أول موعد في اليوم.</span>
+          <app-form-error [control]="form.controls.slotStartHour" label="من الساعة" />
+        </label>
+
+        <label class="ui-field">
+          <span class="ui-label is-required">إلى الساعة</span>
+          <select class="ui-input" formControlName="slotEndHour">
+            @for (h of endHours; track h) {
+            <option [ngValue]="h" [disabled]="h <= form.controls.slotStartHour.value">{{ hourOption(h) }}</option>
+            }
+          </select>
+          <span class="ui-hint">نهاية آخر موعد — يجب أن تكون بعد البداية.</span>
+          <app-form-error [control]="form.controls.slotEndHour" label="إلى الساعة" />
+        </label>
+
+        <label class="ui-field">
+          <span class="ui-label is-required">الحجز لكام يوم قدام</span>
+          <div class="ui-affix">
+            <input class="ui-input ltr" type="number" [min]="rules.daysAheadMin" [max]="rules.daysAheadMax" step="1"
+              inputmode="numeric" formControlName="daysAhead" />
+            <span class="ui-affix__text">يوم</span>
+          </div>
+          <span class="ui-hint">النهارده محسوب منهم — من {{ rules.daysAheadMin }} إلى {{ rules.daysAheadMax }}.</span>
+          <app-form-error [control]="form.controls.daysAhead" label="عدد أيام الحجز" />
+        </label>
+
+        <label class="ui-field">
+          <span class="ui-label is-required">أقصى عدد طلبات في الساعة</span>
+          <div class="ui-affix">
+            <input class="ui-input ltr" type="number" [min]="rules.capacityMin" [max]="rules.capacityMax" step="1"
+              inputmode="numeric" formControlName="slotCapacity" />
+            <span class="ui-affix__text">طلب</span>
+          </div>
+          <span class="ui-hint">0 = مفتوح بدون حد. الموعد الممتلئ يظهر «محجوز» للعميل.</span>
+          <app-form-error [control]="form.controls.slotCapacity" label="أقصى عدد طلبات في الساعة" />
+        </label>
+
+        <label class="ui-field">
+          <span class="ui-label is-required">أقل وقت قبل الموعد</span>
+          <div class="ui-affix">
+            <input class="ui-input ltr" type="number" [min]="rules.leadMin" [max]="rules.leadMax" step="5"
+              inputmode="numeric" formControlName="leadMinutes" />
+            <span class="ui-affix__text">دقيقة</span>
+          </div>
+          <span class="ui-hint">لا يُحجز موعد يبدأ قبل هذه المدة من وقت الطلب — من 0 إلى {{ rules.leadMax }}.</span>
+          <app-form-error [control]="form.controls.leadMinutes" label="أقل وقت قبل الموعد" />
+        </label>
+
+        <div class="ui-field fp__span-full">
+          <span class="ui-label" id="ds-closed-label">أيام الإجازة</span>
+          <div class="ds-days" role="group" aria-labelledby="ds-closed-label">
+            @for (d of weekDays; track d.value) {
+            <label class="ds-day" [class.is-closed]="isClosed(d.value)">
+              <input type="checkbox" [checked]="isClosed(d.value)" (change)="toggleDay(d.value)" />
+              <span>{{ d.label }}</span>
+              <small>{{ isClosed(d.value) ? 'إجازة' : 'متاح' }}</small>
+            </label>
+            }
+          </div>
+          <span class="ui-hint">لا تظهر مواعيد في أيام الإجازة — ولا يمكن إغلاق كل أيام الأسبوع.</span>
+          <app-form-error [control]="form.controls.closedDays" label="أيام الإجازة" />
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ── What the customer will get (values on screen) ── -->
+  <aside class="fp__aside">
+    <div class="fp__preview">
+      <span class="fp__preview-label"><app-icon name="eye" [size]="14" /> ملخص الإعدادات المعروضة</span>
+
+      <div class="ds-sum">
+        <div class="ds-sum__row" [class.is-off]="!summary().expressOn">
+          <span class="ds-sum__icon ds-icon--express"><app-icon name="bolt" [size]="15" /></span>
+          <div>
+            <strong>سريع {{ summary().expressOn ? '' : '(موقوف)' }}</strong>
+            <small>{{ summary().eta }}</small>
+          </div>
+        </div>
+
+        <div class="ds-sum__row" [class.is-off]="!summary().scheduledOn">
+          <span class="ds-sum__icon ds-icon--scheduled"><app-icon name="calendar" [size]="15" /></span>
+          <div>
+            <strong>حدد موعد {{ summary().scheduledOn ? '' : '(موقوف)' }}</strong>
+            <small>{{ summary().perDay.length }} موعد يوميًا · {{ summary().hours }}</small>
+          </div>
+        </div>
+
+        <dl class="ds-sum__facts">
+          <div><dt>أيام الحجز</dt><dd>{{ summary().days }}</dd></div>
+          <div><dt>السعة</dt><dd>{{ summary().capacity }}</dd></div>
+          <div><dt>أقل وقت قبل الموعد</dt><dd>{{ summary().lead }}</dd></div>
+          <div><dt>الإجازات</dt><dd>{{ summary().closed }}</dd></div>
+        </dl>
+
+        @if (summary().perDay.length) {
+        <ul class="ds-sum__slots" aria-label="مواعيد اليوم">
+          @for (s of summary().perDay; track s) {<li>{{ s }}</li>}
+        </ul>
+        }
+      </div>
+    </div>
+  </aside>
+
+  <footer class="fp__actions">
+    <button type="button" class="ui-btn ui-btn--ghost" [disabled]="!form.dirty || saving()" (click)="reset()">تراجع عن التغييرات</button>
+    <button type="submit" class="ui-btn ui-btn--primary" [class.is-loading]="saving()" [disabled]="saving() || loading()">
+      <app-icon name="check" [size]="16" /> حفظ الإعدادات
+    </button>
+  </footer>
+</form>
+
+<!-- ── Live preview: GET /delivery-settings/slots ── -->
+<section class="panel ds-live">
+  <header class="panel__head">
+    <div>
+      <h3 class="panel__title">المواعيد كما يراها العميل الآن</h3>
+      <p class="panel__sub">
+        حسب الإعدادات المحفوظة والحجوزات الحالية
+        @if (bookedCount()) {· <strong class="ds-live__booked">{{ bookedCount() }} موعد محجوز بالكامل</strong>}
+      </p>
+    </div>
+    <button type="button" class="refresh-btn" [class.is-spinning]="slots.loading()" [disabled]="slots.loading()"
+      title="تحديث المواعيد" aria-label="تحديث المواعيد" (click)="reloadSlots()">
+      <app-icon name="refresh" [size]="16" />
+    </button>
+  </header>
+
+  @if (form.dirty) {
+  <p class="ds-live__dirty" role="note"><app-icon name="alert" [size]="13" /> لديك تغييرات غير محفوظة — المعاينة تتحدث بعد الحفظ.</p>
+  }
+
+  @if (slots.error() && !slots.value()) {
+  <div class="ds-state">
+    <app-icon name="alert" [size]="22" />
+    <p>{{ slots.error() }}</p>
+    <button type="button" class="ui-btn ui-btn--ghost ui-btn--sm" (click)="reloadSlots()">إعادة المحاولة</button>
+  </div>
+  } @else if (!slots.value() && slots.loading()) {
+  <div class="ds-live__skeleton">@for (i of [1, 2, 3]; track i) {<span class="skeleton"></span>}</div>
+  } @else if (!slotDays().length) {
+  <div class="ds-state">
+    <app-icon name="calendar" [size]="24" />
+    <p>لا توجد مواعيد متاحة للعميل حاليًا — حجز الموعد موقوف، أو كل الأيام القادمة إجازة، أو انتهت مواعيد اليوم.</p>
+  </div>
+  } @else {
+  <div class="ds-live__days" [class.is-refreshing]="slots.loading()">
+    @for (day of slotDays(); track day.date) {
+    <article class="ds-live__day">
+      <header>
+        <strong>{{ day.title }}</strong>
+        @if (day.tag) {<span class="ds-live__tag">{{ day.tag }}</span>}
+        <small>{{ day.available }} / {{ day.slots.length }} متاح</small>
+      </header>
+      <ul>
+        @for (s of day.slots; track s.id) {
+        <li class="ds-slot" [class.is-full]="!s.available" [title]="s.label + (s.available ? '' : ' — محجوز')">
+          <span>{{ slotTime(s) }}</span>
+          @if (!s.available) {<small>محجوز</small>}
+        </li>
+        }
+      </ul>
+    </article>
+    }
+  </div>
+  }
+</section>
+}

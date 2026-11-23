@@ -47,7 +47,7 @@
       @for (m of visibleMakes(); track m.id) {
       <li class="cc__make" role="option" [attr.aria-selected]="m.id === selectedMakeId()" [class.is-selected]="m.id === selectedMakeId()"
         [class.is-inactive]="!m.isActive" tabindex="0" (click)="selectMake(m)" (keydown.enter)="selectMake(m)">
-        <span class="cc__make-icon"><app-icon name="car" [size]="16" /></span>
+        <app-car-make-logo class="cc__make-logo" [make]="m" />
         <div class="cc__make-text">
           <strong>{{ m.name }}</strong>
           <small>

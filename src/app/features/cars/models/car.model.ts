@@ -7,6 +7,11 @@ export interface CarMake {
   id: string;
   name: string;
   nameEn: string | null;
+  /**
+   * Public, ready-to-use logo URL (no token) — `null` = no logo yet. A new
+   * upload gets a new file name, so the URL changes by itself: never add a cache-buster.
+   */
+  logoUrl: string | null;
   isActive: boolean;
   /** Display order in the app (ascending). */
   sortOrder: number;
@@ -14,6 +19,7 @@ export interface CarMake {
   modelsCount: number;
 }
 
+/** Body of POST / PUT `/car-makes` — the logo is NOT part of it (own endpoint, needs the make's id). */
 export interface CarMakePayload {
   name: string;
   nameEn?: string | null;
@@ -49,6 +55,10 @@ export const CAR_ERROR_CODES = {
   /** Model is used by item fitments or customers' cars — deactivate instead. */
   modelInUse: 'MODEL_IN_USE',
 } as const;
+
+/** First letter of the make's name — the logo placeholder. */
+export const carMakeInitial = (m: Pick<CarMake, 'name' | 'nameEn'>): string =>
+  (m.name.trim() || m.nameEn?.trim() || '؟').charAt(0).toUpperCase();
 
 /** Oldest model year the forms accept. */
 export const MIN_MODEL_YEAR = 1950;

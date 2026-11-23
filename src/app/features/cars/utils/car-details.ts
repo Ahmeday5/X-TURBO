@@ -9,6 +9,8 @@ export function toCarMakeDetails(m: CarMake): EntityDetails {
       title: m.name,
       subtitle: m.nameEn ?? undefined,
       icon: 'car',
+      imageUrl: m.logoUrl,
+      imageFit: 'contain',
       badge: m.isActive ? { label: 'نشطة', tone: 'good' } : { label: 'موقوفة', tone: 'neutral' },
     },
     sections: [
@@ -18,6 +20,7 @@ export function toCarMakeDetails(m: CarMake): EntityDetails {
         fields: [
           { label: 'الاسم بالعربي', value: m.name },
           { label: 'الاسم بالإنجليزي', value: m.nameEn, ltr: true },
+          { label: 'اللوجو', value: m.logoUrl ? 'مرفوع' : 'لا يوجد — يظهر أول حرف من الاسم', tone: m.logoUrl ? 'good' : 'muted' },
           { label: 'عدد الموديلات', value: formatInteger(m.modelsCount) },
           { label: 'ترتيب العرض في التطبيق', value: formatInteger(m.sortOrder) },
           { label: 'الظهور في التطبيق', value: m.isActive ? 'ظاهرة' : 'مخفية', tone: m.isActive ? 'good' : 'muted' },

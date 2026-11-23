@@ -18,13 +18,15 @@ export interface ListResource<T> {
 
 /**
  * Loads a server-paginated list whenever `query` changes, cancelling stale
- * requests (switchMap). Call in an injection context.
+ * requests (switchMap). A `null` query means "not ready yet" (e.g. waiting for
+ * a default filter to resolve): nothing is fetched until it becomes a query.
+ * Call in an injection context.
  */
 export function createListResource<T>(
-  query: Signal<ListQuery>,
+  query: Signal<ListQuery | null>,
   load: (query: ListQuery) => Observable<PagedResponse<T>>,
 ): ListResource<T> {
-  const page = createQueryResource(query, load);
+  const page = createQueryResource(query, (q) => load(q!), { enabled: (q) => q !== null });
 
   return {
     items: computed(() => page.value()?.data ?? []),

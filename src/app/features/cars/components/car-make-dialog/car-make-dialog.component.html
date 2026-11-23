@@ -1,0 +1,50 @@
+<app-modal [open]="open()" [title]="isEdit() ? 'تعديل الماركة' : 'ماركة جديدة'" size="sm" (closed)="close()">
+  <form id="car-make-form" class="cd" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+    <div class="cmd-logo">
+      <app-image-picker label="لوجو الماركة" fit="contain" removeLabel="إزالة اللوجو" [src]="logo.src()" [disabled]="saving()"
+        hint="PNG بخلفية شفافة يظهر أفضل في التطبيق — JPG أو PNG أو WEBP حتى 5 ميجا." (picked)="logo.pick($event)"
+        (removed)="logo.remove()" />
+
+      @if (removalPending()) {
+      <p class="cmd-logo__note" role="status">
+        <app-icon name="alert" [size]="13" /> سيُحذف اللوجو الحالي عند الحفظ.
+        <button type="button" class="cmd-logo__undo" [disabled]="saving()" (click)="logo.reset()">تراجع</button>
+      </p>
+      } @else if (logo.change()?.kind === 'upload') {
+      <p class="cmd-logo__note cmd-logo__note--info" role="status">
+        <app-icon name="upload" [size]="13" /> يُرفع اللوجو الجديد بعد حفظ الماركة.
+      </p>
+      }
+    </div>
+
+    <label class="ui-field">
+      <span class="ui-label is-required">الاسم بالعربي</span>
+      <input class="ui-input" formControlName="name" placeholder="مثال: تويوتا" />
+      <app-form-error [control]="form.controls.name" label="الاسم" />
+    </label>
+    <label class="ui-field">
+      <span class="ui-label">الاسم بالإنجليزي</span>
+      <input class="ui-input ltr" formControlName="nameEn" placeholder="Toyota" />
+      <app-form-error [control]="form.controls.nameEn" label="الاسم بالإنجليزي" />
+    </label>
+    <label class="ui-field">
+      <span class="ui-label is-required">ترتيب العرض</span>
+      <input class="ui-input" type="number" min="0" step="1" formControlName="sortOrder" />
+      <span class="ui-hint">الأصغر يظهر أولًا في تطبيق الموبايل.</span>
+      <app-form-error [control]="form.controls.sortOrder" label="ترتيب العرض" />
+    </label>
+    <label class="ui-switch">
+      <input type="checkbox" formControlName="isActive" />
+      <span class="ui-switch__track"></span>
+      {{ form.controls.isActive.value ? 'ماركة نشطة — تظهر في التطبيق' : 'موقوفة — مخفية من التطبيق' }}
+    </label>
+  </form>
+
+  <div modal-footer class="cd__footer">
+    <button type="button" class="ui-btn ui-btn--ghost" [disabled]="saving()" (click)="close()">إلغاء</button>
+    <button type="submit" form="car-make-form" class="ui-btn ui-btn--primary" [disabled]="saving()" [attr.aria-busy]="saving()">
+      @if (saving()) {<span class="cmd-spinner" aria-hidden="true"></span>} @else {<app-icon name="check" [size]="16" />}
+      {{ submitLabel() }}
+    </button>
+  </div>
+</app-modal>

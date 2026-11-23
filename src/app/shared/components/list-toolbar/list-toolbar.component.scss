@@ -85,13 +85,47 @@
   }
 }
 
+/*
+ * Filters: their own row under search + controls, as a compact grid — as many
+ * ~200px columns as fit (one row of 5 on a desktop, 3 on a tablet, 2 on a
+ * phone, 1 on the narrowest), never one full-width select per row.
+ * Projected filters may be `display: contents` hosts (app-filter-select,
+ * app-car-filter), so sizing targets the real controls inside.
+ */
 .lt__filters {
-  display: contents;
+  container: lt-filters / inline-size;
+  order: 1;
+  flex: 1 1 100%;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr));
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding-top: 10px;
+  border-top: 1px dashed var(--brd);
 
+  // No filters projected → no empty row.
+  &:empty {
+    display: none;
+  }
+
+  > *,
   ::ng-deep [filters] {
-    flex: 0 1 190px;
-    min-width: 150px;
+    min-width: 0;
+  }
+
+  ::ng-deep .ui-input {
+    width: 100%;
+    min-width: 0;
     height: 40px;
+    text-overflow: ellipsis;
+  }
+
+  @media (max-width: 575.98px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  @media (max-width: 359.98px) {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
@@ -215,9 +249,6 @@
 }
 
 @media (max-width: 575.98px) {
-  .lt__filters ::ng-deep [filters] {
-    flex: 1 1 calc(50% - 5px);
-  }
   .lt__end {
     width: 100%;
     justify-content: space-between;

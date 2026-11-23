@@ -1,6 +1,6 @@
-import { ChangeDetectionStrategy, Component, computed, effect, inject, input, output, signal, untracked } from '@angular/core';
-import { toSignal } from '@angular/core/rxjs-interop';
-import { AbstractControl, NonNullableFormBuilder, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
+import { ChangeDetectionStrategy, Component, computed, DestroyRef, effect, inject, input, output, signal, untracked } from '@angular/core';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
+import { AbstractControl, FormControl, NonNullableFormBuilder, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
 import { finalize } from 'rxjs';
 import { ApiError } from '../../../../core/models/api-response.model';
 import { ToastService } from '../../../../core/services/toast.service';
@@ -32,6 +32,13 @@ function daysRange(group: AbstractControl): ValidationErrors | null {
   return null;
 }
 
+/** Optional fee (express / scheduled): required and ≥ 0 while offered; disabled (and sent as `null`) otherwise. */
+const optionalFeeValidators = (subject: string) => [Validators.required, AppValidators.nonNegative(subject)];
+
+const toFee = (value: unknown): number => Math.round(Number(value) * 100) / 100;
+
+const isBlank = (value: unknown): boolean => value === null || value === undefined || String(value) === '';
+
 /** Create / edit a delivery zone. `zone` null → create (optionally for `presetGovernorate`). */
 @Component({
   selector: 'app-zone-dialog',
@@ -45,6 +52,7 @@ export class ZoneDialogComponent {
   private readonly fb = inject(NonNullableFormBuilder);
   private readonly api = inject(DeliveryZonesService);
   private readonly toast = inject(ToastService);
+  private readonly destroyRef = inject(DestroyRef);
 
   readonly open = input.required<boolean>();
   readonly zone = input<DeliveryZone | null>(null);
@@ -81,6 +89,10 @@ export class ZoneDialogComponent {
         AppValidators.wholeNumber('أقصى مدة'),
       ]),
       freeShippingThreshold: this.fb.control<number | null>(null, AppValidators.positive('حد الشحن المجاني')),
+      expressEnabled: [false],
+      expressFee: this.fb.control<number | null>(null, optionalFeeValidators('رسوم التوصيل السريع')),
+      scheduledEnabled: [false],
+      scheduledFee: this.fb.control<number | null>(null, optionalFeeValidators('رسوم التوصيل في موعد')),
       isActive: [true],
     },
     { validators: daysRange },
@@ -88,22 +100,27 @@ export class ZoneDialogComponent {
 
   private readonly draft = toSignal(this.form.valueChanges, { initialValue: this.form.getRawValue() });
 
-  /** One line the customer would read at checkout. */
+  /** One line the customer would read at checkout, per delivery type offered. */
   protected readonly preview = computed(() => {
-    const v = { ...this.form.getRawValue(), ...this.draft() };
+    this.draft();
+    const v = this.form.getRawValue();
     const min = Number(v.estimatedDaysMin);
     const max = Number(v.estimatedDaysMax);
-    const fee = Number(v.fee);
     const free = v.freeShippingThreshold ? Number(v.freeShippingThreshold) : null;
     return {
       governorate: v.governorate || 'المحافظة',
-      fee: Number.isFinite(fee) && v.fee !== null ? (fee === 0 ? 'توصيل مجاني' : formatMoney(fee)) : '—',
+      fee: this.feeText(v.fee) ?? '—',
       days: Number.isInteger(min) && Number.isInteger(max) && max >= min ? deliveryDaysLabel(min, max) : '—',
-      free: free && free > 0 ? `شحن مجاني للطلبات من ${formatMoney(free)}` : null,
+      free: free && free > 0 ? `شحن مجاني للطلبات من ${formatMoney(free)} (التوصيل العادي فقط)` : null,
+      express: v.expressEnabled ? (this.feeText(v.expressFee) ?? '—') : null,
+      scheduled: v.scheduledEnabled ? (this.feeText(v.scheduledFee) ?? '—') : null,
     };
   });
 
   constructor() {
+    this.bindOptionalFee(this.form.controls.expressEnabled, this.form.controls.expressFee);
+    this.bindOptionalFee(this.form.controls.scheduledEnabled, this.form.controls.scheduledFee);
+
     effect(() => {
       if (!this.open()) return;
       const z = this.zone();
@@ -117,9 +134,24 @@ export class ZoneDialogComponent {
                 estimatedDaysMin: z.estimatedDaysMin,
                 estimatedDaysMax: z.estimatedDaysMax,
                 freeShippingThreshold: z.freeShippingThreshold,
+                expressEnabled: z.expressFee !== null && z.expressFee !== undefined,
+                expressFee: z.expressFee ?? null,
+                scheduledEnabled: z.scheduledFee !== null && z.scheduledFee !== undefined,
+                scheduledFee: z.scheduledFee ?? null,
                 isActive: z.isActive,
               }
-            : { governorate: preset ?? '', fee: null, estimatedDaysMin: 1, estimatedDaysMax: 3, freeShippingThreshold: null, isActive: true },
+            : {
+                governorate: preset ?? '',
+                fee: null,
+                estimatedDaysMin: 1,
+                estimatedDaysMax: 3,
+                freeShippingThreshold: null,
+                expressEnabled: false,
+                expressFee: null,
+                scheduledEnabled: false,
+                scheduledFee: null,
+                isActive: true,
+              },
         ),
       );
     });
@@ -131,13 +163,15 @@ export class ZoneDialogComponent {
       return;
     }
     const v = this.form.getRawValue();
-    const threshold = v.freeShippingThreshold === null || String(v.freeShippingThreshold) === '' ? null : Number(v.freeShippingThreshold);
     const payload: DeliveryZonePayload = {
       governorate: v.governorate,
-      fee: Math.round(Number(v.fee) * 100) / 100,
+      fee: toFee(v.fee),
       estimatedDaysMin: Number(v.estimatedDaysMin),
       estimatedDaysMax: Number(v.estimatedDaysMax),
-      freeShippingThreshold: threshold,
+      freeShippingThreshold: isBlank(v.freeShippingThreshold) ? null : Number(v.freeShippingThreshold),
+      // Always sent — an omitted fee is cleared by the server. Unticked = not offered = null.
+      expressFee: v.expressEnabled ? toFee(v.expressFee) : null,
+      scheduledFee: v.scheduledEnabled ? toFee(v.scheduledFee) : null,
       isActive: v.isActive,
     };
     const id = this.zone()?.id;
@@ -151,5 +185,24 @@ export class ZoneDialogComponent {
         },
         error: (err: ApiError) => applyServerErrors(this.form, err),
       });
+  }
+
+  /** "مجاني" / "120 ج.م", or null when the value isn't a usable number yet. */
+  private feeText(value: unknown): string | null {
+    if (isBlank(value)) return null;
+    const n = Number(value);
+    if (!Number.isFinite(n) || n < 0) return null;
+    return n === 0 ? 'مجاني' : formatMoney(n);
+  }
+
+  /** The "متاح" checkbox switches its fee input on / off (a disabled control skips validation). */
+  private bindOptionalFee(enabled: FormControl<boolean>, fee: FormControl<number | null>): void {
+    const sync = (on: boolean) => {
+      if (on === fee.enabled) return;
+      if (on) fee.enable({ emitEvent: false });
+      else fee.disable({ emitEvent: false });
+    };
+    sync(enabled.value);
+    enabled.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(sync);
   }
 }

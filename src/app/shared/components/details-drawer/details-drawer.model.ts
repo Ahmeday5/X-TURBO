@@ -30,6 +30,8 @@ export interface DetailHeader {
   icon?: IconName;
   /** Thumbnail shown instead of the icon (public URL). */
   imageUrl?: string | null;
+  /** `contain` for logos (never cropped); default `cover` for photos. */
+  imageFit?: 'cover' | 'contain';
   badge?: { label: string; tone: 'good' | 'warning' | 'danger' | 'info' | 'neutral' };
 }
 

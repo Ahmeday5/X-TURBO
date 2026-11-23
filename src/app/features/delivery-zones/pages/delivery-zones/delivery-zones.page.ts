@@ -16,6 +16,7 @@ import {
   DeliveryZone,
   EGYPT_GOVERNORATES,
   governorateRank,
+  optionalFeeLabel,
   toZonePayload,
 } from '../../models/delivery-zone.model';
 import { DeliveryZonesService } from '../../services/delivery-zones.service';
@@ -44,6 +45,7 @@ export class DeliveryZonesPage {
 
   protected readonly money = formatMoney;
   protected readonly days = deliveryDaysLabel;
+  protected readonly optionalFee = (fee: number | null) => optionalFeeLabel(fee, formatMoney);
 
   protected readonly zones = createQueryResource(signal(0), () => this.api.list(), { errorMessage: 'تعذّر تحميل مناطق التوصيل' });
   protected readonly sorted = computed(() =>
@@ -60,6 +62,10 @@ export class DeliveryZonesPage {
   /** Zones that exist but are switched off. */
   protected readonly inactive = computed(() => this.sorted().filter((z) => !z.isActive));
   protected readonly noDeliveryCount = computed(() => this.unzoned().length + this.inactive().length);
+  /** Active zones where express or scheduled isn't offered (fee `null`) — existing zones start that way. */
+  protected readonly missingExtraFees = computed(() =>
+    this.sorted().filter((z) => z.isActive && (z.expressFee === null || z.scheduledFee === null)),
+  );
 
   protected readonly tiles = computed<SummaryTile[]>(() => {
     const list = this.zones.value();

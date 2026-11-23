@@ -44,6 +44,8 @@ import { todayIsoDate } from '../../../../shared/utils/date-iso.util';
 import { FilterOption } from '../../../../shared/components/filter-select/filter-select.component';
 import { NO_DRIVER } from '../../../drivers/models/driver.model';
 import { DriversService } from '../../../drivers/services/drivers.service';
+import { DeliveryBadgeComponent } from '../../../delivery-zones/components/delivery-badge/delivery-badge.component';
+import { DELIVERY_TYPE_VIEW, DELIVERY_TYPES, DeliveryType } from '../../../delivery-zones/models/delivery-type.model';
 
 interface SummaryTile {
   label: string;
@@ -60,7 +62,9 @@ const SUMMARY_TILES: readonly SummaryTile[] = [
   { label: 'بانتظار التجهيز', icon: 'clock', value: (s) => s.byStatus.pending + s.byStatus.processing, format: formatInteger, tone: 'var(--am)' },
 ];
 
-const ORDER_FILTERS = ['status', 'channel', 'payment', 'period', 'driverId'] as const;
+const ORDER_FILTERS = ['status', 'channel', 'payment', 'period', 'driverId', 'deliveryType', 'scheduledDate'] as const;
+
+const SCHEDULED: DeliveryType = 'scheduled';
 
 /** Orders: status tabs, search, filters, sort, paging, table/cards, details drawer — all in the URL. */
 @Component({
@@ -71,6 +75,7 @@ const ORDER_FILTERS = ['status', 'channel', 'payment', 'period', 'driverId'] as 
     AvatarComponent,
     CountUpDirective,
     DataTableComponent,
+    DeliveryBadgeComponent,
     FilterSelectComponent,
     IconComponent,
     ListToolbarComponent,
@@ -122,6 +127,16 @@ export class OrdersPage {
   protected readonly channelOptions = toFilterOptions(ORDER_CHANNELS, (c) => CHANNEL_LABEL[c]);
   protected readonly paymentOptions = toFilterOptions(PAYMENT_STATUSES, (p) => PAYMENT_STATUS_VIEW[p].label);
   protected readonly periodOptions = ORDER_PERIODS;
+  protected readonly deliveryTypeOptions = toFilterOptions(DELIVERY_TYPES, (t) => DELIVERY_TYPE_VIEW[t].label);
+
+  protected readonly deliveryType = computed<string | null>(() => this.state.query().filters['deliveryType'] ?? null);
+  protected readonly scheduledDate = computed<string | null>(() => this.state.query().filters['scheduledDate'] ?? null);
+  /** The day picker only makes sense for scheduled orders. */
+  protected readonly showScheduledDate = computed(() => this.deliveryType() === SCHEDULED || !!this.scheduledDate());
+  /** "مواعيد النهارده" is on: scheduled orders booked for today (Cairo). */
+  protected readonly todayScheduleActive = computed(
+    () => this.deliveryType() === SCHEDULED && this.scheduledDate() === todayIsoDate(),
+  );
 
   private readonly driverLookup = createQueryResource(signal(true), () => this.drivers.lookup(), {
     errorMessage: 'تعذّر تحميل المناديب',
@@ -151,10 +166,12 @@ export class OrdersPage {
   private readonly paymentCell = viewChild.required<TemplateRef<{ $implicit: OrderSummary }>>('paymentCell');
   private readonly statusCell = viewChild.required<TemplateRef<{ $implicit: OrderSummary }>>('statusCell');
   private readonly driverCell = viewChild.required<TemplateRef<{ $implicit: OrderSummary }>>('driverCell');
+  private readonly deliveryCell = viewChild.required<TemplateRef<{ $implicit: OrderSummary }>>('deliveryCell');
 
   protected readonly columns = computed<TableColumn<OrderSummary>[]>(() => [
     { key: 'createdAt', label: 'الطلب', sortable: true, width: '150px', cellTemplate: this.numberCell() },
     { key: 'customerName', label: 'العميل', sortable: true, cellTemplate: this.customerCell() },
+    { key: 'delivery', label: 'التوصيل', cellTemplate: this.deliveryCell() },
     { key: 'channel', label: 'القناة', cellTemplate: this.channelCell() },
     { key: 'total', label: 'الإجمالي', sortable: true, align: 'end', cellTemplate: this.totalCell() },
     { key: 'paymentStatus', label: 'الدفع', align: 'center', cellTemplate: this.paymentCell() },
@@ -194,6 +211,29 @@ export class OrdersPage {
     this.state.setFilter('status', status);
   }
 
+  /** Leaving "scheduled" drops the booked-day filter (it only applies to scheduled orders). */
+  protected setDeliveryType(type: string | null): void {
+    this.state.setFilters({ deliveryType: type, scheduledDate: type === SCHEDULED ? this.scheduledDate() : null });
+  }
+
+  /** Picking a booked day implies scheduled orders. */
+  protected setScheduledDate(date: string | null): void {
+    this.state.setFilters({ scheduledDate: date, deliveryType: date ? SCHEDULED : this.deliveryType() });
+  }
+
+  /**
+   * Quick filter: today's booked slots (`deliveryType=scheduled&scheduledDate=<today>`).
+   * The creation-period filter is dropped — a slot booked for today may have been ordered days ago.
+   * A second click turns it off.
+   */
+  protected toggleTodaySchedule(): void {
+    if (this.todayScheduleActive()) {
+      this.state.setFilters({ deliveryType: null, scheduledDate: null });
+      return;
+    }
+    this.state.setFilters({ deliveryType: SCHEDULED, scheduledDate: todayIsoDate(), period: null });
+  }
+
   protected refresh(): void {
     this.list.reload();
     this.stats.reload();
@@ -224,6 +264,8 @@ export class OrdersPage {
           { label: 'حالة الدفع', value: (o) => PAYMENT_STATUS_VIEW[o.paymentStatus].label },
           { label: 'الحالة', value: (o) => ORDER_STATUS_VIEW[o.status].label },
           { label: 'المندوب', value: (o) => o.driverName ?? '' },
+          { label: 'نوع التوصيل', value: (o) => o.delivery?.typeName ?? '' },
+          { label: 'موعد التوصيل', value: (o) => o.delivery?.slot?.label ?? '' },
           { label: 'بلاغ مفتوح', value: (o) => (o.hasOpenProblem ? 'نعم' : '') },
         ]);
         this.toast.success(`تم تصدير ${formatInteger(rows.length)} طلب`);

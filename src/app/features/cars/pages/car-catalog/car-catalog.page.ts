@@ -11,6 +11,7 @@ import { matchesAll, tokenize } from '../../../../shared/utils/arabic-search.uti
 import { formatInteger } from '../../../../shared/utils/format.util';
 import { CarMakeDialogComponent } from '../../components/car-make-dialog/car-make-dialog.component';
 import { CarModelDialogComponent } from '../../components/car-model-dialog/car-model-dialog.component';
+import { CarMakeLogoComponent } from '../../components/car-make-logo/car-make-logo.component';
 import {
   CAR_ERROR_CODES,
   CarMake,
@@ -32,7 +33,14 @@ import { DetailsDrawerComponent } from '../../../../shared/components/details-dr
   selector: 'app-car-catalog-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [PageHeaderComponent, IconComponent, CarMakeDialogComponent, CarModelDialogComponent, DetailsDrawerComponent],
+  imports: [
+    PageHeaderComponent,
+    IconComponent,
+    CarMakeDialogComponent,
+    CarMakeLogoComponent,
+    CarModelDialogComponent,
+    DetailsDrawerComponent,
+  ],
   templateUrl: './car-catalog.page.html',
   styleUrl: './car-catalog.page.scss',
 })
@@ -140,10 +148,11 @@ export class CarCatalogPage {
     this.makeDialogOpen.set(true);
   }
 
+  /** `m` is the latest server response (after the logo step) — the row is updated from it, no refetch. */
   protected onMakeSaved(m: CarMake): void {
     this.makeDialogOpen.set(false);
+    this.makes.update((list) => (list.some((x) => x.id === m.id) ? list.map((x) => (x.id === m.id ? m : x)) : [...list, m]));
     this.selectedMakeId.set(m.id);
-    this.makes.reload();
   }
 
   protected async removeMake(m: CarMake): Promise<void> {

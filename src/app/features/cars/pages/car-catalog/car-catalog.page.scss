@@ -76,6 +76,10 @@
     }
   }
 
+  &__make-logo {
+    flex-shrink: 0;
+  }
+
   &__make-icon {
     display: grid;
     flex-shrink: 0;
