@@ -65,8 +65,26 @@ export class CarCatalogService {
     return this.api.put<CarModel>(API_ENDPOINTS.carModels.byId(id), payload);
   }
 
-  /** Errors are NOT toasted — the caller handles 409 `MODEL_IN_USE`. */
+  /** Errors are NOT toasted — the caller handles 409 `MODEL_IN_USE`. Removes the photo file too. */
   deleteModel(id: string): Observable<void> {
     return this.api.delete<void>(API_ENDPOINTS.carModels.byId(id), { context: withSilentErrors() });
+  }
+
+  /**
+   * Upload / replace the model's car photo (multipart `file`; no manual
+   * Content-Type) → the full model with its new `imageUrl`. Silent: the caller
+   * shows the 422 `message`.
+   */
+  uploadModelImage(id: string, file: File): Observable<UploadEvent<CarModel>> {
+    const body = new FormData();
+    body.append('file', file, file.name);
+    return this.api.upload<CarModel>(API_ENDPOINTS.carModels.image(id), body, {
+      context: withNoTimeout(withSilentErrors(withSkipLoader())),
+    });
+  }
+
+  /** Remove the car photo → the full model with `imageUrl: null`. Silent, like the upload. */
+  deleteModelImage(id: string): Observable<CarModel> {
+    return this.api.delete<CarModel>(API_ENDPOINTS.carModels.image(id), { context: withSilentErrors(withSkipLoader()) });
   }
 }

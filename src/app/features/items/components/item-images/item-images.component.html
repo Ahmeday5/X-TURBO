@@ -1,18 +1,22 @@
 <section class="ii">
   <header class="ii__head">
+    @if (!embedded()) {
     <div>
       <h2>صور الصنف</h2>
-      <p>الصورة الرئيسية (★) هي اللي بتظهر على كارت المنتج في تطبيق الموبايل. اسحب الصور لتغيير ترتيبها.</p>
+      <p>الصورة الرئيسية (★) هي اللي بتظهر في دليل الأصناف والفواتير وتطبيق الموبايل. اسحب الصور لتغيير ترتيبها.</p>
     </div>
+    } @else {
+    <p class="ii__lead">الصورة الرئيسية (★) تظهر في دليل الأصناف والفواتير وتطبيق الموبايل — اسحب الصور لتغيير ترتيبها.</p>
+    }
     <span class="ii__count" [class.is-full]="imageCount() >= rules.maxPerItem">
       {{ imageCount() }} / {{ rules.maxPerItem }}
     </span>
   </header>
 
   <!-- Drop zone -->
-  <label class="ii__drop" [class.is-active]="dropActive()" [class.is-disabled]="slotsLeft() <= 0"
+  <label class="ii__drop" [class.is-active]="dropActive()" [class.is-disabled]="slotsLeft() <= 0 || committing()"
     (dragover)="onDragOver($event)" (dragleave)="dropActive.set(false)" (drop)="onDrop($event)">
-    <input #picker type="file" multiple [accept]="rules.accept" [disabled]="slotsLeft() <= 0"
+    <input #picker type="file" multiple [accept]="rules.accept" [disabled]="slotsLeft() <= 0 || committing()"
       (change)="onFilesPicked(picker)" />
     <app-icon name="upload" [size]="26" />
     @if (slotsLeft() > 0) {
@@ -70,32 +74,63 @@
 
   <!-- Gallery -->
   @if (draftMode()) {
+  @if (committing()) {
+  <p class="ii__draft-note" role="status" aria-live="polite">
+    <app-icon name="upload" [size]="14" />
+    @if (draft!.uploadProgress(); as p) {
+    جارٍ رفع الصورة {{ p.current }} من {{ p.total }}{{ p.percent !== null ? ' — ' + p.percent + '%' : '…' }}
+    } @else {
+    جارٍ حفظ الصنف…
+    }
+  </p>
+  } @else {
   <p class="ii__draft-note" role="note">
     <app-icon name="upload" [size]="14" /> سيتم رفع الصور بعد حفظ الصنف، بنفس هذا الترتيب — الصورة الأولى هي الرئيسية.
   </p>
+  }
   @if (!draft!.images().length) {
   <div class="ii__state"><app-icon name="image" [size]="26" /><p>لم تُضف صور بعد</p></div>
   } @else {
   <ol class="ii__grid" aria-label="الصور المختارة بالترتيب">
     @for (img of draft!.images(); track img.key; let i = $index, first = $first, last = $last) {
+    @let up = uploadState(img.key);
     <li class="ii__tile" [class.is-primary]="first">
       <img [src]="img.previewUrl" [alt]="'صورة ' + (i + 1)" />
       <span class="ii__order">{{ i + 1 }}</span>
       @if (first) {<span class="ii__badge"><app-icon name="star" [size]="12" /> الرئيسية</span>}
+
+      <!-- Upload state while the new item is being saved -->
+      @if (up) {
+      <div [class]="'ii__up ii__up--' + up.status" [attr.title]="up.error">
+        @switch (up.status) {
+          @case ('queued') {<small>في الانتظار</small>}
+          @case ('uploading') {
+          <small>{{ up.percent === null ? 'جارٍ الرفع…' : up.percent + '%' }}</small>
+          <span class="ii__bar" [class.is-indeterminate]="up.percent === null" role="progressbar"
+            [attr.aria-valuenow]="up.percent" aria-valuemin="0" aria-valuemax="100" [attr.aria-label]="'رفع الصورة ' + (i + 1)">
+            <span [style.width.%]="up.percent ?? 40"></span>
+          </span>
+          }
+          @case ('done') {<app-icon name="check" [size]="18" /><small>تم الرفع</small>}
+          @case ('error') {<app-icon name="alert" [size]="18" /><small role="alert">{{ up.error }}</small>}
+        }
+      </div>
+      }
+
       <div class="ii__tile-acts">
-        <button type="button" class="ii__btn" [disabled]="first" title="تعيين كصورة رئيسية"
+        <button type="button" class="ii__btn" [disabled]="first || committing()" title="تعيين كصورة رئيسية"
           [attr.aria-label]="'تعيين الصورة ' + (i + 1) + ' كرئيسية'" (click)="makeDraftPrimary(i)">
           <app-icon name="star" [size]="15" />
         </button>
-        <button type="button" class="ii__btn" [disabled]="first" title="تقديم" [attr.aria-label]="'تقديم الصورة ' + (i + 1)"
+        <button type="button" class="ii__btn" [disabled]="first || committing()" title="تقديم" [attr.aria-label]="'تقديم الصورة ' + (i + 1)"
           (click)="shiftDraft(i, -1)">
           <app-icon name="chevron-left" [size]="15" />
         </button>
-        <button type="button" class="ii__btn" [disabled]="last" title="تأخير" [attr.aria-label]="'تأخير الصورة ' + (i + 1)"
+        <button type="button" class="ii__btn" [disabled]="last || committing()" title="تأخير" [attr.aria-label]="'تأخير الصورة ' + (i + 1)"
           (click)="shiftDraft(i, 1)">
           <app-icon name="chevron-left" [size]="15" class="ii__flip" />
         </button>
-        <button type="button" class="ii__btn ii__btn--danger" title="إزالة" [attr.aria-label]="'إزالة الصورة ' + (i + 1)"
+        <button type="button" class="ii__btn ii__btn--danger" [disabled]="committing()" title="إزالة" [attr.aria-label]="'إزالة الصورة ' + (i + 1)"
           (click)="removeDraft(img.key)">
           <app-icon name="trash" [size]="15" />
         </button>

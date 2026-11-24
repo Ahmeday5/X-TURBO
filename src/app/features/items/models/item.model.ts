@@ -38,6 +38,12 @@ export interface Item {
   createdAt: string;
 
   // ── Computed by the server (read-only) ──
+  /**
+   * The PRIMARY photo's public URL (no token) — `null` = no photos. Uploaded
+   * once on the item (`/items/{id}/images`), shown everywhere (directory,
+   * documents, the app). A new photo gets a new URL: never add a cache-buster.
+   */
+  imageUrl: string | null;
   /** Average of VISIBLE reviews, 1 decimal; 0 = no reviews. */
   averageRating: number;
   /** Number of visible reviews. */

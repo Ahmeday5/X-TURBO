@@ -33,12 +33,18 @@ export interface CarModel {
   makeName: string;
   name: string;
   nameEn: string | null;
+  /**
+   * Public, ready-to-use car photo URL (no token) — `null` = no photo yet. A new
+   * upload gets a new file name, so the URL changes by itself: never add a cache-buster.
+   */
+  imageUrl: string | null;
   yearFrom: number;
   /** `null` = still in production. */
   yearTo: number | null;
   isActive: boolean;
 }
 
+/** Body of POST / PUT `/car-models` — the photo is NOT part of it (own endpoint, needs the model's id). */
 export interface CarModelPayload {
   makeId: string;
   name: string;

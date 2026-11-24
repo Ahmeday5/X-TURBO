@@ -40,7 +40,7 @@ interface LogoOutcome {
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [ReactiveFormsModule, ModalComponent, FormErrorComponent, IconComponent, ImagePickerComponent],
   templateUrl: './car-make-dialog.component.html',
-  styleUrls: ['../car-dialog.shared.scss', './car-make-dialog.component.scss'],
+  styleUrl: '../car-dialog.shared.scss',
 })
 export class CarMakeDialogComponent {
   private readonly fb = inject(NonNullableFormBuilder);

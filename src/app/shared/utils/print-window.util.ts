@@ -22,6 +22,33 @@ export function writePrintWindow(win: Window, html: string): void {
   win.document.close();
 }
 
+/** Longest wait for a print's images before printing anyway (slow network / dead link). */
+export const PRINT_IMAGES_TIMEOUT_MS = 6000;
+
+/**
+ * `<script>` for a print document that holds `print()` until every `<img>`
+ * has loaded or failed (capped at `PRINT_IMAGES_TIMEOUT_MS`), so photos are
+ * never printed blank. A broken image is hidden rather than printed as an icon.
+ */
+export const PRINT_WHEN_IMAGES_READY_SCRIPT = `<script>
+(function () {
+  var printed = false;
+  function go() { if (printed) return; printed = true; window.focus(); window.print(); }
+  function settle(img) {
+    return new Promise(function (done) {
+      if (img.complete) { if (!img.naturalWidth) img.style.visibility = 'hidden'; return done(); }
+      img.addEventListener('load', function () { done(); }, { once: true });
+      img.addEventListener('error', function () { img.style.visibility = 'hidden'; done(); }, { once: true });
+    });
+  }
+  window.addEventListener('load', function () {
+    var imgs = Array.prototype.slice.call(document.images);
+    Promise.all(imgs.map(settle)).then(go);
+    setTimeout(go, ${PRINT_IMAGES_TIMEOUT_MS});
+  });
+})();
+</script>`;
+
 export const POPUP_BLOCKED_MESSAGE = 'المتصفح منع نافذة الطباعة — اسمح بالنوافذ المنبثقة لهذا الموقع ثم أعد المحاولة';
 
 export function escapeHtml(value: unknown): string {

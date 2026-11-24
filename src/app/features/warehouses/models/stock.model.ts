@@ -86,4 +86,6 @@ export interface ItemLookup {
   /** What can be sold from this warehouse (capped by the item's overall net). Server-computed. */
   available: number;
   minStock: number;
+  /** The item's primary photo (public URL) — `null` / missing = none. */
+  imageUrl?: string | null;
 }

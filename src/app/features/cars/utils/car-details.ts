@@ -37,6 +37,8 @@ export function toCarModelDetails(m: CarModel): EntityDetails {
       title: `${m.makeName} ${m.name}`,
       subtitle: modelYearsLabel(m),
       icon: 'car',
+      imageUrl: m.imageUrl,
+      imageFit: 'cover',
       badge: m.isActive ? { label: 'نشط', tone: 'good' } : { label: 'موقوف', tone: 'neutral' },
     },
     sections: [
@@ -47,6 +49,7 @@ export function toCarModelDetails(m: CarModel): EntityDetails {
           { label: 'الماركة', value: m.makeName },
           { label: 'الموديل', value: m.name },
           { label: 'الاسم بالإنجليزي', value: m.nameEn, ltr: true },
+          { label: 'صورة العربية', value: m.imageUrl ? 'مرفوعة' : 'لا توجد — تظهر أيقونة عربية', tone: m.imageUrl ? 'good' : 'muted' },
           { label: 'سنوات الإنتاج', value: modelYearsLabel(m), ltr: true },
           { label: 'من سنة', value: m.yearFrom, ltr: true },
           { label: 'إلى سنة', value: m.yearTo ?? 'لا يزال يُصنَّع', ltr: !!m.yearTo },

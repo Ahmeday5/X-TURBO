@@ -7,6 +7,9 @@ import { DrawerComponent } from '../../../../shared/components/drawer/drawer.com
 import { IconComponent } from '../../../../shared/components/icon/icon.component';
 import { ModalComponent } from '../../../../shared/components/modal/modal.component';
 import { StatusPillComponent } from '../../../../shared/components/status-pill/status-pill.component';
+import { ProductThumbComponent } from '../../../../shared/components/product-thumb/product-thumb.component';
+import { POPUP_BLOCKED_MESSAGE } from '../../../../shared/utils/print-window.util';
+import { DocumentPrintSettingsService } from '../../services/document-print-settings.service';
 import { createQueryResource } from '../../../../shared/list/query-resource';
 import { formatDateTime, formatDayMonth, formatInteger, formatMoney } from '../../../../shared/utils/format.util';
 import { pluralAr } from '../../../../shared/utils/plural.util';
@@ -48,7 +51,7 @@ function postConfirmMessage(d: Document): string {
   selector: 'app-document-drawer',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, DrawerComponent, IconComponent, ModalComponent, StatusPillComponent],
+  imports: [RouterLink, DrawerComponent, IconComponent, ModalComponent, StatusPillComponent, ProductThumbComponent],
   templateUrl: './document-drawer.component.html',
   styleUrl: './document-drawer.component.scss',
 })
@@ -59,6 +62,7 @@ export class DocumentDrawerComponent {
   private readonly dialog = inject(DialogService);
   private readonly toast = inject(ToastService);
   private readonly router = inject(Router);
+  protected readonly printSettings = inject(DocumentPrintSettingsService);
 
   readonly docId = input<string | null>(null);
 
@@ -146,8 +150,10 @@ export class DocumentDrawerComponent {
   }
 
   protected print(d: Document): void {
-    printDocument(d);
+    if (!printDocument(d, { showImages: this.printSettings.showImages() })) this.toast.error(POPUP_BLOCKED_MESSAGE);
   }
+
+  protected readonly hasLinePhotos = (d: Document) => d.lines.some((l) => !!l.imageUrl);
 
   /** One label per received unit, in the label-printing screen. */
   /** Printed right here (no trip to the labels page, which needs Items.View) with this device's label settings. */

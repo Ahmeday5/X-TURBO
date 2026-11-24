@@ -1,6 +1,10 @@
 @let it = item();
 <header class="ic__head">
+  @if (it.imageUrl) {
+  <app-product-thumb class="ic__photo" [src]="it.imageUrl" [alt]="it.name || 'صورة الصنف'" [size]="44" zoomable />
+  } @else {
   <span class="ic__avatar" [style.--chip]="it.groupColor || 'var(--txt3)'"><app-icon name="box" [size]="20" /></span>
+  }
   <div class="ic__title">
     <span class="ui-code">{{ it.code || '—' }}</span>
     <h3>{{ it.name || 'اسم الصنف' }}</h3>

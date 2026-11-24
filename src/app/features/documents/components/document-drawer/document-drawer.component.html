@@ -95,10 +95,20 @@
 
     <!-- Lines -->
     <section class="dd-block" style="--i: 2">
-      <h3 class="dd-h">الأصناف <span>{{ d.lines.length }}</span></h3>
+      <div class="dd-lines-head">
+        <h3 class="dd-h">الأصناف <span>{{ d.lines.length }}</span></h3>
+        @if (hasLinePhotos(d)) {
+        <label class="dd-print-photos" title="إعداد على هذا الجهاز — أوقفه مع الطابعات الحرارية">
+          <input type="checkbox" [checked]="printSettings.showImages()"
+            (change)="printSettings.setShowImages($any($event.target).checked)" />
+          طباعة الصور
+        </label>
+        }
+      </div>
       <ul class="dd-lines">
         @for (l of d.lines; track l.itemId; let i = $index) {
         <li [style.--i]="i">
+          <app-product-thumb [src]="l.imageUrl" [alt]="l.name" [caption]="l.code + ' · ' + l.name" [size]="48" zoomable />
           <span class="dd-lines__qty">×{{ int(l.qty) }}</span>
           <div class="dd-lines__name">
             <strong>{{ l.name }}</strong>

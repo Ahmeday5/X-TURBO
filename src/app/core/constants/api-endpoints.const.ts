@@ -155,7 +155,13 @@ export const API_ENDPOINTS = {
   carModels: {
     /** `?makeId=` to filter by make. */
     list: 'car-models',
+    /** DELETE also removes the model's photo file. */
     byId: (id: string) => `car-models/${seg(id)}`,
+    /**
+     * POST multipart (`file`: JPG / PNG / WEBP ≤ 5 MB) uploads / replaces the
+     * car photo · DELETE removes it. Both → the full model (new `imageUrl` / `null`).
+     */
+    image: (id: string) => `car-models/${seg(id)}/image`,
   },
 
   warehouses: {

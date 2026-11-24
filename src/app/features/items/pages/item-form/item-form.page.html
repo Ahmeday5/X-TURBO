@@ -14,7 +14,7 @@
 
 <!-- Images / store / fitments: live on the server when editing; a draft saved with the item when creating. -->
 @if (activeTab() === 'images') {
-<app-item-images [itemId]="id() ?? null" />
+<app-item-images [itemId]="id() ?? null" (primaryUrlChange)="livePhoto.set($event)" />
 } @else if (activeTab() === 'store') {
 <!-- Tiers are validated against the sale price: the saved one when editing, the one being typed when creating. -->
 <app-item-store [itemId]="id() ?? null" [basePrice]="id() ? (current()?.salePrice ?? 0) : liveSalePrice()" />
@@ -98,8 +98,20 @@
       </div>
     </section>
 
+    <!-- Product photos: uploaded once here, shown in the directory, documents and the app -->
+    <section class="if__section" style="--i: 1" aria-labelledby="if-photos-title">
+      <header class="if__section-head">
+        <span class="if__section-icon"><app-icon name="image" [size]="17" /></span>
+        <div>
+          <h2 id="if-photos-title">صور المنتج</h2>
+          <p>{{ isEdit() ? 'التغييرات تُحفظ فورًا' : 'تُرفع بعد حفظ الصنف' }} — JPG أو PNG أو WEBP حتى 5 ميجا، و{{ maxImages }} صور كحد أقصى</p>
+        </div>
+      </header>
+      <app-item-images [itemId]="id() ?? null" [embedded]="true" (primaryUrlChange)="livePhoto.set($event)" />
+    </section>
+
     <!-- Pricing -->
-    <section class="if__section" style="--i: 1">
+    <section class="if__section" style="--i: 2">
       <header class="if__section-head">
         <span class="if__section-icon"><app-icon name="coins" [size]="17" /></span>
         <div>
@@ -198,7 +210,7 @@
     </section>
 
     <!-- Stock & status -->
-    <section class="if__section" style="--i: 2">
+    <section class="if__section" style="--i: 3">
       <header class="if__section-head">
         <span class="if__section-icon"><app-icon name="layers" [size]="17" /></span>
         <div>
@@ -256,7 +268,9 @@
 
   <!-- Sticky actions -->
   <footer class="if__actions">
-    @if (!isEdit() && setup.pendingSummary()) {
+    @if (!isEdit() && savingStatus(); as status) {
+    <span class="if__pending if__pending--live" role="status" aria-live="polite"><span class="if__spin" aria-hidden="true"></span> {{ status }}</span>
+    } @else if (!isEdit() && setup.pendingSummary()) {
     <span class="if__pending"><app-icon name="check" [size]="13" /> يُحفظ مع الصنف: {{ setup.pendingSummary() }}</span>
     }
     <a class="ui-btn ui-btn--ghost" routerLink="/items/directory">إلغاء</a>
@@ -276,7 +290,9 @@
 <!-- Creating: the item can be saved from any tab (the details form is validated first). -->
 @if (!isEdit() && activeTab() !== 'details') {
 <footer class="fp__actions if-create-bar">
-  @if (setup.pendingSummary()) {
+  @if (savingStatus(); as status) {
+  <span class="if__pending if__pending--live" role="status" aria-live="polite"><span class="if__spin" aria-hidden="true"></span> {{ status }}</span>
+  } @else if (setup.pendingSummary()) {
   <span class="if__pending"><app-icon name="check" [size]="13" /> يُحفظ مع الصنف: {{ setup.pendingSummary() }}</span>
   }
   <a class="ui-btn ui-btn--ghost" routerLink="/items/directory">إلغاء</a>

@@ -343,3 +343,30 @@
   color: var(--txt3);
   background: var(--bg3);
 }
+
+/* Live save status of a new item (upload progress) next to the save buttons. */
+.if__pending--live {
+  color: var(--bl);
+}
+
+.if__spin {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: if-spin 0.7s linear infinite;
+}
+
+@keyframes if-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .if__spin {
+    animation: none;
+  }
+}

@@ -14,6 +14,7 @@ import { formatInteger, formatMoney } from '../../../../shared/utils/format.util
 import { createQueryResource } from '../../../../shared/list/query-resource';
 import { DetailsDrawerComponent } from '../../../../shared/components/details-drawer/details-drawer.component';
 import { RatingStarsComponent } from '../../../../shared/components/rating-stars/rating-stars.component';
+import { ProductThumbComponent } from '../../../../shared/components/product-thumb/product-thumb.component';
 import { toItemDetails } from '../../utils/item-details';
 import { ItemCardComponent } from '../../components/item-card/item-card.component';
 import { StockMeterComponent } from '../../components/stock-meter/stock-meter.component';
@@ -33,6 +34,7 @@ import { LabelPrintService } from '../../services/label-print.service';
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    ProductThumbComponent,
     RouterLink,
     PageHeaderComponent,
     ListToolbarComponent,
@@ -87,6 +89,7 @@ export class ItemsDirectoryPage {
   private readonly stockCell = viewChild.required<TemplateRef<{ $implicit: Item }>>('stockCell');
   private readonly statusCell = viewChild.required<TemplateRef<{ $implicit: Item }>>('statusCell');
   private readonly codeCell = viewChild.required<TemplateRef<{ $implicit: Item }>>('codeCell');
+  private readonly photoCell = viewChild.required<TemplateRef<{ $implicit: Item }>>('photoCell');
   private readonly ratingCell = viewChild.required<TemplateRef<{ $implicit: Item }>>('ratingCell');
   private readonly reservedCell = viewChild.required<TemplateRef<{ $implicit: Item }>>('reservedCell');
   private readonly availableCell = viewChild.required<TemplateRef<{ $implicit: Item }>>('availableCell');
@@ -105,6 +108,7 @@ export class ItemsDirectoryPage {
 
   /** Computed from the view-child signals, so cell templates resolve after view init. */
   protected readonly columns = computed<TableColumn<Item>[]>(() => [
+    { key: 'imageUrl', label: 'الصورة', width: '64px', align: 'center', cellTemplate: this.photoCell() },
     { key: 'code', label: 'الكود', sortable: true, width: '120px', cellTemplate: this.codeCell() },
     { key: 'name', label: 'الصنف', sortable: true, cellTemplate: this.nameCell() },
     { key: 'unit', label: 'الوحدة', width: '90px' },

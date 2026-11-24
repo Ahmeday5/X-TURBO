@@ -20,6 +20,8 @@ export interface StoreCarMake {
   id: string;
   name: string;
   nameEn: string | null;
+  /** Public logo URL, `null` = none. */
+  logoUrl?: string | null;
   modelsCount: number;
 }
 
@@ -28,6 +30,8 @@ export interface StoreCarModel {
   makeId: string;
   name: string;
   nameEn: string | null;
+  /** Public car photo URL, `null` = none. */
+  imageUrl?: string | null;
   yearFrom: number;
   /** `null` = still in production. */
   yearTo: number | null;

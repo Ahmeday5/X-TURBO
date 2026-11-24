@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, ElementRef, input, output, signal, viewChild } from '@angular/core';
 import { IconComponent } from '../../../../shared/components/icon/icon.component';
+import { ProductThumbComponent } from '../../../../shared/components/product-thumb/product-thumb.component';
 import { SCAN_HINT, SCAN_PLACEHOLDER } from '../../../../shared/barcode/scan-hint.const';
 import { findByScan } from '../../../../shared/barcode/scan-match';
 import { ClickOutsideDirective } from '../../../../shared/directives/click-outside.directive';
@@ -20,7 +21,7 @@ const MAX_RESULTS = 50;
   selector: 'app-item-picker',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [IconComponent, ClickOutsideDirective],
+  imports: [IconComponent, ClickOutsideDirective, ProductThumbComponent],
   template: `
     <div class="ip" (appClickOutside)="open.set(false)">
       <div class="input-icon ip__box">
@@ -47,10 +48,13 @@ const MAX_RESULTS = 50;
           @for (it of results(); track it.id; let i = $index) {
             <li role="option" [attr.aria-selected]="i === active()" [class.is-active]="i === active()"
               (mouseenter)="active.set(i)" (mousedown)="choose(it, $event)">
-              <span class="ip__dot" [style.background]="it.groupColor"></span>
+              <app-product-thumb [src]="it.imageUrl" [alt]="it.name" [size]="36" />
               <div class="ip__name">
                 <strong>{{ it.name }}</strong>
-                <small><span class="ui-code ltr">{{ it.code }}</span> · {{ it.groupName }}</small>
+                <small>
+                  <span class="ip__dot" [style.background]="it.groupColor"></span>
+                  <span class="ui-code ltr">{{ it.code }}</span> · {{ it.groupName }}
+                </small>
               </div>
               <div class="ip__meta">
                 <strong>{{ money(priceOf()(it)) }}</strong>
@@ -103,7 +107,7 @@ const MAX_RESULTS = 50;
         transition: background var(--dur-fast);
       }
       .ip__list li.is-active { background: var(--primary-soft); }
-      .ip__dot { flex-shrink: 0; width: 8px; height: 8px; border-radius: 50%; }
+      .ip__dot { display: inline-block; flex-shrink: 0; width: 7px; height: 7px; margin-inline-end: 2px; border-radius: 50%; vertical-align: middle; }
       .ip__name { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
       .ip__name strong { font-size: 12.5px; color: var(--txt); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
       .ip__name small, .ip__meta small { font-size: 11px; color: var(--txt3); }

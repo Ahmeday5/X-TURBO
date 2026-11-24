@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, DestroyRef, effect, inject, input, signal, untracked } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, DestroyRef, effect, inject, input, output, signal, untracked } from '@angular/core';
 import { finalize } from 'rxjs';
 import { hasErrorCode } from '../../../../core/http/api-error-codes';
 import { ApiError } from '../../../../core/models/api-response.model';
@@ -35,6 +35,10 @@ let taskKey = 0;
  * Store photos of one item: pick or drop files (validated locally first),
  * preview, sequential upload with per-file status, drag & drop reorder (or
  * the arrow buttons), primary star, delete. Max 10 images, JPG/PNG/WEBP ≤ 5 MB.
+ *
+ * The primary photo is the one shown everywhere (directory, documents, the
+ * app). `embedded` drops the card chrome + title so it sits inside a form
+ * section that already has its own heading.
  */
 @Component({
   selector: 'app-item-images',
@@ -43,6 +47,7 @@ let taskKey = 0;
   imports: [IconComponent],
   templateUrl: './item-images.component.html',
   styleUrl: './item-images.component.scss',
+  host: { '[class.is-embedded]': 'embedded()' },
 })
 export class ItemImagesComponent {
   private readonly api = inject(ItemImagesService);
@@ -51,6 +56,14 @@ export class ItemImagesComponent {
 
   /** `null` = a new, unsaved item: images are kept in the draft and uploaded after it's created. */
   readonly itemId = input<string | null>(null);
+  /** Rendered inside another section (the item form) — no card chrome, no own title. */
+  readonly embedded = input(false);
+
+  /**
+   * The photo that will represent the item (primary on the server, or the
+   * first draft image), `null` when none — e.g. for the form's live preview.
+   */
+  readonly primaryUrlChange = output<string | null>();
 
   /** Provided by the item screen; holds the new item's pending images. */
   protected readonly draft = inject(ItemDraftService, { optional: true });
@@ -62,6 +75,8 @@ export class ItemImagesComponent {
   protected readonly images = signal<ItemImage[]>([]);
   protected readonly loading = signal(false);
   protected readonly loadError = signal<string | null>(null);
+  /** The server list arrived at least once for the current item (until then the primary photo is unknown). */
+  private readonly loaded = signal(false);
   protected readonly queue = signal<UploadTask[]>([]);
   protected readonly busyId = signal<string | null>(null);
   protected readonly dropActive = signal(false);
@@ -80,11 +95,30 @@ export class ItemImagesComponent {
       : ITEM_IMAGE_RULES.maxPerItem - this.images().length - this.pending(),
   );
   protected readonly imageCount = computed(() => (this.draftMode() ? (this.draft?.images().length ?? 0) : this.images().length));
+  /** The new item is being saved: its draft images are uploading and can't be changed. */
+  protected readonly committing = computed(() => this.draftMode() && !!this.draft?.committing());
+  protected readonly uploadState = (key: number) => this.draft?.uploads().get(key) ?? null;
+
+  /** `undefined` = not known yet (still loading) — nothing is emitted then. */
+  private readonly primaryUrl = computed<string | null | undefined>(() => {
+    if (this.draftMode()) return this.draft?.images()[0]?.previewUrl ?? null;
+    if (!this.loaded()) return undefined;
+    const list = this.images();
+    return (list.find((i) => i.isPrimary) ?? list[0])?.url ?? null;
+  });
 
   constructor() {
     effect(() => {
       const id = this.itemId();
-      if (id) untracked(() => this.load(id));
+      untracked(() => {
+        this.loaded.set(false);
+        this.images.set([]);
+        if (id) this.load(id);
+      });
+    });
+    effect(() => {
+      const url = this.primaryUrl();
+      if (url !== undefined) untracked(() => this.primaryUrlChange.emit(url));
     });
     inject(DestroyRef).onDestroy(() => this.queue().forEach((t) => this.revoke(t)));
   }
@@ -99,7 +133,10 @@ export class ItemImagesComponent {
       .list(itemId)
       .pipe(finalize(() => this.loading.set(false)))
       .subscribe({
-        next: (list) => this.images.set(sortImages(list)),
+        next: (list) => {
+          this.images.set(sortImages(list));
+          this.loaded.set(true);
+        },
         error: (err: ApiError) => this.loadError.set(err.message || 'تعذّر تحميل الصور'),
       });
   }

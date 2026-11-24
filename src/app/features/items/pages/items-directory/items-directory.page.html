@@ -1,4 +1,8 @@
 <!-- Cell / card templates (static, so view-child signals resolve on first pass) -->
+<ng-template #photoCell let-item>
+  <app-product-thumb [src]="item.imageUrl" [alt]="item.name" [caption]="item.code + ' · ' + item.name" zoomable />
+</ng-template>
+
 <ng-template #codeCell let-item>
   <div class="id-codes">
     <span class="ui-code">{{ item.code }}</span>

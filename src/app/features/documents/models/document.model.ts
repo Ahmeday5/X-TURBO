@@ -50,6 +50,11 @@ export interface DocLine {
   discountPct: number;
   /** qty × price × (1 − discountPct/100), rounded to 2dp. */
   total: number;
+  /**
+   * The item's CURRENT primary photo (public URL, no token) — `null` = none.
+   * Not a snapshot: an old document shows the item's latest photo.
+   */
+  imageUrl: string | null;
 }
 
 interface DocumentHeader {

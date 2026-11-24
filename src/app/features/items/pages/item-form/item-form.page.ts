@@ -17,6 +17,7 @@ import { ItemFitmentsComponent } from '../../components/item-fitments/item-fitme
 import { ItemReviewsComponent } from '../../components/item-reviews/item-reviews.component';
 import { REVIEW_FILTERS } from '../../models/item-review.model';
 import { DRAFT_PART_LABEL, DraftCommitResult, DraftPart, ItemDraftService } from '../../services/item-draft.service';
+import { ITEM_IMAGE_RULES } from '../../models/item-image.model';
 import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
 import {
   SearchableSelectComponent,
@@ -51,6 +52,19 @@ const ITEM_TABS: readonly { key: ItemTab; label: string; icon: IconName }[] = [
 
 /** Tab to reopen when a part of a new item failed to save. */
 const TAB_OF_PART: Record<DraftPart, ItemTab> = { images: 'images', store: 'store', fitments: 'fitments' };
+
+/**
+ * "تم حفظ الصنف IT-0012، لكن فشل رفع صورة: {server message} — …". Image
+ * failures quote the server's message (ready Arabic); other parts are named.
+ */
+function createdWithFailuresMessage(item: Item, result: DraftCommitResult): string {
+  const problems = result.failed.map((part) => {
+    const message = result.errors[part];
+    if (part === 'images') return `فشل رفع صورة${message ? `: ${message}` : ''}`;
+    return `تعذّر حفظ ${DRAFT_PART_LABEL[part]}${message ? ` (${message})` : ''}`;
+  });
+  return `تم حفظ الصنف ${item.code}، لكن ${problems.join('، و')} — يمكنك الإكمال من شاشة تعديل الصنف.`;
+}
 
 /** URL params owned by the reviews list — dropped when leaving its tab. */
 const REVIEW_URL_PARAMS = ['q', 'page', 'size', 'sort', 'dir', 'view', ...REVIEW_FILTERS] as const;
@@ -121,6 +135,14 @@ export class ItemFormPage {
   }
 
   protected readonly units = ITEM_UNITS;
+  protected readonly maxImages = ITEM_IMAGE_RULES.maxPerItem;
+
+  /**
+   * The photo the item will show (primary on the server / first draft image),
+   * reported by the images section — feeds the live preview card.
+   * `undefined` until the section reports (falls back to the saved item's).
+   */
+  protected readonly livePhoto = signal<string | null | undefined>(undefined);
   protected readonly compatibleMax = COMPATIBLE_WITH_MAX;
   protected readonly discountRange = DISCOUNT_RANGE;
 
@@ -184,7 +206,16 @@ export class ItemFormPage {
       stock: this.current()?.stock ?? 0,
       minStock: Number(v.minStock) || 0,
       isActive: v.isActive,
+      imageUrl: this.livePhoto() !== undefined ? this.livePhoto() : (this.current()?.imageUrl ?? null),
     };
+  });
+
+  /** What a NEW item's save is doing right now (shown next to the save buttons). */
+  protected readonly savingStatus = computed<string | null>(() => {
+    if (!this.saving() || this.isEdit()) return null;
+    const p = this.setup.uploadProgress();
+    if (p) return `جارٍ رفع الصورة ${p.current} من ${p.total}${p.percent !== null ? ` — ${p.percent}%` : '…'}`;
+    return this.setup.committing() ? 'جارٍ حفظ بيانات الصنف الإضافية…' : 'جارٍ حفظ الصنف…';
   });
 
   protected readonly margin = computed(() => marginPct(this.preview().purchasePrice, this.preview().salePrice));
@@ -272,8 +303,8 @@ export class ItemFormPage {
   private afterCreate(item: Item, result: DraftCommitResult, mode: 'save' | 'saveNew'): void {
     const extras = this.setup.pendingSummary();
     if (result.failed.length) {
-      const parts = result.failed.map((p) => DRAFT_PART_LABEL[p]).join('، ');
-      this.toast.warning(`تم إضافة الصنف ${item.code}، لكن تعذّر حفظ: ${parts} — أكملها من شاشة تعديل الصنف`);
+      // The item IS saved — never POST it again (BARCODE_TAKEN / SKU_TAKEN). Finish it in edit mode.
+      this.toast.warning(createdWithFailuresMessage(item, result), { duration: 9000 });
       this.setup.reset();
       this.router.navigate(['/items/define'], { queryParams: { id: item.id, tab: TAB_OF_PART[result.failed[0]] } });
       return;

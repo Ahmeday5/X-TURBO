@@ -143,6 +143,11 @@
     overflow-x: auto;
   }
 
+  &__img-col {
+    width: 1%;
+    padding-inline-end: 0 !important;
+  }
+
   &__table {
     width: 100%;
     border-collapse: collapse;

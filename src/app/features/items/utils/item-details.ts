@@ -13,6 +13,8 @@ export function toItemDetails(item: Item): EntityDetails {
       title: item.name,
       subtitle: `${item.code} · ${item.groupName}`,
       icon: 'box',
+      imageUrl: item.imageUrl,
+      imageFit: 'cover',
       badge: item.isActive ? { label: 'نشط', tone: 'good' } : { label: 'موقوف', tone: 'neutral' },
     },
     sections: [

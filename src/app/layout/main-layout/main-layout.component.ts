@@ -3,6 +3,7 @@ import { RouterOutlet } from '@angular/router';
 import { TopbarComponent } from './topbar/topbar.component';
 import { SidebarComponent } from './sidebar/sidebar.component';
 import { ConfirmDialogComponent } from '../../shared/components/confirm-dialog/confirm-dialog.component';
+import { ImageLightboxComponent } from '../../shared/components/image-lightbox/image-lightbox.component';
 import { LayoutService } from '../../core/services/layout.service';
 import { DeliveryStatsService } from '../../features/drivers/services/delivery-stats.service';
 import { AppCustomerStatsService } from '../../features/app-customers/services/app-customer-stats.service';
@@ -11,7 +12,7 @@ import { AppCustomerStatsService } from '../../features/app-customers/services/a
   selector: 'app-main-layout',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterOutlet, TopbarComponent, SidebarComponent, ConfirmDialogComponent],
+  imports: [RouterOutlet, TopbarComponent, SidebarComponent, ConfirmDialogComponent, ImageLightboxComponent],
   templateUrl: './main-layout.component.html',
   styleUrl: './main-layout.component.scss',
 })

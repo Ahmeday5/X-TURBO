@@ -12,6 +12,7 @@ import { formatInteger } from '../../../../shared/utils/format.util';
 import { CarMakeDialogComponent } from '../../components/car-make-dialog/car-make-dialog.component';
 import { CarModelDialogComponent } from '../../components/car-model-dialog/car-model-dialog.component';
 import { CarMakeLogoComponent } from '../../components/car-make-logo/car-make-logo.component';
+import { CarModelImageComponent } from '../../components/car-model-image/car-model-image.component';
 import {
   CAR_ERROR_CODES,
   CarMake,
@@ -38,6 +39,7 @@ import { DetailsDrawerComponent } from '../../../../shared/components/details-dr
     IconComponent,
     CarMakeDialogComponent,
     CarMakeLogoComponent,
+    CarModelImageComponent,
     CarModelDialogComponent,
     DetailsDrawerComponent,
   ],
@@ -210,11 +212,15 @@ export class CarCatalogPage {
     this.modelDialogOpen.set(true);
   }
 
+  /** `m` is the latest server response (after the photo step) — the row is updated from it. */
   protected onModelSaved(m: CarModel): void {
     this.modelDialogOpen.set(false);
-    // The model may have been moved to another make — follow it.
-    this.selectedMakeId.set(m.makeId);
-    this.models.reload();
+    if (m.makeId === this.selectedMakeId()) {
+      this.models.update((list) => (list.some((x) => x.id === m.id) ? list.map((x) => (x.id === m.id ? m : x)) : [...list, m]));
+    } else {
+      // Moved to (or created under) another make — follow it; its models load by themselves.
+      this.selectedMakeId.set(m.makeId);
+    }
     this.makes.reload(); // models count
   }
 

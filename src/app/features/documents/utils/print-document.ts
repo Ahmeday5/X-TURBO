@@ -1,4 +1,5 @@
 import { environment } from '../../../../environments/environment';
+import { PRINT_WHEN_IMAGES_READY_SCRIPT } from '../../../shared/utils/print-window.util';
 import { barcodeSvg } from '../../../shared/barcode/code128';
 import { formatFullDate, formatInteger, formatMoney } from '../../../shared/utils/format.util';
 import { DOC_KIND_CONFIG, DOC_PAYMENT_LABEL, Document, docStatusView } from '../models/document.model';
@@ -9,14 +10,25 @@ const esc = (value: unknown): string =>
 
 const date = (iso: string | null) => (iso ? formatFullDate(iso.slice(0, 10)) : '—');
 
+/** Only absolute http(s) URLs reach the printout. */
+const safeImageUrl = (url: string | null | undefined): string | null => (url && /^https?:\/\//i.test(url) ? url : null);
+
+export interface PrintDocumentOptions {
+  /** A small product photo on each line (off for thermal printers). */
+  showImages: boolean;
+}
+
 /**
  * Prints a clean A4 copy of a document in its own window, so nothing of the
- * app shell (drawer, sidebar, theme) leaks into the printout.
+ * app shell (drawer, sidebar, theme) leaks into the printout. With photos,
+ * printing waits until they load (capped), so none prints blank.
+ *
+ * Returns `false` when the browser blocked the window.
  */
-export function printDocument(doc: Document): void {
+export function printDocument(doc: Document, options: PrintDocumentOptions = { showImages: true }): boolean {
   const cfg = DOC_KIND_CONFIG[doc.kind];
   const win = window.open('', '_blank', 'width=900,height=1000');
-  if (!win) return;
+  if (!win) return false;
 
   const meta: Array<[string, string]> = [
     ['الرقم', doc.number],
@@ -34,10 +46,16 @@ export function printDocument(doc: Document): void {
   const numberBarcode = barcodeSvg(doc.number);
 
   const priced = cfg.financial;
+  // The photo column only when asked for AND at least one line has a photo.
+  const withImages = options.showImages && doc.lines.some((l) => !!safeImageUrl(l.imageUrl));
+  const photoCell = (url: string | null | undefined) => {
+    const src = safeImageUrl(url);
+    return `<td class="photo">${src ? `<img src="${esc(src)}" alt="">` : '<span class="no-photo"></span>'}</td>`;
+  };
   const rows = doc.lines
     .map(
       (l, i) => `<tr>
-        <td>${i + 1}</td><td class="ltr">${esc(l.code)}</td><td class="name">${esc(l.name)}</td>
+        <td>${i + 1}</td>${withImages ? photoCell(l.imageUrl) : ''}<td class="ltr">${esc(l.code)}</td><td class="name">${esc(l.name)}</td>
         <td>${esc(l.unit)}</td><td>${formatInteger(l.qty)}</td>
         ${priced ? `<td>${esc(formatMoney(l.price))}</td><td>${l.discountPct ? `${l.discountPct}%` : '—'}</td><td>${esc(formatMoney(l.total))}</td>` : ''}
       </tr>`,
@@ -77,6 +95,10 @@ export function printDocument(doc: Document): void {
   th, td { border: 1px solid #ddd; padding: 6px 8px; text-align: center; }
   th { background: #f3f3f3; font-size: 11px; }
   td.name { text-align: start; }
+  td.photo { width: 16mm; padding: 3px; }
+  td.photo img { display: block; width: 13mm; height: 13mm; margin: 0 auto; object-fit: cover; border-radius: 4px; border: 1px solid #e5e5e5; }
+  td.photo .no-photo { display: block; width: 13mm; height: 13mm; margin: 0 auto; border-radius: 4px; background: #f1f1f1; }
+  tr { break-inside: avoid; }
   .totals { margin-top: 14px; margin-inline-start: auto; width: 300px; }
   .totals div { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #eee; }
   .totals div:last-child { font-weight: 800; }
@@ -87,12 +109,13 @@ export function printDocument(doc: Document): void {
 <header><div><h1>${esc(cfg.singular)}</h1><div class="ltr">${esc(doc.number)}</div></div>
 <div class="head-end"><div class="brand">${esc(environment.appName)}</div>${numberBarcode ? `<div class="doc-barcode">${numberBarcode}<span>${esc(doc.number)}</span></div>` : ''}</div></header>
 <section class="meta">${meta.map(([k, v]) => `<div><small>${esc(k)}</small>${esc(v)}</div>`).join('')}</section>
-<table><thead><tr><th>#</th><th>الكود</th><th>الصنف</th><th>الوحدة</th><th>الكمية</th>
+<table><thead><tr><th>#</th>${withImages ? '<th>الصورة</th>' : ''}<th>الكود</th><th>الصنف</th><th>الوحدة</th><th>الكمية</th>
 ${priced ? '<th>السعر</th><th>الخصم</th><th>الإجمالي</th>' : ''}</tr></thead><tbody>${rows}</tbody></table>
 <section class="totals">${totals.map(([k, v]) => `<div><span>${esc(k)}</span><strong>${esc(v)}</strong></div>`).join('')}</section>
 ${doc.notes ? `<div class="notes">${esc(doc.notes)}</div>` : ''}
 <div class="sign"><span>المستلم</span><span>المسؤول — ${esc(doc.createdBy)}</span></div>
-<script>window.onload = () => { window.print(); };</script>
+${PRINT_WHEN_IMAGES_READY_SCRIPT}
 </body></html>`);
   win.document.close();
+  return true;
 }

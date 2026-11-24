@@ -16,6 +16,7 @@ import { finalize, of, switchMap } from 'rxjs';
 import { ToastService } from '../../../../core/services/toast.service';
 import { FormErrorComponent } from '../../../../shared/components/form-error/form-error.component';
 import { IconComponent } from '../../../../shared/components/icon/icon.component';
+import { ProductThumbComponent } from '../../../../shared/components/product-thumb/product-thumb.component';
 import {
   SearchableSelectComponent,
   SearchableSelectOption,
@@ -61,6 +62,8 @@ interface EditLine {
   qty: number;
   price: number;
   discountPct: number;
+  /** From the picked item (lookup) or the saved line — `null` = no photo. */
+  imageUrl: string | null;
 }
 
 let lineKey = 0;
@@ -86,7 +89,15 @@ function savedMessage(cfg: DocKindConfig, doc: Document, post: boolean): string 
   selector: 'app-document-editor',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, IconComponent, FormErrorComponent, SearchableSelectComponent, StatusPillComponent, ItemPickerComponent],
+  imports: [
+    ReactiveFormsModule,
+    IconComponent,
+    FormErrorComponent,
+    SearchableSelectComponent,
+    StatusPillComponent,
+    ItemPickerComponent,
+    ProductThumbComponent,
+  ],
   templateUrl: './document-editor.component.html',
   styleUrl: './document-editor.component.scss',
 })
@@ -256,7 +267,17 @@ export class DocumentEditorComponent {
     const key = ++lineKey;
     this.lines.update((ls) => [
       ...ls,
-      { key, itemId: item.id, code: item.code, name: item.name, unit: item.unit, qty: 1, price: this.priceOf(item), discountPct: 0 },
+      {
+        key,
+        itemId: item.id,
+        code: item.code,
+        name: item.name,
+        unit: item.unit,
+        qty: 1,
+        price: this.priceOf(item),
+        discountPct: 0,
+        imageUrl: item.imageUrl ?? null,
+      },
     ]);
     this.flash(key);
     return key;
@@ -462,7 +483,17 @@ export class DocumentEditorComponent {
           });
           this.payFull.set(doc.total > 0 && doc.remaining <= 0);
           this.lines.set(
-            doc.lines.map((l) => ({ key: ++lineKey, itemId: l.itemId, code: l.code, name: l.name, unit: l.unit, qty: l.qty, price: l.price, discountPct: l.discountPct })),
+            doc.lines.map((l) => ({
+              key: ++lineKey,
+              itemId: l.itemId,
+              code: l.code,
+              name: l.name,
+              unit: l.unit,
+              qty: l.qty,
+              price: l.price,
+              discountPct: l.discountPct,
+              imageUrl: l.imageUrl ?? null,
+            })),
           );
           this.submitted.set(false);
         },

@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
 import { IconComponent } from '../../../../shared/components/icon/icon.component';
+import { ProductThumbComponent } from '../../../../shared/components/product-thumb/product-thumb.component';
 import { formatMoney } from '../../../../shared/utils/format.util';
 import { Item, marginPct } from '../../models/item.model';
 import { StockMeterComponent } from '../stock-meter/stock-meter.component';
@@ -9,14 +10,14 @@ export type ItemCardData = Pick<
   Item,
   'code' | 'name' | 'groupName' | 'groupColor' | 'unit' | 'salePrice' | 'purchasePrice' | 'stock' | 'minStock' | 'isActive'
 > &
-  Partial<Pick<Item, 'reserved' | 'available' | 'level' | 'posPrice'>>;
+  Partial<Pick<Item, 'reserved' | 'available' | 'level' | 'posPrice' | 'imageUrl'>>;
 
 /** Item summary used by the directory's card view and the form's live preview. */
 @Component({
   selector: 'app-item-card',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [IconComponent, StockMeterComponent],
+  imports: [IconComponent, StockMeterComponent, ProductThumbComponent],
   templateUrl: './item-card.component.html',
   styleUrl: './item-card.component.scss',
 })

@@ -125,6 +125,16 @@ td.de__name {
   white-space: normal;
   min-width: 220px;
 
+  .de__item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .de__item-text {
+    flex: 1;
+    min-width: 0;
+  }
+
   strong {
     display: block;
     font-size: 12.5px;
